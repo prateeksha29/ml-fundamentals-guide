@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimization Algorithms: The Interview Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #e94560;
+            --accent-soft: #ff6b8a;
+            --text: #f1f1f1;
+            --text-muted: #a0a0a0;
+            --code-bg: #0f0f1e;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--primary);
+            color: var(--text);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.03;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 30px;
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 80px;
+            padding: 60px 0;
+            position: relative;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120%;
+            height: 100%;
+            background: var(--gradient-1);
+            opacity: 0.05;
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        h1 {
+            font-family: 'Crimson Pro', serif;
+            font-size: 4.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-top: 15px;
+            animation: fadeInUp 0.8s ease-out 0.2s backwards;
+        }
+
+        .meta {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            animation: fadeInUp 0.8s ease-out 0.4s backwards;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section {
+            margin-bottom: 80px;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        .section:nth-child(1) { animation-delay: 0.1s; }
+        .section:nth-child(2) { animation-delay: 0.2s; }
+        .section:nth-child(3) { animation-delay: 0.3s; }
+        .section:nth-child(4) { animation-delay: 0.4s; }
+        .section:nth-child(5) { animation-delay: 0.5s; }
+
+        h2 {
+            font-family: 'Crimson Pro', serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        h2::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 5px;
+            height: 70%;
+            background: var(--gradient-2);
+            border-radius: 10px;
+        }
+
+        h3 {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 40px 0 20px;
+            color: var(--accent-soft);
+        }
+
+        p {
+            margin-bottom: 20px;
+            font-size: 1.05rem;
+            color: var(--text);
+        }
+
+        .algo-card {
+            background: var(--secondary);
+            border-radius: 15px;
+            padding: 35px;
+            margin: 30px 0;
+            border: 1px solid rgba(233, 69, 96, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .algo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--gradient-2);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .algo-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .algo-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(233, 69, 96, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .algo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .algo-title {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--accent-soft);
+        }
+
+        .difficulty {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .easy { background: rgba(0, 255, 136, 0.15); color: #00ff88; }
+        .medium { background: rgba(255, 184, 0, 0.15); color: #ffb800; }
+        .hard { background: rgba(255, 69, 96, 0.15); color: var(--accent-soft); }
+
+        .formula {
+            background: var(--code-bg);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            border-left: 3px solid var(--accent);
+            overflow-x: auto;
+        }
+
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .pros, .cons {
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .pros {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 3px solid #00ff88;
+        }
+
+        .cons {
+            background: rgba(255, 69, 96, 0.05);
+            border-left: 3px solid var(--accent);
+        }
+
+        .pros h4, .cons h4 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .pros h4 { color: #00ff88; }
+        .cons h4 { color: var(--accent-soft); }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        ul li {
+            padding: 8px 0;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        ul li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .interview-tip {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-left: 4px solid #667eea;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 30px 0;
+        }
+
+        .interview-tip h4 {
+            font-size: 1.2rem;
+            color: #667eea;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .interview-tip h4::before {
+            content: '💡';
+            font-size: 1.3rem;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            background: var(--secondary);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .comparison-table th {
+            background: var(--code-bg);
+            padding: 18px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--accent-soft);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+
+        .comparison-table td {
+            padding: 16px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .comparison-table tr:hover {
+            background: rgba(233, 69, 96, 0.05);
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--code-bg);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #ff6b8a;
+        }
+
+        .key-insight {
+            background: rgba(255, 107, 138, 0.08);
+            border: 1px solid rgba(255, 107, 138, 0.2);
+            padding: 20px 25px;
+            border-radius: 10px;
+            margin: 25px 0;
+            font-style: italic;
+            color: var(--text);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 100px;
+            padding: 40px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 3rem; }
+            h2 { font-size: 2rem; }
+            .pros-cons { grid-template-columns: 1fr; }
+            .container { padding: 40px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="noise-overlay"></div>
+    
+    <div class="container">
+        <header>
+            <h1>Mastering Optimization Algorithms</h1>
+            <p class="subtitle">A Complete Interview Preparation Guide</p>
+            <div class="meta">
+                <div class="meta-item">
+                    <span>📚</span>
+                    <span>For Applied Scientists</span>
+                </div>
+                <div class="meta-item">
+                    <span>⏱️</span>
+                    <span>15 min read</span>
+                </div>
+                <div class="meta-item">
+                    <span>🎯</span>
+                    <span>Interview Focused</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="section">
+            <h2>Why This Matters in Interviews</h2>
+            <p>Optimization algorithms are the beating heart of machine learning. In interviews at companies like OpenAI, Anthropic, Google, Meta, and Netflix, you'll be expected to not just use these algorithms, but to deeply understand their mechanics, trade-offs, and implementation details.</p>
+            
+            <p>Interviewers don't just want to hear "Adam is better than SGD." They want to know <em>why</em>, <em>when</em>, and <em>how much better</em>. They'll ask you to implement these from scratch, explain convergence properties, and diagnose why a model isn't training properly.</p>
+
+            <div class="interview-tip">
+                <h4>Interview Pattern Recognition</h4>
+                <p>When asked "Why did you choose this optimizer?", never say "because it's standard" or "everyone uses it." Instead, demonstrate understanding: "I chose Adam because this problem has sparse gradients from the embedding layer, and Adam's adaptive learning rates handle that better than SGD. However, I'm monitoring for overfitting since Adam can sometimes converge to sharper minima."</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>The Core Algorithms</h2>
+
+            <div class="algo-card">
+                <div class="algo-header">
+                    <h3 class="algo-title">1. Gradient Descent (GD)</h3>
+                    <span class="difficulty easy">Foundation</span>
+                </div>
+                
+                <p><strong>The baseline.</strong> GD computes the gradient using the <em>entire</em> dataset before making a single update. It's deterministic, smooth, but impractical for large datasets.</p>
+
+                <div class="formula">
+θ = θ - η ∇J(θ)
+
+Where:
+  θ = parameters
+  η = learning rate
+  ∇J(θ) = gradient of loss w.r.t. parameters
+                </div>
+
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Strengths</h4>
+                        <ul>
+                            <li>Guaranteed convergence to global minimum (convex)</li>
+                            <li>Stable, smooth updates</li>
+                            <li>Easy to analyze theoretically</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Weaknesses</h4>
+                        <ul>
+                            <li>Computationally expensive (full dataset each step)</li>
+                            <li>Memory intensive</li>
+                            <li>No online learning capability</li>
+                            <li>Can't escape local minima in non-convex landscapes</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="interview-tip">
+                    <h4>Interview Question</h4>
+                    <p>"When would you actually use batch GD?" Answer: Small datasets where you can fit everything in memory, or when you need deterministic, reproducible results. Example: final fine-tuning of a model where stability matters more than speed.</p>
+                </div>
+            </div>
+
+            <div class="algo-card">
+                <div class="algo-header">
+                    <h3 class="algo-title">2. Stochastic Gradient Descent (SGD)</h3>
+                    <span class="difficulty easy">Essential</span>
+                </div>
+                
+                <p><strong>The workhorse.</strong> SGD updates parameters after <em>each</em> training example (or small batch). This introduces noise, but that noise is actually helpful for escaping local minima.</p>
+
+                <div class="formula">
+For each sample (or mini-batch):
+  θ = θ - η ∇J(θ; x⁽ⁱ⁾, y⁽ⁱ⁾)
+
+Mini-batch (typical):
+  θ = θ - η (1/m) Σ ∇J(θ; x⁽ⁱ⁾, y⁽ⁱ⁾)
+  where m = batch size (e.g., 32, 64, 256)
+                </div>
+
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Strengths</h4>
+                        <ul>
+                            <li>Fast updates, scales to massive datasets</li>
+                            <li>Can escape local minima (noise helps)</li>
+                            <li>Enables online learning</li>
+                            <li>Lower memory footprint</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Weaknesses</h4>
+                        <ul>
+                            <li>Noisy convergence (oscillates near minimum)</li>
+                            <li>Sensitive to learning rate choice</li>
+                            <li>Same learning rate for all parameters</li>
+                            <li>Can be slow on ill-conditioned problems</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="key-insight">
+                    <strong>Critical Insight:</strong> The "stochastic" in SGD isn't a bug—it's a feature. That noise helps the optimizer explore the loss landscape and find flatter, more generalizable minima. This is why SGD often generalizes better than adaptive methods in vision tasks.
+                </div>
+            </div>
+
+            <div class="algo-card">
+                <div class="algo-header">
+                    <h3 class="algo-title">3. SGD with Momentum</h3>
+                    <span class="difficulty medium">Popular</span>
+                </div>
+                
+                <p><strong>Physics-inspired acceleration.</strong> Momentum accumulates a velocity vector that dampens oscillations and accelerates convergence in consistent gradient directions. Think of it as a ball rolling down a hill.</p>
+
+                <div class="formula">
+v = β·v + ∇J(θ)
+θ = θ - η·v
+
+Where:
+  v = velocity (exponential moving average of gradients)
+  β = momentum coefficient (typically 0.9)
+                </div>
+
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Strengths</h4>
+                        <ul>
+                            <li>Faster convergence than vanilla SGD</li>
+                            <li>Dampens oscillations in high-curvature directions</li>
+                            <li>Helps escape small local minima</li>
+                            <li>Well-suited for deep networks</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Weaknesses</h4>
+                        <ul>
+                            <li>Introduces another hyperparameter (β)</li>
+                            <li>Can overshoot minima if momentum too high</li>
+                            <li>Still uses global learning rate</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="interview-tip">
+                    <h4>Common Follow-up</h4>
+                    <p>"What's Nesterov momentum?" It's a variant that computes the gradient at the "look-ahead" position: v = β·v + ∇J(θ - η·β·v). This anticipates where momentum will take you, leading to better-informed updates. Used in many production systems.</p>
+                </div>
+            </div>
+
+            <div class="algo-card">
+                <div class="algo-header">
+                    <h3 class="algo-title">4. RMSProp</h3>
+                    <span class="difficulty medium">Adaptive</span>
+                </div>
+                
+                <p><strong>Adaptive learning rates per parameter.</strong> RMSProp (Root Mean Square Propagation) adapts the learning rate for each parameter based on the magnitude of recent gradients. Invented by Geoffrey Hinton, often not published formally but widely used.</p>
+
+                <div class="formula">
+E[g²] = β·E[g²] + (1-β)·g²
+θ = θ - (η / √(E[g²] + ε))·g
+
+Where:
+  E[g²] = exponential moving average of squared gradients
+  β = decay rate (typically 0.9)
+  ε = small constant for numerical stability (1e-8)
+  g = current gradient
+                </div>
+
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Strengths</h4>
+                        <ul>
+                            <li>Adapts learning rate per parameter</li>
+                            <li>Works well with sparse gradients (NLP tasks)</li>
+                            <li>Reduces need for manual learning rate tuning</li>
+                            <li>Handles non-stationary objectives well</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Weaknesses</h4>
+                        <ul>
+                            <li>Can converge to suboptimal solutions</li>
+                            <li>Learning rate still needs tuning</li>
+                            <li>No bias correction in early iterations</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="key-insight">
+                    <strong>Why RMSProp matters:</strong> It was one of the first optimizers to show that adaptive per-parameter learning rates could work in practice. It paved the way for Adam. You'll still see it in RNN and RL codebases.
+                </div>
+            </div>
+
+            <div class="algo-card">
+                <div class="algo-header">
+                    <h3 class="algo-title">5. Adam (Adaptive Moment Estimation)</h3>
+                    <span class="difficulty hard">Industry Standard</span>
+                </div>
+                
+                <p><strong>The default choice.</strong> Adam combines momentum (first moment) with RMSProp (second moment) and adds bias correction. It's robust, requires minimal tuning, and works across a wide range of problems.</p>
+
+                <div class="formula">
+m = β₁·m + (1-β₁)·g              // First moment (momentum)
+v = β₂·v + (1-β₂)·g²             // Second moment (RMSProp)
+
+m̂ = m / (1 - β₁ᵗ)                // Bias correction
+v̂ = v / (1 - β₂ᵗ)
+
+θ = θ - η·m̂ / (√v̂ + ε)
+
+Default hyperparameters:
+  β₁ = 0.9, β₂ = 0.999, ε = 1e-8, η = 1e-3
+                </div>
+
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Strengths</h4>
+                        <ul>
+                            <li>Works well out-of-the-box (robust defaults)</li>
+                            <li>Combines benefits of momentum + adaptive LR</li>
+                            <li>Bias correction handles early iterations properly</li>
+                            <li>Efficient, low memory overhead</li>
+                            <li>Excellent for sparse gradients and NLP</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Weaknesses</h4>
+                        <ul>
+                            <li>Can converge to sharper minima (worse generalization)</li>
+                            <li>May not converge in some theoretical settings</li>
+                            <li>Higher computational cost than SGD</li>
+                            <li>Can overfit on small datasets</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="interview-tip">
+                    <h4>Red Flag Answer vs. Strong Answer</h4>
+                    <p><strong>❌ Weak:</strong> "Adam is the best optimizer, everyone uses it."</p>
+                    <p><strong>✅ Strong:</strong> "I chose Adam for this transformer model because: (1) sparse gradients from masked attention benefit from adaptive LR, (2) β₂=0.999 provides stable second-moment estimates critical for large embedding matrices, (3) the warmup schedule prevents early divergence. However, I'm also testing AdamW to address potential weight decay coupling issues."</p>
+                </div>
+            </div>
+
+            <div class="algo-card">
+                <div class="algo-header">
+                    <h3 class="algo-title">6. AdamW</h3>
+                    <span class="difficulty hard">Modern Standard</span>
+                </div>
+                
+                <p><strong>Adam with decoupled weight decay.</strong> The key insight: in Adam, L2 regularization and weight decay are NOT equivalent (unlike in SGD). AdamW fixes this by decoupling weight decay from the adaptive gradient computation.</p>
+
+                <div class="formula">
+m = β₁·m + (1-β₁)·g
+v = β₂·v + (1-β₂)·g²
+
+m̂ = m / (1 - β₁ᵗ)
+v̂ = v / (1 - β₂ᵗ)
+
+θ = θ - η·(m̂/(√v̂ + ε) + λ·θ)   // Weight decay applied directly
+
+Where λ = weight decay coefficient (separate from LR)
+                </div>
+
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Strengths</h4>
+                        <ul>
+                            <li>Better generalization than Adam</li>
+                            <li>Proper weight decay implementation</li>
+                            <li>Decouples regularization from optimization</li>
+                            <li>Standard in transformer training (BERT, GPT)</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Weaknesses</h4>
+                        <ul>
+                            <li>Requires tuning both η and λ</li>
+                            <li>Slightly more complex than Adam</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="key-insight">
+                    <strong>When it clicked:</strong> In Adam, L2 regularization gets scaled by the adaptive learning rate. Parameters with large gradients get less regularization. AdamW fixes this by applying weight decay directly to parameters, independent of gradients. This is why modern LLMs use AdamW, not Adam.
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Quick Comparison Table</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Algorithm</th>
+                        <th>Learning Rate</th>
+                        <th>Memory</th>
+                        <th>Best For</th>
+                        <th>When to Use</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>GD</strong></td>
+                        <td>Global, fixed</td>
+                        <td>O(p)</td>
+                        <td>Small datasets</td>
+                        <td>Convex problems, deterministic results needed</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SGD</strong></td>
+                        <td>Global, fixed</td>
+                        <td>O(p)</td>
+                        <td>Vision (CNNs)</td>
+                        <td>When generalization > speed, large datasets</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SGD+Momentum</strong></td>
+                        <td>Global, fixed</td>
+                        <td>O(2p)</td>
+                        <td>Deep networks</td>
+                        <td>ResNets, when oscillations are a problem</td>
+                    </tr>
+                    <tr>
+                        <td><strong>RMSProp</strong></td>
+                        <td>Per-parameter, adaptive</td>
+                        <td>O(2p)</td>
+                        <td>RNNs, RL</td>
+                        <td>Non-stationary problems, sparse gradients</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Adam</strong></td>
+                        <td>Per-parameter, adaptive</td>
+                        <td>O(3p)</td>
+                        <td>Transformers, NLP</td>
+                        <td>Default choice, sparse data, need fast convergence</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AdamW</strong></td>
+                        <td>Per-parameter, adaptive</td>
+                        <td>O(3p)</td>
+                        <td>LLMs, transformers</td>
+                        <td>When proper regularization matters (BERT, GPT)</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 10px;">* p = number of parameters in the model</p>
+        </div>
+
+        <div class="section">
+            <h2>Implementation Questions You'll Face</h2>
+
+            <h3>Question 1: "Implement Adam from scratch in NumPy"</h3>
+            <div class="formula">
+import numpy as np
+
+class Adam:
+    def __init__(self, lr=1e-3, beta1=0.9, beta2=0.999, eps=1e-8):
+        self.lr = lr
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.eps = eps
+        self.m = None  # First moment
+        self.v = None  # Second moment
+        self.t = 0     # Time step
+    
+    def update(self, params, grads):
+        # Initialize moments on first call
+        if self.m is None:
+            self.m = np.zeros_like(params)
+            self.v = np.zeros_like(params)
+        
+        self.t += 1
+        
+        # Update biased moments
+        self.m = self.beta1 * self.m + (1 - self.beta1) * grads
+        self.v = self.beta2 * self.v + (1 - self.beta2) * (grads ** 2)
+        
+        # Bias correction
+        m_hat = self.m / (1 - self.beta1 ** self.t)
+        v_hat = self.v / (1 - self.beta2 ** self.t)
+        
+        # Update parameters
+        params -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
+        
+        return params
+            </div>
+
+            <div class="interview-tip">
+                <h4>Follow-up Questions</h4>
+                <p><strong>Why bias correction?</strong> In early iterations, m and v are biased toward zero (initialized at zero). Without correction, updates would be too small initially. Bias correction term (1 - βᵗ) approaches 0 as t increases, removing the correction after warmup.</p>
+                <p><strong>What if we skip bias correction?</strong> You'd need a warmup phase (gradually increasing LR) to compensate. Some implementations do this instead.</p>
+            </div>
+
+            <h3>Question 2: "Why does SGD sometimes outperform Adam on vision tasks?"</h3>
+            <div class="key-insight">
+                <strong>The answer lies in the geometry of minima:</strong> Adam's adaptive learning rates can lead to sharper minima (high curvature). These generalize worse because small perturbations to inputs cause large changes in loss. SGD, especially with momentum, tends to find flatter minima with better generalization. This is why ResNets trained with SGD often beat Adam-trained ones, despite Adam converging faster.
+            </div>
+
+            <h3>Question 3: "Your transformer isn't converging. How do you debug?"</h3>
+            <p><strong>Systematic debugging approach:</strong></p>
+            <ul>
+                <li><strong>Check gradient norms:</strong> Are they exploding? Vanishing? Use gradient clipping.</li>
+                <li><strong>Learning rate:</strong> Start with 1e-4, use warmup (linear increase for first ~5% of steps), then cosine decay.</li>
+                <li><strong>Batch size:</strong> Larger batches need higher LR (linear scaling rule: LR ∝ batch_size).</li>
+                <li><strong>Adam parameters:</strong> For transformers, β₂=0.98 sometimes works better than 0.999.</li>
+                <li><strong>Weight initialization:</strong> Use Xavier/He initialization. Bad init can kill Adam.</li>
+                <li><strong>Check for NaNs:</strong> Mixed precision training can cause instability. Use loss scaling.</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>The Learning Rate Question</h2>
+            <p>No optimizer discussion is complete without learning rate scheduling. Here's what interviewers expect you to know:</p>
+
+            <div class="algo-card">
+                <h3 class="algo-title">Learning Rate Schedules</h3>
+                
+                <p><strong>1. Step Decay:</strong> Reduce LR by factor (e.g., 0.1) every N epochs. Simple, interpretable.</p>
+                <div class="formula">
+η = η₀ × γ^(epoch / step_size)
+                </div>
+
+                <p><strong>2. Cosine Annealing:</strong> Smooth reduction following cosine curve. Popular in transformers.</p>
+                <div class="formula">
+η = η_min + 0.5 × (η_max - η_min) × (1 + cos(πt / T))
+                </div>
+
+                <p><strong>3. Linear Warmup + Cosine:</strong> The modern standard for LLMs.</p>
+                <div class="formula">
+Warmup (0 to warmup_steps): η = η_max × (t / warmup_steps)
+Decay (warmup_steps to T): Use cosine annealing
+                </div>
+
+                <p><strong>4. One Cycle:</strong> Fast.ai's contribution. Increase then decrease LR.</p>
+
+                <div class="interview-tip">
+                    <h4>Interview Gold</h4>
+                    <p>"Why warmup?" In early training, parameter estimates are random. Large learning rates can cause divergence. Warmup gives the optimizer time to find a reasonable region of parameter space before full-speed optimization. Critical for Adam with large models (GPT, BERT).</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Real Interview Scenarios</h2>
+
+            <h3>Scenario 1: Anthropic System Design Interview</h3>
+            <p><strong>Question:</strong> "You're training a 70B parameter LLM. Walk me through your optimization strategy."</p>
+            
+            <div class="key-insight">
+                <strong>Strong answer structure:</strong>
+                <ul>
+                    <li><strong>Optimizer choice:</strong> AdamW with β₁=0.9, β₂=0.95, ε=1e-8. Lower β₂ than default because of large model size.</li>
+                    <li><strong>Learning rate:</strong> Peak LR ~1e-4 (found via short LR range test). Linear warmup over 2000 steps, then cosine decay to 1e-5.</li>
+                    <li><strong>Batch size strategy:</strong> Start with effective batch size of 4M tokens (gradient accumulation). Monitor gradient variance.</li>
+                    <li><strong>Gradient clipping:</strong> Clip by global norm at 1.0 to prevent instability.</li>
+                    <li><strong>Mixed precision:</strong> bfloat16 for forward/backward, fp32 for master weights and optimizer states.</li>
+                    <li><strong>Monitoring:</strong> Track loss, gradient norms, learning rate, parameter norms per layer. Watch for layer collapse.</li>
+                </ul>
+            </div>
+
+            <h3>Scenario 2: Google Coding Round</h3>
+            <p><strong>Question:</strong> "Implement SGD with momentum. Then explain how you'd parallelize it across multiple GPUs."</p>
+            
+            <div class="interview-tip">
+                <h4>Two-part answer</h4>
+                <p><strong>Part 1:</strong> Implement the algorithm (similar to Adam example above).</p>
+                <p><strong>Part 2 (parallelization):</strong> Data parallelism is standard. Each GPU computes gradients on its data shard, then all-reduce to average gradients before the optimizer step. Momentum state stays local (no communication needed). Critical: gradient averaging happens BEFORE momentum update. Key detail: with N GPUs and batch size B, effective batch size is N×B, so scale LR by √N (not N linearly).</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Final Interview Prep Checklist</h2>
+            
+            <div class="algo-card">
+                <h3 class="algo-title">✓ Must-Know Concepts</h3>
+                <ul>
+                    <li>Implement SGD, SGD+Momentum, Adam from scratch in NumPy</li>
+                    <li>Explain why Adam needs bias correction (and prove it mathematically)</li>
+                    <li>Know when SGD outperforms Adam (vision) and vice versa (NLP)</li>
+                    <li>Understand the difference between Adam and AdamW</li>
+                    <li>Explain learning rate warmup and why it matters</li>
+                    <li>Debug convergence issues systematically</li>
+                    <li>Know the memory footprint of each optimizer</li>
+                    <li>Understand gradient clipping (by value vs. by norm)</li>
+                    <li>Explain the relationship between batch size and learning rate</li>
+                    <li>Be ready to discuss second-order methods (L-BFGS, natural gradient)</li>
+                </ul>
+            </div>
+
+            <div class="interview-tip">
+                <h4>The Meta-Question</h4>
+                <p>At the end, interviewers often ask: "If you could design a new optimizer, what would you improve?" This tests creative thinking. Good answer: "I'd focus on adaptive batch sizing—dynamically adjusting batch size based on gradient variance. High variance → larger batches for stable estimates. Low variance → smaller batches for faster iterations. This could auto-tune the exploration-exploitation trade-off."</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Resources for Deeper Prep</h2>
+            <ul style="padding-left: 25px;">
+                <li><strong>Papers:</strong> "Adam: A Method for Stochastic Optimization" (Kingma & Ba, 2014), "Decoupled Weight Decay Regularization" (Loshchilov & Hutter, 2017)</li>
+                <li><strong>Practice:</strong> Implement each optimizer from scratch, then use them on MNIST → CIFAR-10 → mini-transformer</li>
+                <li><strong>Visualization:</strong> Plot loss landscapes to see why SGD finds flatter minima</li>
+                <li><strong>Code reading:</strong> Study PyTorch's optimizer implementations (torch.optim source code)</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>Written for Applied Scientists preparing for ML interviews</p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">Master the fundamentals. Understand the trade-offs. Ship great models.</p>
+        </div>
+    </div>
+</body>
+</html>

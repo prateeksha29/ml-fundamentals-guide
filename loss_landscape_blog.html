@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loss Landscapes: The Geometry of Generalization</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #faf9f6;
+            --bg-secondary: #f0ede5;
+            --text-primary: #1a1a1a;
+            --text-secondary: #4a4a4a;
+            --accent-sharp: #d63447;
+            --accent-flat: #2d6a4f;
+            --accent-gold: #d4a574;
+            --border-light: #e0ddd4;
+            --code-bg: #2b2b2b;
+        }
+
+        body {
+            font-family: 'Source Sans 3', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.8;
+            overflow-x: hidden;
+        }
+
+        .grain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.04;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 80px 40px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 100px;
+            position: relative;
+        }
+
+        .decorative-line {
+            width: 120px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+            margin: 0 auto 40px;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.5s forwards;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 5rem;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 25px;
+            color: var(--text-primary);
+            letter-spacing: -2px;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--text-secondary);
+            font-style: italic;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease-out 0.2s forwards;
+        }
+
+        .meta {
+            display: flex;
+            justify-content: center;
+            gap: 35px;
+            margin-top: 35px;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            opacity: 0;
+            animation: fadeInUp 0.8s ease-out 0.4s forwards;
+        }
+
+        .section {
+            margin-bottom: 90px;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        .section:nth-child(1) { animation-delay: 0.1s; }
+        .section:nth-child(2) { animation-delay: 0.2s; }
+        .section:nth-child(3) { animation-delay: 0.3s; }
+        .section:nth-child(4) { animation-delay: 0.4s; }
+        .section:nth-child(5) { animation-delay: 0.5s; }
+        .section:nth-child(6) { animation-delay: 0.6s; }
+
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 35px;
+            letter-spacing: -1px;
+            position: relative;
+            padding-bottom: 20px;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 80px;
+            height: 3px;
+            background: var(--accent-gold);
+        }
+
+        h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 45px 0 20px;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        em {
+            font-style: italic;
+            color: var(--text-primary);
+        }
+
+        .visual-card {
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 45px;
+            margin: 45px 0;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.03);
+            transition: all 0.4s ease;
+        }
+
+        .visual-card:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            transform: translateY(-3px);
+        }
+
+        .landscape-viz {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .landscape-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin: 40px 0;
+        }
+
+        .landscape-item {
+            text-align: center;
+        }
+
+        .landscape-item h4 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .landscape-item.sharp h4 {
+            color: var(--accent-sharp);
+        }
+
+        .landscape-item.flat h4 {
+            color: var(--accent-flat);
+        }
+
+        .ascii-viz {
+            font-family: 'Fira Code', monospace;
+            background: var(--bg-secondary);
+            padding: 30px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            overflow-x: auto;
+            border-left: 4px solid var(--accent-gold);
+        }
+
+        .formula {
+            background: var(--code-bg);
+            color: #f8f8f2;
+            padding: 25px 30px;
+            border-radius: 6px;
+            margin: 30px 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            border-left: 4px solid var(--accent-gold);
+            overflow-x: auto;
+        }
+
+        .callout {
+            background: linear-gradient(135deg, rgba(212, 165, 116, 0.08) 0%, rgba(212, 165, 116, 0.03) 100%);
+            border-left: 4px solid var(--accent-gold);
+            padding: 30px;
+            border-radius: 6px;
+            margin: 35px 0;
+        }
+
+        .callout h4 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            color: var(--accent-gold);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .callout-key {
+            background: linear-gradient(135deg, rgba(45, 106, 79, 0.1) 0%, rgba(45, 106, 79, 0.05) 100%);
+            border-left: 4px solid var(--accent-flat);
+        }
+
+        .callout-key h4 {
+            color: var(--accent-flat);
+        }
+
+        .callout-danger {
+            background: linear-gradient(135deg, rgba(214, 52, 71, 0.1) 0%, rgba(214, 52, 71, 0.05) 100%);
+            border-left: 4px solid var(--accent-sharp);
+        }
+
+        .callout-danger h4 {
+            color: var(--accent-sharp);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .comparison-card {
+            background: white;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            padding: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .comparison-card.sharp {
+            border-color: var(--accent-sharp);
+        }
+
+        .comparison-card.flat {
+            border-color: var(--accent-flat);
+        }
+
+        .comparison-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .comparison-card h4 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .comparison-card.sharp h4 {
+            color: var(--accent-sharp);
+        }
+
+        .comparison-card.flat h4 {
+            color: var(--accent-flat);
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 20px 0;
+        }
+
+        ul li {
+            padding: 10px 0;
+            position: relative;
+            padding-left: 30px;
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+        }
+
+        ul li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        .optimizer-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 40px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.04);
+        }
+
+        .optimizer-table th {
+            background: var(--bg-secondary);
+            padding: 20px;
+            text-align: left;
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .optimizer-table td {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-secondary);
+        }
+
+        .optimizer-table tr:hover {
+            background: var(--bg-primary);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag.sharp {
+            background: rgba(214, 52, 71, 0.1);
+            color: var(--accent-sharp);
+        }
+
+        .tag.flat {
+            background: rgba(45, 106, 79, 0.1);
+            color: var(--accent-flat);
+        }
+
+        code {
+            font-family: 'Fira Code', monospace;
+            background: var(--bg-secondary);
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.9em;
+            color: var(--accent-sharp);
+        }
+
+        .key-takeaway {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, white 100%);
+            border: 2px solid var(--accent-gold);
+            border-radius: 8px;
+            padding: 40px;
+            margin: 50px 0;
+            text-align: center;
+        }
+
+        .key-takeaway h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: var(--accent-gold);
+        }
+
+        .visual-graph {
+            margin: 50px 0;
+            padding: 40px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            margin: 30px 0;
+        }
+
+        canvas {
+            max-width: 100%;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 120px;
+            padding: 50px 0;
+            border-top: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 3rem; }
+            h2 { font-size: 2rem; }
+            .landscape-comparison,
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+            .container { padding: 60px 25px; }
+        }
+
+        /* SVG Landscape Visualization */
+        .svg-landscape {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="grain"></div>
+    
+    <div class="container">
+        <header>
+            <div class="decorative-line"></div>
+            <h1>Loss Landscapes</h1>
+            <p class="subtitle">The Geometry of Generalization</p>
+            <div class="meta">
+                <span>📐 Mathematical Foundations</span>
+                <span>🎯 Interview Essential</span>
+                <span>⏱️ 12 min read</span>
+            </div>
+        </header>
+
+        <div class="section">
+            <h2>The Central Question</h2>
+            <p>Why do some models with identical training loss generalize beautifully to new data, while others fail catastrophically? The answer lies not in <em>where</em> your optimizer stops, but in the <em>geometry</em> of that stopping point.</p>
+            
+            <div class="callout-key callout">
+                <h4>🎯 Core Insight</h4>
+                <p><strong>Sharp minima</strong> = high curvature = sensitive to perturbations = poor generalization</p>
+                <p><strong>Flat minima</strong> = low curvature = robust to perturbations = excellent generalization</p>
+                <p style="margin-top: 20px; font-style: italic;">Your optimizer isn't just finding low loss—it's choosing a neighborhood in parameter space. That neighborhood determines how your model behaves on unseen data.</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Visualizing the Landscape</h2>
+            
+            <p>Imagine your model's parameters as coordinates on a map, and the loss function creates a terrain of hills and valleys. Your optimizer is trying to reach the lowest point.</p>
+
+            <div class="landscape-comparison">
+                <div class="landscape-item sharp">
+                    <h4>⚠️ Sharp Minimum (V-shaped)</h4>
+                    <svg class="svg-landscape" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="sharpGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#d63447;stop-opacity:0.2" />
+                                <stop offset="100%" style="stop-color:#d63447;stop-opacity:0.05" />
+                            </linearGradient>
+                        </defs>
+                        <!-- Sharp V-shaped valley -->
+                        <path d="M 20 20 L 100 130 L 180 20" 
+                              stroke="#d63447" 
+                              stroke-width="3" 
+                              fill="url(#sharpGrad)"/>
+                        <!-- Minimum point -->
+                        <circle cx="100" cy="130" r="5" fill="#d63447"/>
+                        <!-- Axes -->
+                        <line x1="10" y1="140" x2="190" y2="140" stroke="#4a4a4a" stroke-width="1"/>
+                        <line x1="100" y1="10" x2="100" y2="145" stroke="#4a4a4a" stroke-width="1" stroke-dasharray="2,2" opacity="0.3"/>
+                        <!-- Labels -->
+                        <text x="100" y="145" text-anchor="middle" font-size="10" fill="#4a4a4a">θ</text>
+                        <text x="5" y="15" font-size="10" fill="#4a4a4a">Loss</text>
+                    </svg>
+                    <p style="margin-top: 20px; font-size: 0.95rem; color: var(--text-secondary);">Steep walls. Small parameter changes cause large loss increases.</p>
+                </div>
+
+                <div class="landscape-item flat">
+                    <h4>✓ Flat Minimum (U-shaped)</h4>
+                    <svg class="svg-landscape" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="flatGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#2d6a4f;stop-opacity:0.2" />
+                                <stop offset="100%" style="stop-color:#2d6a4f;stop-opacity:0.05" />
+                            </linearGradient>
+                        </defs>
+                        <!-- Flat U-shaped valley -->
+                        <path d="M 20 20 Q 100 120, 180 20" 
+                              stroke="#2d6a4f" 
+                              stroke-width="3" 
+                              fill="url(#flatGrad)"/>
+                        <!-- Wide minimum region -->
+                        <ellipse cx="100" cy="115" rx="40" ry="5" fill="#2d6a4f" opacity="0.3"/>
+                        <circle cx="100" cy="115" r="5" fill="#2d6a4f"/>
+                        <!-- Axes -->
+                        <line x1="10" y1="140" x2="190" y2="140" stroke="#4a4a4a" stroke-width="1"/>
+                        <line x1="100" y1="10" x2="100" y2="145" stroke="#4a4a4a" stroke-width="1" stroke-dasharray="2,2" opacity="0.3"/>
+                        <!-- Labels -->
+                        <text x="100" y="145" text-anchor="middle" font-size="10" fill="#4a4a4a">θ</text>
+                        <text x="5" y="15" font-size="10" fill="#4a4a4a">Loss</text>
+                    </svg>
+                    <p style="margin-top: 20px; font-size: 0.95rem; color: var(--text-secondary);">Wide basin. Parameters can vary without hurting performance.</p>
+                </div>
+            </div>
+
+            <div class="ascii-viz">
+<pre>Sharp Minimum (Bad for Generalization):
+        Loss
+         ↑
+    10   |        /\
+         |       /  \
+     5   |      /    \
+         |     /      \
+     0   |____/        \____
+         |
+         └─────────────────→ θ
+         
+Flat Minimum (Good for Generalization):
+        Loss  
+         ↑
+    10   |      ____
+         |    /      \
+     5   |   /        \
+         |  /          \
+     0   |_/            \_
+         |
+         └─────────────────→ θ</pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>The Mathematics of Sharpness</h2>
+
+            <h3>Defining Sharpness: The Hessian</h3>
+            
+            <p>The <strong>Hessian matrix</strong> captures the curvature of the loss landscape. It's the matrix of second derivatives of the loss function.</p>
+
+            <div class="formula">
+H = ∇²L(θ) = [∂²L/∂θᵢ∂θⱼ]
+
+For a minimum at θ*:
+  Sharp  ⟺  Large eigenvalues of H
+  Flat   ⟺  Small eigenvalues of H
+
+Specifically:
+  λ_max = largest eigenvalue of H(θ*)
+  
+  If λ_max > 1000: very sharp (bad!)
+  If λ_max < 10: very flat (good!)
+            </div>
+
+            <div class="callout">
+                <h4>💡 Intuition</h4>
+                <p><strong>Eigenvalues measure curvature in different directions.</strong> Think of the Hessian as describing the shape of a bowl. Large eigenvalues = steep sides. Small eigenvalues = gentle slopes.</p>
+                <p style="margin-top: 15px;">In high dimensions (millions of parameters), you have millions of eigenvalues. Even if most are small, a few large ones create "sharp" directions that hurt generalization.</p>
+            </div>
+
+            <h3>Why Flat is Better: Three Perspectives</h3>
+
+            <div class="comparison-grid">
+                <div class="comparison-card flat">
+                    <h4>1. Robustness Argument</h4>
+                    <p><strong>Test data = perturbed training data</strong></p>
+                    <p style="margin-top: 15px;">Real-world inputs have noise, distribution shift, adversarial perturbations. If your minimum is flat, small input changes → small loss changes. Sharp minima are fragile.</p>
+                    <div class="formula" style="font-size: 0.85rem; margin-top: 20px;">
+Flat: L(θ* + ε) ≈ L(θ*)
+Sharp: L(θ* + ε) >> L(θ*)
+                    </div>
+                </div>
+
+                <div class="comparison-card flat">
+                    <h4>2. Compression Argument</h4>
+                    <p><strong>Flat = simple = generalizable</strong></p>
+                    <p style="margin-top: 15px;">Minimum Description Length principle: models requiring less information to specify generalize better. Flat minima need less precision to describe (many parameters work), hence "simpler" in an information-theoretic sense.</p>
+                </div>
+
+                <div class="comparison-card flat">
+                    <h4>3. PAC-Bayes Argument</h4>
+                    <p><strong>Volume of good solutions</strong></p>
+                    <p style="margin-top: 15px;">Flat regions have large "volume" of parameters achieving low loss. PAC-Bayes bounds show: larger volume → better generalization guarantees. Sharp minima are isolated points with small volumes.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>How Optimizers Shape the Landscape</h2>
+
+            <p>Different optimizers don't just converge at different speeds—they converge to <em>geometrically different</em> regions of parameter space.</p>
+
+            <table class="optimizer-table">
+                <thead>
+                    <tr>
+                        <th>Optimizer</th>
+                        <th>Typical Minimum Type</th>
+                        <th>Why?</th>
+                        <th>Best Use Case</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>SGD (large batch)</strong></td>
+                        <td><span class="tag sharp">Sharp</span></td>
+                        <td>Deterministic path, no exploration, converges quickly to nearest minimum</td>
+                        <td>When you need speed > generalization</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SGD (small batch)</strong></td>
+                        <td><span class="tag flat">Flat</span></td>
+                        <td>Gradient noise acts as exploration, escapes sharp regions</td>
+                        <td>Vision models (ResNet, EfficientNet)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SGD + Momentum</strong></td>
+                        <td><span class="tag flat">Flat</span></td>
+                        <td>Momentum helps escape sharp directions, overshoots narrow valleys</td>
+                        <td>CNNs, when you want flat minima</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Adam</strong></td>
+                        <td><span class="tag sharp">Sharper</span></td>
+                        <td>Adaptive LR reduces gradient noise, converges precisely to nearby minimum</td>
+                        <td>Transformers (fast convergence matters)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AdamW</strong></td>
+                        <td><span class="tag flat">Flatter than Adam</span></td>
+                        <td>Proper weight decay adds implicit regularization toward flatter regions</td>
+                        <td>LLMs (BERT, GPT)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SAM (Sharpness Aware Min)</strong></td>
+                        <td><span class="tag flat">Very Flat</span></td>
+                        <td>Explicitly optimizes for flat minima by perturbing params during training</td>
+                        <td>When generalization is critical</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="callout-key callout">
+                <h4>🔑 The SGD vs Adam Debate</h4>
+                <p><strong>SGD finds flatter minima → better generalization (especially in vision)</strong></p>
+                <p><strong>Adam finds sharper minima → faster convergence (essential for NLP)</strong></p>
+                <p style="margin-top: 20px;">This explains why:</p>
+                <ul>
+                    <li>ResNets trained with SGD+momentum often beat Adam-trained versions</li>
+                    <li>Transformers almost always use Adam/AdamW (need the speed)</li>
+                    <li>Switching from Adam to SGD late in training can improve test accuracy</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>The Role of Batch Size</h2>
+
+            <p>Batch size fundamentally changes the geometry of where your optimizer converges.</p>
+
+            <div class="visual-card">
+                <h3>The Batch Size Effect</h3>
+                
+                <div class="formula">
+Small batch (32-128):
+  → High gradient noise
+  → Exploration of loss surface
+  → Tends to escape sharp minima
+  → Finds flatter, more generalizable solutions
+  
+Large batch (1024-4096):
+  → Low gradient noise  
+  → Precise gradient estimates
+  → Converges to nearest minimum (often sharp)
+  → May overfit despite low training loss
+                </div>
+
+                <p style="margin-top: 25px;"><strong>The Linear Scaling Rule:</strong> When you increase batch size by k, increase learning rate by k (or √k conservatively). But this doesn't fully compensate for the generalization gap.</p>
+
+                <div class="callout-danger callout" style="margin-top: 30px;">
+                    <h4>⚠️ The Large Batch Problem</h4>
+                    <p>Training with batch size 8192 vs 32 can give you:</p>
+                    <ul>
+                        <li>Same training loss (0.01 in both cases)</li>
+                        <li>Different test loss (0.15 vs 0.03)</li>
+                        <li>Reason: large batch → sharp minimum → poor generalization</li>
+                    </ul>
+                    <p style="margin-top: 15px;"><strong>Solution:</strong> Use small batches when possible, or techniques like LARS/LAMB for large-batch training.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Practical Interview Questions</h2>
+
+            <div class="visual-card">
+                <h3>Q1: "How do you measure if a minimum is sharp or flat?"</h3>
+                
+                <p><strong>Three practical methods:</strong></p>
+
+                <div class="formula">
+1. Hessian Top Eigenvalue
+   λ_max = largest eigenvalue of ∇²L(θ)
+   Compute via power iteration or Lanczos
+   
+2. PAC-Bayes Sharpness (Keskar et al.)
+   Add Gaussian noise: θ̃ = θ + ε, ε ~ N(0, σ²I)
+   Sharpness = max{L(θ̃) - L(θ)} over ||ε|| ≤ ρ
+   
+3. Filter-Normalized Sharpness
+   S = max |L(θ + ε) - L(θ)| / (1 + L(θ))
+   where ε_i sampled from ||ε_i|| ≤ ρ
+                </div>
+
+                <p style="margin-top: 25px;"><strong>Interview gold:</strong> Mention you'd normalize by filter weights to make sharpness scale-invariant (important for comparing across architectures).</p>
+            </div>
+
+            <div class="visual-card" style="margin-top: 40px;">
+                <h3>Q2: "Your Adam-trained model overfits but SGD is too slow. What do you do?"</h3>
+                
+                <p><strong>Strong answer (demonstrate you understand the landscape):</strong></p>
+
+                <ul>
+                    <li><strong>Option 1:</strong> Train with Adam until convergence, then switch to SGD for 10-20% more epochs. SGD will move from sharp→flat minimum.</li>
+                    <li><strong>Option 2:</strong> Use AdamW with higher weight decay (λ=0.01-0.1). Decoupled weight decay implicitly favors flatter regions.</li>
+                    <li><strong>Option 3:</strong> Reduce batch size. Smaller batches add gradient noise that helps Adam escape sharp minima.</li>
+                    <li><strong>Option 4:</strong> Use SAM (Sharpness Aware Minimization) - explicitly optimize for flat minima by computing gradients at perturbed parameters.</li>
+                    <li><strong>Option 5:</strong> Add label smoothing or mixup - these implicitly encourage flatter minima by smoothing the loss landscape.</li>
+                </ul>
+
+                <div class="callout" style="margin-top: 25px;">
+                    <h4>💡 Why this works</h4>
+                    <p>Each technique either (a) adds noise/exploration to escape sharp regions, or (b) modifies the loss function to make flat minima more attractive. Understanding the <em>geometry</em> lets you choose the right tool.</p>
+                </div>
+            </div>
+
+            <div class="visual-card" style="margin-top: 40px;">
+                <h3>Q3: "Explain why SGD generalizes better than Adam on ImageNet."</h3>
+                
+                <div class="callout-key callout">
+                    <h4>🎯 The Complete Answer</h4>
+                    
+                    <p><strong>1. The empirical observation:</strong></p>
+                    <p>ResNets trained with SGD+momentum achieve ~76% top-1 accuracy on ImageNet. Same architecture with Adam: ~73%. Training loss is identical.</p>
+                    
+                    <p style="margin-top: 20px;"><strong>2. The geometric explanation:</strong></p>
+                    <ul>
+                        <li>Adam's adaptive learning rates <em>reduce</em> the effective gradient noise</li>
+                        <li>Parameters with large gradients get small effective LR → precise convergence</li>
+                        <li>This precision sends Adam to nearby sharp minima</li>
+                        <li>SGD maintains gradient noise → explores → finds flatter basins</li>
+                    </ul>
+
+                    <p style="margin-top: 20px;"><strong>3. The mathematical insight:</strong></p>
+                    <div class="formula" style="margin-top: 15px;">
+Adam effective LR per parameter:
+  η_i = η / √(v_i + ε)
+
+Large gradient → large v_i → small η_i → precise convergence → sharp
+
+SGD: η is constant → noise persists → exploration → flat
+                    </div>
+
+                    <p style="margin-top: 20px;"><strong>4. The practical caveat:</strong></p>
+                    <p>For transformers, speed matters more than squeezing out 1-2% accuracy. Adam's fast convergence wins despite sharper minima. Different tasks, different priorities.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Advanced Topics: SAM and Beyond</h2>
+
+            <h3>Sharpness-Aware Minimization (SAM)</h3>
+
+            <p>SAM explicitly optimizes for flat minima by solving a mini-max problem:</p>
+
+            <div class="formula">
+Objective: min_θ max_{||ε||≤ρ} L(θ + ε)
+
+Algorithm:
+  1. Compute gradient: g = ∇L(θ)
+  2. Find adversarial perturbation: ε = ρ · g / ||g||
+  3. Compute gradient at perturbed point: g̃ = ∇L(θ + ε)
+  4. Update: θ ← θ - η · g̃
+
+Cost: 2× gradient computations per step (worth it for SOTA!)
+            </div>
+
+            <div class="callout-key callout">
+                <h4>🔑 Why SAM Works</h4>
+                <p>SAM looks for parameters where the loss is low <em>and remains low under perturbation</em>. This is the definition of a flat minimum! By perturbing in the direction of steepest ascent (∇L), then stepping in the direction that reduces loss at that perturbed point, SAM actively seeks flat regions.</p>
+                <p style="margin-top: 15px;"><strong>Result:</strong> State-of-the-art generalization on ImageNet, CIFAR, and even transformers. Worth the 2× compute cost.</p>
+            </div>
+
+            <h3>Other Flatness-Seeking Methods</h3>
+
+            <ul>
+                <li><strong>Entropy-SGD:</strong> Add local entropy regularization to encourage flat minima</li>
+                <li><strong>Flooding:</strong> Maintain small training loss (don't drive to zero) to avoid overly sharp minima</li>
+                <li><strong>SWA (Stochastic Weight Averaging):</strong> Average multiple SGD snapshots → implicitly flatter solution</li>
+                <li><strong>Sharpness filtering:</strong> Explicitly reject parameter updates that increase sharpness</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Connecting to Other Concepts</h2>
+
+            <div class="visual-card">
+                <h3>Loss Landscape ↔ Other ML Concepts</h3>
+
+                <div class="comparison-grid" style="margin-top: 30px;">
+                    <div class="comparison-card flat">
+                        <h4>Regularization</h4>
+                        <p>L2 regularization smooths the loss landscape → encourages flatter minima. Weight decay in AdamW has the same effect.</p>
+                    </div>
+
+                    <div class="comparison-card flat">
+                        <h4>Dropout</h4>
+                        <p>Adds noise during training → prevents convergence to sharp isolated minima → finds robust flat regions.</p>
+                    </div>
+
+                    <div class="comparison-card flat">
+                        <h4>Data Augmentation</h4>
+                        <p>Implicitly flattens landscape by making loss invariant to transformations. Parameters must work across augmented versions.</p>
+                    </div>
+
+                    <div class="comparison-card flat">
+                        <h4>Early Stopping</h4>
+                        <p>Stops before reaching the sharpest part of a minimum. Often end up in flatter region near the minimum.</p>
+                    </div>
+                </div>
+
+                <p style="margin-top: 30px;"><strong>The unifying theme:</strong> Generalization techniques often work by implicitly or explicitly encouraging flat minima. Understanding loss landscapes gives you a geometric lens to understand <em>why</em> these tricks work.</p>
+            </div>
+        </div>
+
+        <div class="key-takeaway">
+            <h3>The Essential Insight</h3>
+            <p style="font-size: 1.2rem; line-height: 1.8; color: var(--text-secondary);">
+                Optimization isn't just about reaching low training loss—it's about <strong>where in parameter space you land</strong>. Sharp minima are deceptive: low training loss but high test loss. Flat minima are the goal: robust, generalizable solutions.
+            </p>
+            <p style="font-size: 1.1rem; margin-top: 25px; color: var(--text-secondary);">
+                Choose your optimizer, batch size, and regularization not just for convergence speed, but for the <em>geometry</em> of the solution they'll find.
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>Quick Reference: Interview Cheat Sheet</h2>
+
+            <div class="visual-card">
+                <h3>Must-Know Facts</h3>
+                
+                <ul style="font-size: 1.05rem;">
+                    <li><strong>Sharp minimum:</strong> High Hessian eigenvalues, sensitive to perturbations, poor generalization</li>
+                    <li><strong>Flat minimum:</strong> Low Hessian eigenvalues, robust to perturbations, good generalization</li>
+                    <li><strong>SGD finds flatter minima than Adam</strong> (especially with small batch sizes)</li>
+                    <li><strong>Large batches → sharper minima → worse generalization</strong></li>
+                    <li><strong>AdamW is flatter than Adam</strong> due to decoupled weight decay</li>
+                    <li><strong>SAM explicitly optimizes for flatness</strong> at 2× compute cost</li>
+                    <li><strong>Sharpness is measured by:</strong> Hessian eigenvalues, PAC-Bayes bounds, or perturbation analysis</li>
+                    <li><strong>Practical fix for sharp minima:</strong> Reduce batch size, add noise, use SGD late-stage, or switch to SAM</li>
+                </ul>
+
+                <div class="formula" style="margin-top: 30px;">
+# Quick diagnostic:
+# If train_loss << test_loss → likely sharp minimum
+# Solutions:
+#   1. Reduce batch size (32-128 instead of 1024)
+#   2. Switch Adam → SGD for last 20% of training
+#   3. Increase weight decay (λ = 0.01 to 0.1)
+#   4. Add label smoothing or mixup
+#   5. Use SAM if compute budget allows
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Written for Applied Scientists preparing for ML interviews</p>
+            <p style="margin-top: 15px; font-size: 0.9rem; font-style: italic;">
+                "The geometry of your solution matters as much as the solution itself."
+            </p>
+        </div>
+    </div>
+</body>
+</html>

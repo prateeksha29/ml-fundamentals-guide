@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Interview Prep - Technical Blogs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0a0a;
+            --text: #f5f5f5;
+            --text-muted: #a0a0a0;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --card-bg: #1a1a1a;
+            --border: #2a2a2a;
+        }
+
+        body {
+            font-family: 'Source Sans 3', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 40px;
+            flex: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: 1.3rem;
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .blog-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .blog-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
+        .blog-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .blog-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.2);
+        }
+
+        .blog-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .blog-card h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: var(--text);
+        }
+
+        .blog-card p {
+            color: var(--text-muted);
+            margin-bottom: 25px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+
+        .blog-meta {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .blog-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 28px;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateX(5px);
+        }
+
+        .about {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .about h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .about p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            font-size: 1.05rem;
+        }
+
+        .about ul {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 20px;
+        }
+
+        .about ul li {
+            padding: 8px 0;
+            color: var(--text-muted);
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .about ul li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            margin-top: auto;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .blog-grid {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 60px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ML Interview Prep</h1>
+            <p class="tagline">Deep technical blogs for Applied Scientist interviews</p>
+        </header>
+
+        <div class="about">
+            <h2>About This Site</h2>
+            <p>A collection of in-depth technical articles covering core machine learning concepts from an interview preparation perspective. Written for candidates targeting Applied Scientist, ML Engineer, and Research Scientist roles at top-tier companies.</p>
+            <p><strong>Target Companies:</strong> OpenAI, Anthropic, Google, Meta, Amazon, Netflix, Microsoft</p>
+            <ul>
+                <li>Deep mathematical foundations with practical insights</li>
+                <li>Real interview questions with strong vs. weak answer examples</li>
+                <li>Implementation details and debugging strategies</li>
+                <li>Geometric intuition for complex concepts</li>
+            </ul>
+        </div>
+
+        <div class="blog-grid">
+            <div class="blog-card">
+                <div class="blog-icon">⚡</div>
+                <h2>Mastering Optimization Algorithms</h2>
+                <div class="blog-meta">
+                    <span>📚 Complete Guide</span>
+                    <span>⏱️ 15 min</span>
+                </div>
+                <p>
+                    Deep dive into GD, SGD, Momentum, RMSProp, Adam, and AdamW. Learn when to use each optimizer, how to implement them from scratch, and how to debug convergence issues. Includes real interview scenarios from Anthropic and Google.
+                </p>
+                <a href="optimization_blog.html" class="btn">Read Article →</a>
+            </div>
+
+            <div class="blog-card">
+                <div class="blog-icon">📐</div>
+                <h2>Loss Landscapes & Generalization</h2>
+                <div class="blog-meta">
+                    <span>🎯 Advanced</span>
+                    <span>⏱️ 12 min</span>
+                </div>
+                <p>
+                    Understand why sharp vs. flat minima matter for generalization. Explore the geometry of optimization, learn how different optimizers shape the loss landscape, and discover why SGD often beats Adam on vision tasks.
+                </p>
+                <a href="loss_landscape_blog.html" class="btn">Read Article →</a>
+            </div>
+        </div>
+
+        <div class="about">
+            <h2>How to Use These Resources</h2>
+            <p><strong>For Interview Prep:</strong></p>
+            <ul>
+                <li>Read each article 2-3 times (skim → deep read → review)</li>
+                <li>Implement the algorithms from scratch in both NumPy and PyTorch</li>
+                <li>Practice answering the interview questions out loud</li>
+                <li>Connect concepts across articles (e.g., how loss landscapes relate to optimizer choice)</li>
+            </ul>
+            <p style="margin-top: 20px;"><strong>Preparation Timeline:</strong> Allow 2-3 weeks to deeply internalize this material alongside coding practice.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>ML Interview Prep Resources</p>
+        <p style="margin-top: 10px; font-size: 0.9rem;">Built for Applied Scientists preparing for technical interviews</p>
+    </footer>
+</body>
+</html>
