@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activation Functions: The Complete Interview Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --serif: 'Source Serif 4', Georgia, serif;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', system-ui, sans-serif;
+  }
+
+  /* Dark theme (default) */
+  [data-theme="dark"] {
+    --bg: #0c0f13;
+    --surface: #141820;
+    --surface-2: #1a1f2b;
+    --border: #252b3a;
+    --text: #c8cdd8;
+    --text-muted: #737b8e;
+    --heading: #e8ecf4;
+    --accent: #6ea8fe;
+    --accent-dim: #3a6bb5;
+    --green: #63e6be;
+    --orange: #ffa94d;
+    --red: #ff6b6b;
+    --purple: #b197fc;
+    --yellow: #ffe066;
+    --pink: #f783ac;
+    --code-bg: #111521;
+    --svg-grid: #1a1f2b;
+    --svg-axis: #252b3a;
+    --svg-label: #737b8e;
+    --svg-text: #c8cdd8;
+    --tag-modern-bg: #0f1f1a;
+    --tag-modern-border: #2a4a3e;
+    --tag-classic-bg: #1f1d0f;
+    --tag-classic-border: #4a4520;
+    --tag-deprecated-bg: #1f0f0f;
+    --tag-deprecated-border: #4a2020;
+    --callout-interview-border: #ffa94d;
+    --callout-tip-border: #63e6be;
+    --callout-warning-border: #ff6b6b;
+  }
+
+  /* Light theme */
+  [data-theme="light"] {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --surface-2: #f0eee9;
+    --border: #ddd9d0;
+    --text: #3d3929;
+    --text-muted: #8a8475;
+    --heading: #1a1710;
+    --accent: #2563eb;
+    --accent-dim: #6b8fd4;
+    --green: #0d8a5e;
+    --orange: #c2610c;
+    --red: #c73a3a;
+    --purple: #7c4dcc;
+    --yellow: #9a7b00;
+    --pink: #c44a7a;
+    --code-bg: #eeeae3;
+    --svg-grid: #e8e4dc;
+    --svg-axis: #ccc8be;
+    --svg-label: #8a8475;
+    --svg-text: #3d3929;
+    --tag-modern-bg: #e6f5ef;
+    --tag-modern-border: #a3d9c2;
+    --tag-classic-bg: #f5f0e0;
+    --tag-classic-border: #d9cc8a;
+    --tag-deprecated-bg: #f5e6e6;
+    --tag-deprecated-border: #d9a3a3;
+    --callout-interview-border: #c2610c;
+    --callout-tip-border: #0d8a5e;
+    --callout-warning-border: #c73a3a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Header */
+  .hero {
+    padding: 80px 0 48px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 56px;
+  }
+  .hero-label {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--heading);
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+  .hero .subtitle {
+    font-size: 19px;
+    color: var(--text-muted);
+    max-width: 600px;
+  }
+  .hero .meta {
+    margin-top: 24px;
+    font-size: 14px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  /* TOC */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 28px 32px;
+    margin-bottom: 56px;
+  }
+  .toc h3 {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .toc ol {
+    list-style: none;
+    counter-reset: toc;
+  }
+  .toc li {
+    counter-increment: toc;
+    margin-bottom: 6px;
+  }
+  .toc li::before {
+    content: counter(toc, decimal-leading-zero) ".";
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent-dim);
+    margin-right: 10px;
+  }
+  .toc a {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 15px;
+    transition: color 0.2s;
+  }
+  .toc a:hover { color: var(--accent); }
+
+  /* Sections */
+  section { margin-bottom: 64px; }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 8px;
+    padding-top: 8px;
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent-dim);
+    margin-right: 8px;
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--heading);
+    margin-top: 36px;
+    margin-bottom: 12px;
+  }
+
+  p { margin-bottom: 16px; }
+
+  /* Inline code */
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--code-bg);
+    padding: 2px 7px;
+    border-radius: 4px;
+    color: var(--green);
+  }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 20px 0 24px;
+    line-height: 1.55;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 14px;
+    color: var(--text);
+  }
+  pre code .cm { color: var(--text-muted); }
+
+  /* Formula boxes */
+  .formula {
+    background: var(--surface);
+    border-left: 3px solid var(--accent-dim);
+    border-radius: 0 8px 8px 0;
+    padding: 18px 24px;
+    margin: 20px 0 24px;
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--heading);
+    overflow-x: auto;
+  }
+
+  /* Callout boxes */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .callout.interview {
+    border-left: 3px solid var(--callout-interview-border);
+  }
+  .callout.tip {
+    border-left: 3px solid var(--callout-tip-border);
+  }
+  .callout.warning {
+    border-left: 3px solid var(--callout-warning-border);
+  }
+  .callout .callout-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .callout.interview .callout-label { color: var(--orange); }
+  .callout.tip .callout-label { color: var(--green); }
+  .callout.warning .callout-label { color: var(--red); }
+
+  /* Tags */
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 20px;
+  }
+  .tag {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .tag.modern { color: var(--green); border-color: var(--tag-modern-border); background: var(--tag-modern-bg); }
+  .tag.classic { color: var(--yellow); border-color: var(--tag-classic-border); background: var(--tag-classic-bg); }
+  .tag.deprecated { color: var(--red); border-color: var(--tag-deprecated-border); background: var(--tag-deprecated-bg); }
+
+  /* SVG figures */
+  .figure {
+    margin: 28px 0;
+    text-align: center;
+  }
+  .figure svg {
+    max-width: 100%;
+    height: auto;
+  }
+  .figure-caption {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 10px;
+  }
+
+  /* Comparison table */
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+  .comparison-table th {
+    background: var(--surface);
+    color: var(--heading);
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+  }
+  .comparison-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .comparison-table tr:hover td {
+    background: var(--surface);
+  }
+
+  /* Section divider */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 56px 0;
+  }
+
+  /* Interview section */
+  .qa { margin-bottom: 32px; }
+  .qa .q {
+    font-family: var(--sans);
+    font-weight: 600;
+    color: var(--heading);
+    margin-bottom: 8px;
+    font-size: 17px;
+  }
+  .qa .q::before {
+    content: "Q. ";
+    color: var(--orange);
+    font-family: var(--mono);
+    font-weight: 500;
+  }
+  .qa .a { color: var(--text); }
+
+  /* SVG theming — override inline colors via CSS specificity */
+  .figure svg pattern path { stroke: var(--svg-grid) !important; }
+  .figure svg > line { stroke: var(--svg-axis) !important; }
+  .figure svg > text { fill: var(--svg-label) !important; }
+  .figure svg .curve-label { fill: var(--svg-text) !important; }
+  .figure svg .axis-label { fill: var(--svg-label) !important; }
+  /* Preserve colored elements — re-apply their intended colors */
+  .figure svg .stroke-accent { stroke: var(--accent) !important; }
+  .figure svg .stroke-green { stroke: var(--green) !important; }
+  .figure svg .stroke-orange { stroke: var(--orange) !important; }
+  .figure svg .stroke-red { stroke: var(--red) !important; }
+  .figure svg .stroke-purple { stroke: var(--purple) !important; }
+  .figure svg .stroke-yellow { stroke: var(--yellow) !important; }
+  .figure svg .fill-orange { fill: var(--orange) !important; }
+  .figure svg .fill-green { fill: var(--green) !important; }
+  .figure svg .fill-yellow { fill: var(--yellow) !important; }
+  .figure svg .fill-accent { fill: var(--accent) !important; }
+  .figure svg .text-orange { fill: var(--orange) !important; }
+  .figure svg .text-green { fill: var(--green) !important; }
+  .figure svg .text-yellow { fill: var(--yellow) !important; }
+  .figure svg .text-red { fill: var(--red) !important; }
+  .figure svg .text-accent { fill: var(--accent) !important; }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 100;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .theme-toggle:hover {
+    border-color: var(--accent);
+    color: var(--heading);
+  }
+  .theme-toggle .icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  /* Smooth transitions for theme switch */
+  body, .hero, .toc, .callout, pre, .formula, .comparison-table th,
+  .comparison-table td, .tag, .theme-toggle, footer {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 30px; }
+    h2 { font-size: 24px; }
+    pre { padding: 14px 16px; }
+    .comparison-table { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span class="icon" id="theme-icon">☀️</span>
+  <span id="theme-label">Light</span>
+</button>
+
+<div class="container">
+
+<!-- ==================== HERO ==================== -->
+<header class="hero">
+  <div class="hero-label">ML Interview Prep — Deep Learning Fundamentals</div>
+  <h1>Activation Functions: Everything You Need for the Interview</h1>
+  <p class="subtitle">Theory, implementations, visualizations, and the questions interviewers actually ask.</p>
+  <div class="meta">Pratiksha Agrawal · 2025</div>
+</header>
+
+<!-- ==================== TOC ==================== -->
+<nav class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#why">Why Activation Functions Matter</a></li>
+    <li><a href="#sigmoid">Sigmoid</a></li>
+    <li><a href="#tanh">Tanh</a></li>
+    <li><a href="#relu">ReLU</a></li>
+    <li><a href="#leaky-relu">Leaky ReLU &amp; PReLU</a></li>
+    <li><a href="#softmax">Softmax &amp; Log-Softmax</a></li>
+    <li><a href="#gelu">GELU</a></li>
+    <li><a href="#swish">Swish / SiLU</a></li>
+    <li><a href="#comparison">Side-by-Side Comparison</a></li>
+    <li><a href="#interview">Interview Questions</a></li>
+  </ol>
+</nav>
+
+<!-- ==================== 1. WHY ==================== -->
+<section id="why">
+  <h2><span class="num">01</span>Why Activation Functions Matter</h2>
+  <p>Without activation functions, a neural network is just stacked linear transformations — which collapse into a single linear transformation no matter how many layers you add. A two-layer network <code>W₂(W₁x + b₁) + b₂</code> simplifies to <code>Wx + b</code>. Activation functions break this linearity and let networks learn complex, non-linear decision boundaries.</p>
+  <p>The choice of activation function affects training dynamics (gradient flow, convergence speed), the kinds of functions a network can represent, and computational cost. In interviews, you need to know the formulas, the derivatives, the failure modes, and <em>why</em> each one was introduced — meaning what problem with the previous generation it fixed.</p>
+</section>
+
+<hr class="divider">
+
+<!-- ==================== 2. SIGMOID ==================== -->
+<section id="sigmoid">
+  <h2><span class="num">02</span>Sigmoid</h2>
+  <div class="tags">
+    <span class="tag classic">classic</span>
+    <span class="tag">binary classification output</span>
+    <span class="tag">gating mechanism</span>
+  </div>
+
+  <div class="formula">σ(x) = 1 / (1 + e⁻ˣ)</div>
+
+  <p>Sigmoid squashes any real number into (0, 1), which made it the go-to activation in the early days of neural networks. It has a natural probabilistic interpretation — the output can be read as a probability — which is why it's still used in binary classification output layers and as gating functions inside LSTMs and GRUs.</p>
+
+  <h3>Derivative</h3>
+  <div class="formula">σ'(x) = σ(x) · (1 − σ(x))</div>
+  <p>The derivative peaks at 0.25 (when x=0) and approaches 0 for large |x|. This is the root of the <strong>vanishing gradient problem</strong>: during backpropagation through many layers, gradients get multiplied by numbers ≤ 0.25 repeatedly, shrinking to near zero.</p>
+
+  <!-- SVG: Sigmoid + Derivative -->
+  <div class="figure">
+    <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid1" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect x="60" y="20" width="580" height="260" fill="url(#grid1)"/>
+      <line x1="60" y1="150" x2="640" y2="150" stroke-width="1.5"/>
+      <line x1="350" y1="20" x2="350" y2="280" stroke-width="1.5"/>
+      <text class="axis-label" x="345" y="16" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="end">1.0</text>
+      <text class="axis-label" x="345" y="286" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="end">0.0</text>
+      <text class="axis-label" x="80" y="145" font-family="JetBrains Mono, monospace" font-size="11">-6</text>
+      <text class="axis-label" x="620" y="145" font-family="JetBrains Mono, monospace" font-size="11">6</text>
+      <polyline class="stroke-accent" fill="none" stroke-width="2.5" stroke-linecap="round"
+        points="60,278 108,276 156,271 204,261 252,239 300,202 328,176 350,150 372,124 400,98 448,61 496,39 544,29 592,24 640,22"/>
+      <polyline class="stroke-orange" fill="none" stroke-width="2" stroke-dasharray="6,4" stroke-linecap="round"
+        points="60,278 108,277 156,273 204,263 252,238 300,196 328,170 350,150 372,170 400,196 448,238 496,263 544,273 592,277 640,278"/>
+      <line class="stroke-accent" x1="70" y1="34" x2="100" y2="34" stroke-width="2.5"/>
+      <text class="curve-label" x="108" y="38" font-family="DM Sans, sans-serif" font-size="13">σ(x)</text>
+      <line class="stroke-orange" x1="170" y1="34" x2="200" y2="34" stroke-width="2" stroke-dasharray="6,4"/>
+      <text class="curve-label" x="208" y="38" font-family="DM Sans, sans-serif" font-size="13">σ'(x) — max 0.25</text>
+      <circle class="fill-orange" cx="350" cy="150" r="4"/>
+      <text class="text-orange" x="365" y="142" font-family="JetBrains Mono, monospace" font-size="11">peak = 0.25</text>
+    </svg>
+    <div class="figure-caption">Sigmoid function (solid) and its derivative (dashed). The derivative never exceeds 0.25.</div>
+  </div>
+
+  <h3>Implementation</h3>
+  <pre><code><span class="cm"># NumPy — numerically stable version</span>
+def sigmoid(x):
+    return np.where(x >= 0,
+                    1 / (1 + np.exp(-x)),
+                    np.exp(x) / (1 + np.exp(x)))
+
+def sigmoid_derivative(x):
+    s = sigmoid(x)
+    return s * (1 - s)</code></pre>
+
+  <div class="callout tip">
+    <div class="callout-label">Numerical stability</div>
+    <p>The naive <code>1/(1+exp(-x))</code> overflows for large negative x. The piecewise version above handles both sides. This is a common follow-up in coding interviews.</p>
+  </div>
+
+  <h3>Where it's used today</h3>
+  <p>Binary classification output layers, gating in LSTMs/GRUs, attention mechanisms (as part of sigmoid attention variants). Rarely used as a hidden layer activation anymore because of vanishing gradients and non-zero-centered output.</p>
+</section>
+
+<hr class="divider">
+
+<!-- ==================== 3. TANH ==================== -->
+<section id="tanh">
+  <h2><span class="num">03</span>Tanh</h2>
+  <div class="tags">
+    <span class="tag classic">classic</span>
+    <span class="tag">zero-centered</span>
+    <span class="tag">RNN/LSTM staple</span>
+  </div>
+
+  <div class="formula">tanh(x) = (eˣ − e⁻ˣ) / (eˣ + e⁻ˣ) = 2σ(2x) − 1</div>
+
+  <p>Tanh is sigmoid rescaled to (−1, 1). The key improvement: it's <strong>zero-centered</strong>, meaning its outputs average around 0 rather than 0.5. This matters because non-zero-centered activations cause zig-zagging updates during gradient descent — all gradients for a layer's weights have the same sign, forcing updates in only one direction at a time.</p>
+
+  <h3>Derivative</h3>
+  <div class="formula">tanh'(x) = 1 − tanh²(x)</div>
+  <p>Peaks at 1.0 (when x=0), which is 4× stronger than sigmoid's peak. Still saturates for large |x|, so it doesn't fully solve vanishing gradients, but it's meaningfully better than sigmoid for hidden layers.</p>
+
+  <!-- SVG: Tanh -->
+  <div class="figure">
+    <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect x="60" y="20" width="580" height="260" fill="url(#grid2)"/>
+      <line x1="60" y1="150" x2="640" y2="150" stroke-width="1.5"/>
+      <line x1="350" y1="20" x2="350" y2="280" stroke-width="1.5"/>
+      <text class="axis-label" x="345" y="36" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="end">+1</text>
+      <text class="axis-label" x="345" y="274" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="end">-1</text>
+      <polyline class="stroke-purple" fill="none" stroke-width="2.5" stroke-linecap="round"
+        points="60,278 108,276 156,270 204,256 252,228 300,184 328,164 350,150 372,136 400,116 448,72 496,44 544,30 592,24 640,22"/>
+      <polyline class="stroke-green" fill="none" stroke-width="2" stroke-dasharray="6,4" stroke-linecap="round"
+        points="60,278 108,276 156,272 204,260 252,230 300,176 328,152 350,20 372,152 400,176 448,230 496,260 544,272 592,276 640,278"/>
+      <line class="stroke-purple" x1="70" y1="34" x2="100" y2="34" stroke-width="2.5"/>
+      <text class="curve-label" x="108" y="38" font-family="DM Sans, sans-serif" font-size="13">tanh(x)</text>
+      <line class="stroke-green" x1="200" y1="34" x2="230" y2="34" stroke-width="2" stroke-dasharray="6,4"/>
+      <text class="curve-label" x="238" y="38" font-family="DM Sans, sans-serif" font-size="13">tanh'(x) — max 1.0</text>
+      <circle class="fill-green" cx="350" cy="20" r="4"/>
+    </svg>
+    <div class="figure-caption">Tanh (solid) and its derivative (dashed). Derivative peak is 4× that of sigmoid.</div>
+  </div>
+
+  <h3>Implementation</h3>
+  <pre><code>def tanh(x):
+    return np.tanh(x)  <span class="cm"># or: (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))</span>
+
+def tanh_derivative(x):
+    return 1 - np.tanh(x) ** 2</code></pre>
+
+  <h3>Where it's used today</h3>
+  <p>Cell state updates in LSTMs, hidden state computation in GRUs and vanilla RNNs, and as a final activation in some generative models (e.g., the output layer of GANs to produce values in [−1, 1]). Also appears inside the original transformer's positional encoding isn't an activation per se, but tanh shows up in gating mechanisms throughout sequence models.</p>
+</section>
+
+<hr class="divider">
+
+<!-- ==================== 4. RELU ==================== -->
+<section id="relu">
+  <h2><span class="num">04</span>ReLU</h2>
+  <div class="tags">
+    <span class="tag modern">modern standard</span>
+    <span class="tag">CNNs</span>
+    <span class="tag">default hidden activation</span>
+  </div>
+
+  <div class="formula">ReLU(x) = max(0, x)</div>
+
+  <p>ReLU was the activation that made deep networks actually trainable. Published by Nair & Hinton (2010) and popularized by AlexNet (2012), it solved the vanishing gradient problem in a brutally simple way: for positive inputs, the gradient is always 1. No saturation, no squashing, no exponentials. Just a hinge.</p>
+
+  <p>It also introduces <strong>sparsity</strong> — any negative input produces exactly 0, meaning a subset of neurons are "off" for any given input. This acts as a form of implicit regularization and makes representations more interpretable.</p>
+
+  <h3>Derivative</h3>
+  <div class="formula">ReLU'(x) = 1 if x > 0, else 0 &nbsp;&nbsp;(undefined at x=0, conventionally set to 0)</div>
+
+  <!-- SVG: ReLU -->
+  <div class="figure">
+    <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid3" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect x="60" y="20" width="580" height="260" fill="url(#grid3)"/>
+      <line x1="60" y1="200" x2="640" y2="200" stroke-width="1.5"/>
+      <line x1="350" y1="20" x2="350" y2="280" stroke-width="1.5"/>
+      <polyline class="stroke-red" fill="none" stroke-width="2.5" stroke-linecap="round"
+        points="60,200 156,200 252,200 350,200 400,160 448,120 496,80 544,40 592,20"/>
+      <line class="stroke-yellow" x1="60" y1="200" x2="350" y2="200" stroke-width="2" stroke-dasharray="6,4"/>
+      <line class="stroke-yellow" x1="350" y1="120" x2="592" y2="120" stroke-width="2" stroke-dasharray="6,4"/>
+      <circle cx="350" cy="200" r="4" fill="none" class="stroke-yellow" stroke-width="2"/>
+      <circle class="fill-yellow" cx="350" cy="120" r="4"/>
+      <text class="axis-label" x="600" y="196" font-family="JetBrains Mono, monospace" font-size="11">y=0</text>
+      <text class="text-yellow" x="600" y="116" font-family="JetBrains Mono, monospace" font-size="11">grad=1</text>
+      <text class="text-yellow" x="100" y="196" font-family="JetBrains Mono, monospace" font-size="11">grad=0</text>
+      <line class="stroke-red" x1="70" y1="34" x2="100" y2="34" stroke-width="2.5"/>
+      <text class="curve-label" x="108" y="38" font-family="DM Sans, sans-serif" font-size="13">ReLU(x)</text>
+      <line class="stroke-yellow" x1="200" y1="34" x2="230" y2="34" stroke-width="2" stroke-dasharray="6,4"/>
+      <text class="curve-label" x="238" y="38" font-family="DM Sans, sans-serif" font-size="13">ReLU'(x)</text>
+      <text class="text-red" x="130" y="252" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle">dead zone</text>
+      <text class="axis-label" x="130" y="266" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle">(dying ReLU)</text>
+    </svg>
+    <div class="figure-caption">ReLU and its derivative. Negative inputs produce zero gradient — the "dying ReLU" region.</div>
+  </div>
+
+  <h3>Implementation</h3>
+  <pre><code>def relu(x):
+    return np.maximum(0, x)
+
+def relu_derivative(x):
+    return (x > 0).astype(float)</code></pre>
+
+  <div class="callout warning">
+    <div class="callout-label">The dying ReLU problem</div>
+    <p>If a neuron's weights get pushed so that its input is always negative, it outputs 0 for every sample and receives 0 gradient — it's permanently dead. This can happen with a large learning rate or bad initialization. A network can lose 20-40% of its neurons this way. Leaky ReLU and PReLU were invented specifically to fix this.</p>
+  </div>
+
+  <h3>Where it's used today</h3>
+  <p>Still the default activation for CNNs and most feedforward networks. ResNets, VGG, all the classic vision architectures use ReLU. For transformers and LLMs, GELU has largely replaced it (more on that below), but ReLU remains the starting point for any new architecture and the baseline everyone compares against.</p>
+</section>
+
+<hr class="divider">
+
+<!-- ==================== 5. LEAKY RELU & PRELU ==================== -->
+<section id="leaky-relu">
+  <h2><span class="num">05</span>Leaky ReLU &amp; PReLU</h2>
+  <div class="tags">
+    <span class="tag modern">modern</span>
+    <span class="tag">fixes dying ReLU</span>
+    <span class="tag">GANs</span>
+  </div>
+
+  <div class="formula">LeakyReLU(x) = x if x > 0, else αx &nbsp;&nbsp;(typically α = 0.01)<br><br>PReLU(x) = x if x > 0, else αx &nbsp;&nbsp;(α is a learnable parameter)</div>
+
+  <p>Leaky ReLU applies a small slope α to negative inputs instead of hard zero. This means every neuron always has a non-zero gradient and can never fully die. PReLU takes this further by making α a learned parameter — the network itself decides the optimal negative slope, which can vary per channel.</p>
+
+  <p>He et al. (2015) showed PReLU improved ImageNet classification accuracy and that the learned α values were typically small (0.1–0.3 range), suggesting the network preferred a gentle leak over either hard zero or large negative pass-through.</p>
+
+  <h3>Derivative</h3>
+  <div class="formula">LeakyReLU'(x) = 1 if x > 0, else α</div>
+
+  <!-- SVG: Leaky ReLU -->
+  <div class="figure">
+    <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid4" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect x="60" y="20" width="580" height="260" fill="url(#grid4)"/>
+      <line x1="60" y1="180" x2="640" y2="180" stroke-width="1.5"/>
+      <line x1="350" y1="20" x2="350" y2="280" stroke-width="1.5"/>
+      <polyline class="stroke-accent" fill="none" stroke-width="2.5" stroke-linecap="round"
+        points="60,209 156,200 252,191 350,180 400,140 448,100 496,60 544,30"/>
+      <polyline class="stroke-red" fill="none" stroke-width="1.5" stroke-dasharray="4,4" stroke-linecap="round" opacity="0.5"
+        points="60,180 252,180 350,180 400,140 448,100 496,60 544,30"/>
+      <text class="text-accent" x="80" y="242" font-family="JetBrains Mono, monospace" font-size="12">slope = α (0.01)</text>
+      <text class="text-red" x="80" y="176" font-family="JetBrains Mono, monospace" font-size="11" opacity="0.6">ReLU (dead)</text>
+      <text class="axis-label" x="450" y="54" font-family="JetBrains Mono, monospace" font-size="11">slope = 1</text>
+      <line class="stroke-accent" x1="70" y1="34" x2="100" y2="34" stroke-width="2.5"/>
+      <text class="curve-label" x="108" y="38" font-family="DM Sans, sans-serif" font-size="13">Leaky ReLU</text>
+      <line class="stroke-red" x1="230" y1="34" x2="260" y2="34" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.5"/>
+      <text class="axis-label" x="268" y="38" font-family="DM Sans, sans-serif" font-size="13">ReLU (reference)</text>
+    </svg>
+    <div class="figure-caption">Leaky ReLU vs ReLU. The small negative slope keeps gradients flowing everywhere.</div>
+  </div>
+
+  <h3>Implementation</h3>
+  <pre><code>def leaky_relu(x, alpha=0.01):
+    return np.where(x > 0, x, alpha * x)
+
+def leaky_relu_derivative(x, alpha=0.01):
+    return np.where(x > 0, 1.0, alpha)
+
+<span class="cm"># PReLU: alpha is a parameter updated via backprop</span>
+class PReLU:
+    def __init__(self, alpha=0.25):
+        self.alpha = alpha  <span class="cm"># learnable</span>
+
+    def forward(self, x):
+        self.x = x
+        return np.where(x > 0, x, self.alpha * x)
+
+    def backward(self, grad_output):
+        grad_x = np.where(self.x > 0, grad_output, self.alpha * grad_output)
+        grad_alpha = np.sum(np.where(self.x > 0, 0, self.x * grad_output))
+        return grad_x, grad_alpha</code></pre>
+
+  <h3>Where it's used today</h3>
+  <p>Leaky ReLU is very popular in GANs (DCGAN architecture uses it for the discriminator). PReLU was used in the He et al. ResNet variants. In practice, Leaky ReLU is a safe drop-in replacement for ReLU when you suspect dying neurons — it almost never hurts and sometimes helps.</p>
+</section>
+
+<hr class="divider">
+
+<!-- ==================== 6. SOFTMAX ==================== -->
+<section id="softmax">
+  <h2><span class="num">06</span>Softmax &amp; Log-Softmax</h2>
+  <div class="tags">
+    <span class="tag modern">ubiquitous</span>
+    <span class="tag">multi-class output</span>
+    <span class="tag">attention mechanism</span>
+  </div>
+
+  <div class="formula">Softmax(xᵢ) = eˣⁱ / Σⱼ eˣʲ<br><br>LogSoftmax(xᵢ) = xᵢ − log(Σⱼ eˣʲ)</div>
+
+  <p>Softmax converts a vector of raw logits into a probability distribution — outputs sum to 1, each is in (0, 1). It's the standard final layer for multi-class classification. The "max" in the name comes from the fact that it approximates argmax: the largest logit gets disproportionately more probability as the differences grow.</p>
+
+  <p>Log-Softmax is the log of softmax, computed more stably in a single pass. It's numerically preferred when you're going to take the log anyway (e.g., for NLLLoss), since <code>log(softmax(x))</code> computed naively can underflow.</p>
+
+  <h3>The numerical stability trick</h3>
+  <p>Raw softmax overflows for large logits. The standard fix: subtract the max value first. Since <code>softmax(x) = softmax(x - c)</code> for any constant c, we use <code>c = max(x)</code> to keep exponentials manageable.</p>
+
+  <h3>Implementation</h3>
+  <pre><code>def softmax(x):
+    <span class="cm"># x shape: (batch, classes) or (classes,)</span>
+    shifted = x - np.max(x, axis=-1, keepdims=True)  <span class="cm"># stability trick</span>
+    exp_x = np.exp(shifted)
+    return exp_x / np.sum(exp_x, axis=-1, keepdims=True)
+
+def log_softmax(x):
+    shifted = x - np.max(x, axis=-1, keepdims=True)
+    return shifted - np.log(np.sum(np.exp(shifted), axis=-1, keepdims=True))</code></pre>
+
+  <div class="callout interview">
+    <div class="callout-label">Interview favorite</div>
+    <p>"Implement softmax from scratch" is one of the most common ML coding questions. The follow-ups are always: (1) how do you handle numerical overflow? (2) can you do it for a batch of inputs? (3) what's the Jacobian of softmax? The Jacobian answer: <code>∂softmax(xᵢ)/∂xⱼ = softmax(xᵢ)(δᵢⱼ − softmax(xⱼ))</code>, where δᵢⱼ is the Kronecker delta.</p>
+  </div>
+
+  <h3>Where it's used today</h3>
+  <p>Final layer of virtually every classification model. Inside every transformer's attention mechanism (the attention weights are a softmax over query-key dot products). Temperature-scaled softmax is used in knowledge distillation and LLM sampling.</p>
+</section>
+
+<hr class="divider">
+
+<!-- ==================== 7. GELU ==================== -->
+<section id="gelu">
+  <h2><span class="num">07</span>GELU</h2>
+  <div class="tags">
+    <span class="tag modern">modern — 2016</span>
+    <span class="tag">transformers</span>
+    <span class="tag">BERT, GPT, ViT</span>
+  </div>
+
+  <div class="formula">GELU(x) = x · Φ(x)<br><br>where Φ(x) is the CDF of the standard normal distribution<br><br>Approximation: GELU(x) ≈ 0.5x(1 + tanh(√(2/π)(x + 0.044715x³)))</div>
+
+  <p>GELU (Hendrycks & Gimpel, 2016) is the activation that powers modern transformers. The idea: instead of a hard 0/1 gate like ReLU, weight each input by the probability that it's "above average" — specifically, by the CDF of a standard normal. Inputs that are clearly positive pass through almost fully; inputs that are clearly negative are nearly zeroed; and inputs near zero get a smooth, stochastic-feeling blend.</p>
+
+  <p>Unlike ReLU's hard kink at 0, GELU is smooth everywhere. This matters for optimization — smoother loss landscapes generally mean more stable training. The non-monotonic behavior (GELU has a small negative "bump" near x ≈ -0.5) is sometimes cited as helping with regularization, though the evidence is mixed.</p>
+
+  <!-- SVG: GELU vs ReLU comparison -->
+  <div class="figure">
+    <svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid5" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect x="60" y="20" width="580" height="280" fill="url(#grid5)"/>
+      <line x1="60" y1="220" x2="640" y2="220" stroke-width="1.5"/>
+      <line x1="350" y1="20" x2="350" y2="300" stroke-width="1.5"/>
+      <polyline class="stroke-red" fill="none" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.45" stroke-linecap="round"
+        points="60,220 156,220 252,220 350,220 400,180 448,140 496,100 544,60 592,30"/>
+      <polyline class="stroke-green" fill="none" stroke-width="2.5" stroke-linecap="round"
+        points="60,220 108,221 156,222 204,224 228,226 252,226 276,225 300,222 325,219 350,220 375,210 400,178 448,138 496,98 544,58 592,28"/>
+      <circle class="fill-green" cx="252" cy="226" r="4"/>
+      <line class="stroke-green" x1="252" y1="232" x2="252" y2="262" stroke-width="1"/>
+      <text class="text-green" x="258" y="272" font-family="JetBrains Mono, monospace" font-size="10">non-monotonic bump</text>
+      <text class="text-green" x="258" y="284" font-family="JetBrains Mono, monospace" font-size="10">≈ −0.17 at x ≈ −0.5</text>
+      <line class="stroke-green" x1="70" y1="34" x2="100" y2="34" stroke-width="2.5"/>
+      <text class="curve-label" x="108" y="38" font-family="DM Sans, sans-serif" font-size="13">GELU(x)</text>
+      <line class="stroke-red" x1="200" y1="34" x2="230" y2="34" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.45"/>
+      <text class="axis-label" x="238" y="38" font-family="DM Sans, sans-serif" font-size="13">ReLU (reference)</text>
+    </svg>
+    <div class="figure-caption">GELU vs ReLU. Note the smooth transition and the small negative region near x = −0.5.</div>
+  </div>
+
+  <h3>Implementation</h3>
+  <pre><code><span class="cm"># Exact</span>
+from scipy.stats import norm
+def gelu_exact(x):
+    return x * norm.cdf(x)
+
+<span class="cm"># Tanh approximation (what PyTorch uses)</span>
+def gelu_approx(x):
+    return 0.5 * x * (1 + np.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * x**3)))
+
+<span class="cm"># Sigmoid approximation (faster, less accurate)</span>
+def gelu_sigmoid(x):
+    return x * sigmoid(1.702 * x)</code></pre>
+
+  <div class="callout interview">
+    <div class="callout-label">Why interviewers love this</div>
+    <p>"Why does BERT use GELU instead of ReLU?" tests whether you understand the tradeoffs: smoothness for optimization, probabilistic interpretation, and that the specific choice was somewhat empirical — GELU consistently gave small accuracy improvements in the transformer setting. Also know that the tanh approximation exists because the exact CDF is expensive to compute.</p>
+  </div>
+
+  <h3>Where it's used today</h3>
+  <p>BERT, GPT-2, GPT-3, GPT-4, ViT (Vision Transformer), RoBERTa, and most modern transformer architectures. If you see a transformer from 2018 onward, it's probably using GELU. This is the single most important "modern" activation function to know for LLM-focused interviews.</p>
+</section>
+
+<hr class="divider">
+
+<!-- ==================== 8. SWISH ==================== -->
+<section id="swish">
+  <h2><span class="num">08</span>Swish / SiLU</h2>
+  <div class="tags">
+    <span class="tag modern">modern — 2017</span>
+    <span class="tag">EfficientNet, LLaMA</span>
+    <span class="tag">NAS-discovered</span>
+  </div>
+
+  <div class="formula">Swish(x) = x · σ(βx)<br><br>SiLU is Swish with β = 1: &nbsp; SiLU(x) = x · σ(x)</div>
+
+  <p>Swish was found via automated search (Neural Architecture Search) by Ramachandran et al. at Google Brain (2017). The search explored combinations of unary and binary operations and consistently found that <code>x · σ(x)</code> outperformed ReLU on deep networks. SiLU (Sigmoid Linear Unit) is the name for the β=1 special case, which is what's used in practice.</p>
+
+  <p>Like GELU, Swish is smooth and non-monotonic. The two functions are actually very similar in shape — they differ mainly in the size of the negative bump and the transition sharpness. The practical difference in performance is small; the choice between GELU and Swish often comes down to framework conventions.</p>
+
+  <!-- SVG: Swish vs GELU vs ReLU -->
+  <div class="figure">
+    <svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid6" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect x="60" y="20" width="580" height="280" fill="url(#grid6)"/>
+      <line x1="60" y1="220" x2="640" y2="220" stroke-width="1.5"/>
+      <line x1="350" y1="20" x2="350" y2="300" stroke-width="1.5"/>
+      <polyline class="stroke-red" fill="none" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.35" stroke-linecap="round"
+        points="60,220 252,220 350,220 400,180 448,140 496,100 544,60 592,30"/>
+      <polyline class="stroke-green" fill="none" stroke-width="1.5" stroke-dasharray="8,4" opacity="0.6" stroke-linecap="round"
+        points="60,220 156,222 228,226 252,226 300,222 350,220 400,178 448,138 496,98 544,58 592,28"/>
+      <polyline class="stroke-orange" fill="none" stroke-width="2.5" stroke-linecap="round"
+        points="60,220 108,222 156,224 204,228 228,230 252,230 276,228 300,224 325,221 350,220 375,208 400,176 448,136 496,96 544,56 592,26"/>
+      <line class="stroke-orange" x1="70" y1="34" x2="100" y2="34" stroke-width="2.5"/>
+      <text class="curve-label" x="108" y="38" font-family="DM Sans, sans-serif" font-size="13">Swish / SiLU</text>
+      <line class="stroke-green" x1="240" y1="34" x2="270" y2="34" stroke-width="1.5" stroke-dasharray="8,4" opacity="0.6"/>
+      <text class="axis-label" x="278" y="38" font-family="DM Sans, sans-serif" font-size="13">GELU</text>
+      <line class="stroke-red" x1="340" y1="34" x2="370" y2="34" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.35"/>
+      <text class="axis-label" x="378" y="38" font-family="DM Sans, sans-serif" font-size="13">ReLU</text>
+    </svg>
+    <div class="figure-caption">Swish, GELU, and ReLU. Swish and GELU are nearly identical — both are smooth, non-monotonic alternatives to ReLU.</div>
+  </div>
+
+  <h3>Implementation</h3>
+  <pre><code>def swish(x, beta=1.0):
+    return x * sigmoid(beta * x)
+
+def silu(x):
+    <span class="cm"># SiLU = Swish with beta=1</span>
+    return x * sigmoid(x)
+
+def silu_derivative(x):
+    s = sigmoid(x)
+    return s + x * s * (1 - s)  <span class="cm"># = s(1 + x(1-s))</span></code></pre>
+
+  <h3>Where it's used today</h3>
+  <p>EfficientNet (Google, 2019), LLaMA and LLaMA 2 (Meta, 2023), Mamba (state space models), and many recent architectures. LLaMA specifically uses SiLU in its SwiGLU feed-forward layers, which combine Swish/SiLU with gated linear units. If you're interviewing at Meta or for any role involving open-source LLMs, know SiLU and SwiGLU.</p>
+</section>
+
+<hr class="divider">
+
+<!-- ==================== 9. COMPARISON ==================== -->
+<section id="comparison">
+  <h2><span class="num">09</span>Side-by-Side Comparison</h2>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Function</th>
+        <th>Range</th>
+        <th>Smooth?</th>
+        <th>Zero-centered?</th>
+        <th>Vanishing grad?</th>
+        <th>Key use</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Sigmoid</strong></td>
+        <td>(0, 1)</td>
+        <td>Yes</td>
+        <td>No</td>
+        <td>Yes</td>
+        <td>Binary output, gating</td>
+      </tr>
+      <tr>
+        <td><strong>Tanh</strong></td>
+        <td>(−1, 1)</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes (less)</td>
+        <td>RNNs, LSTMs</td>
+      </tr>
+      <tr>
+        <td><strong>ReLU</strong></td>
+        <td>[0, ∞)</td>
+        <td>No</td>
+        <td>No</td>
+        <td>No</td>
+        <td>CNNs, default hidden</td>
+      </tr>
+      <tr>
+        <td><strong>Leaky ReLU</strong></td>
+        <td>(−∞, ∞)</td>
+        <td>No</td>
+        <td>~Yes</td>
+        <td>No</td>
+        <td>GANs, dying ReLU fix</td>
+      </tr>
+      <tr>
+        <td><strong>PReLU</strong></td>
+        <td>(−∞, ∞)</td>
+        <td>No</td>
+        <td>~Yes</td>
+        <td>No</td>
+        <td>ResNets (He et al.)</td>
+      </tr>
+      <tr>
+        <td><strong>Softmax</strong></td>
+        <td>(0, 1), sums to 1</td>
+        <td>Yes</td>
+        <td>N/A</td>
+        <td>N/A</td>
+        <td>Multi-class output, attention</td>
+      </tr>
+      <tr>
+        <td><strong>GELU</strong></td>
+        <td>≈[−0.17, ∞)</td>
+        <td>Yes</td>
+        <td>~Yes</td>
+        <td>No</td>
+        <td>BERT, GPT, ViT</td>
+      </tr>
+      <tr>
+        <td><strong>Swish/SiLU</strong></td>
+        <td>≈[−0.28, ∞)</td>
+        <td>Yes</td>
+        <td>~Yes</td>
+        <td>No</td>
+        <td>LLaMA, EfficientNet</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>The timeline of dominance</h3>
+  <p><strong>Pre-2010:</strong> Sigmoid and tanh were the only options. Deep networks couldn't train well.</p>
+  <p><strong>2010–2015:</strong> ReLU era. AlexNet proved it worked, deep learning exploded. Leaky ReLU and PReLU appeared as patches.</p>
+  <p><strong>2016–present:</strong> Smooth activations. GELU arrived with BERT (2018), Swish from NAS (2017). SwiGLU in LLaMA (2023) is the current frontier for large language models.</p>
+</section>
+
+<hr class="divider">
+
+<!-- ==================== 10. INTERVIEW ==================== -->
+<section id="interview">
+  <h2><span class="num">10</span>Interview Questions</h2>
+  <p>These range from basics to the follow-ups that separate strong candidates. I've included the key points for each answer — not scripted responses, because you want to explain these in your own words.</p>
+
+  <div class="qa">
+    <div class="q">Why do we need non-linear activation functions?</div>
+    <div class="a">Without them, stacking layers is pointless — the composition of linear functions is linear. A 100-layer network with no activations has the same representational power as a single layer. Non-linearity lets the network approximate arbitrary functions (universal approximation theorem). Follow-up trap: "Is ReLU technically non-linear?" Yes — it's piecewise linear, which is non-linear. The kink at 0 breaks linearity.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Why did ReLU replace sigmoid/tanh for hidden layers?</div>
+    <div class="a">Three reasons: (1) no saturation for positive inputs, so gradients don't vanish during backprop; (2) extremely cheap to compute (just a threshold); (3) induces sparsity, which can help generalization. The deeper the network, the more sigmoid/tanh suffer from gradient attenuation — gradients shrink exponentially with depth since each layer multiplies by a factor ≤ 0.25 (sigmoid) or ≤ 1.0 (tanh).</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Explain the dying ReLU problem and how to fix it.</div>
+    <div class="a">If a neuron's pre-activation is consistently negative (due to a large negative bias or bad weight update), ReLU outputs exactly 0 and the gradient is exactly 0, so the weights never update — the neuron is permanently dead. Fixes: Leaky ReLU (small α for negative inputs), PReLU (learned α), ELU (exponential for negatives), or better initialization (He initialization, designed specifically for ReLU). You can also use a smaller learning rate to avoid the large updates that push neurons into the dead zone.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Compare sigmoid vs tanh. When would you use each?</div>
+    <div class="a">Tanh is sigmoid scaled to (−1, 1) — literally <code>tanh(x) = 2σ(2x) − 1</code>. Tanh is zero-centered, which means layer outputs don't have a systematic positive bias, leading to more balanced gradient updates. Use sigmoid for: binary classification outputs (probability interpretation), gating (LSTM forget/input gates). Use tanh for: hidden state computations in RNNs, any place you want zero-centered outputs. Neither is great as a hidden layer activation in deep feedforward nets anymore — use ReLU or GELU.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Implement softmax from scratch. How do you make it numerically stable?</div>
+    <div class="a">Subtract max(x) before exponentiating. Since <code>softmax(x) = softmax(x - c)</code> for any constant c, this doesn't change the result but prevents overflow. The follow-up: "What's the gradient of softmax?" The Jacobian is <code>diag(s) - s·sᵀ</code>, where s is the softmax output vector. In practice, you don't compute this explicitly — you use cross-entropy loss which simplifies the gradient to <code>softmax(x) - y_onehot</code>.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Why do transformers use GELU instead of ReLU?</div>
+    <div class="a">GELU is smooth everywhere (no kink at 0), which helps with optimization on the complex loss landscapes of transformer training. It can be interpreted as stochastic regularization — each input is weighted by the probability that it exceeds random inputs from a standard normal. Empirically, GELU consistently outperformed ReLU and ELU on transformer benchmarks, though the margins are small. The real answer is partly empirical: the BERT authors tried it, it worked better, and it became the convention. Know the tanh approximation formula — it comes up in implementation questions.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">What is SwiGLU and why does LLaMA use it?</div>
+    <div class="a">SwiGLU (Shazeer, 2020) combines Swish activation with Gated Linear Units. In a standard transformer FFN, you have: <code>FFN(x) = W₂ · GELU(W₁x)</code>. In SwiGLU, it becomes: <code>FFN(x) = W₂ · (Swish(W₁x) ⊙ W₃x)</code>, where ⊙ is element-wise multiplication and W₃ is an additional projection. The gating mechanism lets the network multiplicatively control information flow, which turns out to give better perplexity per parameter. LLaMA, PaLM, and several other recent LLMs use it because it consistently improves performance at the cost of one extra projection matrix.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">If you're designing a new network from scratch, how do you choose the activation function?</div>
+    <div class="a">Start with the conventions for your architecture type. Transformers: GELU or SwiGLU for hidden layers, softmax for attention and classification output. CNNs: ReLU, or Leaky ReLU if you're worried about dead neurons. RNNs/LSTMs: tanh for cell states, sigmoid for gates. Binary output: sigmoid. Multi-class output: softmax. If you're doing architecture search or have compute to ablate, try Swish/SiLU as an alternative to GELU. The honest answer is that the differences between modern smooth activations are small — the choice of learning rate, normalization, and architecture matter more.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">What's the relationship between softmax temperature and model behavior?</div>
+    <div class="a"><code>softmax(x/T)</code> where T is temperature. T → 0 makes it approach hard argmax (peaky, confident). T → ∞ makes it uniform (all classes equally likely). T = 1 is standard. Low temperature is used for greedy decoding in LLMs. High temperature gives more diverse/creative outputs. Temperature scaling is also used in knowledge distillation (Hinton et al., 2015) — training a student model on soft targets from a teacher model with T > 1, which transfers "dark knowledge" about class relationships.</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">ReLU is not differentiable at x = 0. Is that a problem?</div>
+    <div class="a">In theory, yes — the function isn't differentiable at exactly 0. In practice, no: (1) the probability of hitting exactly 0.0 in floating point is negligible; (2) we define the subgradient as 0 at that point by convention; (3) networks train perfectly fine with this. The interviewer is testing whether you understand the gap between mathematical theory and practical deep learning. Same idea applies to Leaky ReLU at x = 0.</div>
+  </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<hr class="divider">
+<footer style="padding-bottom: 80px; text-align: center; color: var(--text-muted); font-size: 14px; font-family: var(--mono);">
+  Part of the ML Interview Prep series · Next up: Backpropagation
+</footer>
+
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  updateToggleUI(next);
+  localStorage.setItem('theme', next);
+}
+
+function updateToggleUI(theme) {
+  document.getElementById('theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+  document.getElementById('theme-label').textContent = theme === 'dark' ? 'Light' : 'Dark';
+}
+
+// Init from saved preference or system preference
+(function() {
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+  updateToggleUI(theme);
+})();
+</script>
+</body>
+</html>
