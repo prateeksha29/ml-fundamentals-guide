@@ -450,6 +450,7 @@
     <li><a href="#softmax">Softmax &amp; Log-Softmax</a></li>
     <li><a href="#gelu">GELU</a></li>
     <li><a href="#swish">Swish / SiLU</a></li>
+    <li><a href="#swiglu">SwiGLU: From Activation to Architecture</a></li>
     <li><a href="#comparison">Side-by-Side Comparison</a></li>
     <li><a href="#interview">Interview Questions</a></li>
   </ol>
@@ -892,9 +893,179 @@ def silu_derivative(x):
 
 <hr class="divider">
 
-<!-- ==================== 9. COMPARISON ==================== -->
+<!-- ==================== 9. SWIGLU ==================== -->
+<section id="swiglu">
+  <h2><span class="num">09</span>SwiGLU: From Activation to Architecture</h2>
+  <div class="tags">
+    <span class="tag modern">modern — 2020</span>
+    <span class="tag">LLaMA, PaLM, Mistral</span>
+    <span class="tag">gated FFN</span>
+  </div>
+
+  <p>SwiGLU isn't an activation function — it's an architecture pattern for the feed-forward network (FFN) inside each transformer layer. It combines Swish/SiLU with a <strong>Gated Linear Unit</strong>, and understanding why it works is essential for any LLM-focused interview.</p>
+
+  <h3>Standard FFN vs SwiGLU</h3>
+
+  <p>A standard transformer FFN does one projection, applies an activation, then projects back:</p>
+
+  <div class="formula">Standard: FFN(x) = W₂ · GELU(W₁ · x)</div>
+
+  <p>SwiGLU splits the first projection into two parallel paths — one goes through Swish, the other stays linear — and multiplies them element-wise before the final projection:</p>
+
+  <div class="formula">SwiGLU: FFN(x) = W₂ · (Swish(W₁ · x) ⊙ W₃ · x)</div>
+
+  <p>The <code>W₃ · x</code> branch is the <strong>gate</strong>. It's a separate learned projection that controls which features from the activated <code>W₁</code> path pass through. The ⊙ is element-wise multiplication.</p>
+
+  <!-- SVG: Standard FFN vs SwiGLU side-by-side diagram -->
+  <div class="figure">
+    <svg viewBox="0 0 680 440" xmlns="http://www.w3.org/2000/svg">
+      <!-- Divider -->
+      <line x1="340" y1="10" x2="340" y2="430" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 4"/>
+
+      <!-- LEFT: Standard FFN -->
+      <text fill="var(--heading)" font-family="DM Sans, sans-serif" font-size="15" font-weight="600" x="155" y="28" text-anchor="middle">Standard FFN</text>
+      <text class="axis-label" x="155" y="46" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">BERT, GPT-2, GPT-3</text>
+
+      <!-- Input -->
+      <rect x="105" y="62" width="100" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="155" y="84" text-anchor="middle">x</text>
+
+      <!-- Arrow -->
+      <line x1="155" y1="98" x2="155" y2="126" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrowSG)"/>
+
+      <!-- W1 -->
+      <rect x="80" y="126" width="150" height="44" rx="6" fill="var(--surface)" stroke="var(--accent-dim)" stroke-width="1"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="155" y="146" text-anchor="middle">W₁ · x</text>
+      <text fill="var(--text-muted)" font-family="DM Sans, sans-serif" font-size="11" x="155" y="162" text-anchor="middle">Linear projection</text>
+
+      <line x1="155" y1="170" x2="155" y2="198" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrowSG)"/>
+
+      <!-- GELU -->
+      <rect x="80" y="198" width="150" height="44" rx="6" fill="var(--surface)" stroke="var(--green)" stroke-width="1"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="155" y="218" text-anchor="middle">GELU( )</text>
+      <text fill="var(--text-muted)" font-family="DM Sans, sans-serif" font-size="11" x="155" y="234" text-anchor="middle">Activation</text>
+
+      <line x1="155" y1="242" x2="155" y2="270" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrowSG)"/>
+
+      <!-- W2 -->
+      <rect x="80" y="270" width="150" height="44" rx="6" fill="var(--surface)" stroke="var(--accent-dim)" stroke-width="1"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="155" y="290" text-anchor="middle">W₂ · ( )</text>
+      <text fill="var(--text-muted)" font-family="DM Sans, sans-serif" font-size="11" x="155" y="306" text-anchor="middle">Project back</text>
+
+      <line x1="155" y1="314" x2="155" y2="342" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrowSG)"/>
+
+      <!-- Output -->
+      <rect x="105" y="342" width="100" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="155" y="364" text-anchor="middle">output</text>
+
+      <!-- RIGHT: SwiGLU -->
+      <text fill="var(--heading)" font-family="DM Sans, sans-serif" font-size="15" font-weight="600" x="510" y="28" text-anchor="middle">SwiGLU FFN</text>
+      <text class="axis-label" x="510" y="46" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">LLaMA, PaLM, Mistral</text>
+
+      <!-- Input -->
+      <rect x="460" y="62" width="100" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="510" y="84" text-anchor="middle">x</text>
+
+      <!-- Split arrows -->
+      <line x1="488" y1="98" x2="445" y2="126" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrowSG)"/>
+      <line x1="532" y1="98" x2="590" y2="126" stroke="var(--purple)" stroke-width="1.5" marker-end="url(#arrowSGp)"/>
+
+      <!-- W1 (left branch) -->
+      <rect x="370" y="126" width="150" height="44" rx="6" fill="var(--surface)" stroke="var(--accent-dim)" stroke-width="1"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="445" y="146" text-anchor="middle">W₁ · x</text>
+      <text fill="var(--text-muted)" font-family="DM Sans, sans-serif" font-size="11" x="445" y="162" text-anchor="middle">Feature proposal</text>
+
+      <!-- W3 (right branch — gate) -->
+      <rect x="540" y="126" width="120" height="44" rx="6" fill="var(--surface)" stroke="var(--purple)" stroke-width="1.5"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="600" y="146" text-anchor="middle">W₃ · x</text>
+      <text fill="var(--purple)" font-family="DM Sans, sans-serif" font-size="11" font-weight="600" x="600" y="162" text-anchor="middle">Gate</text>
+
+      <line x1="445" y1="170" x2="445" y2="198" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrowSG)"/>
+
+      <!-- Swish -->
+      <rect x="370" y="198" width="150" height="44" rx="6" fill="var(--surface)" stroke="var(--green)" stroke-width="1"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="445" y="218" text-anchor="middle">Swish( )</text>
+      <text fill="var(--text-muted)" font-family="DM Sans, sans-serif" font-size="11" x="445" y="234" text-anchor="middle">Activation</text>
+
+      <!-- Arrows converging to multiply -->
+      <line x1="445" y1="242" x2="485" y2="270" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrowSG)"/>
+      <line x1="600" y1="170" x2="540" y2="270" stroke="var(--purple)" stroke-width="1.5" marker-end="url(#arrowSGp)"/>
+
+      <!-- Element-wise multiply -->
+      <rect x="430" y="270" width="160" height="44" rx="6" fill="var(--surface)" stroke="var(--orange)" stroke-width="1.5"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="15" x="510" y="288" text-anchor="middle">⊙</text>
+      <text fill="var(--orange)" font-family="DM Sans, sans-serif" font-size="11" font-weight="600" x="510" y="306" text-anchor="middle">Element-wise multiply</text>
+
+      <line x1="510" y1="314" x2="510" y2="342" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrowSG)"/>
+
+      <!-- W2 -->
+      <rect x="435" y="342" width="150" height="44" rx="6" fill="var(--surface)" stroke="var(--accent-dim)" stroke-width="1"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="510" y="362" text-anchor="middle">W₂ · ( )</text>
+      <text fill="var(--text-muted)" font-family="DM Sans, sans-serif" font-size="11" x="510" y="378" text-anchor="middle">Project back</text>
+
+      <line x1="510" y1="386" x2="510" y2="402" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrowSG)"/>
+
+      <!-- Output -->
+      <rect x="460" y="402" width="100" height="36" rx="6" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+      <text fill="var(--heading)" font-family="JetBrains Mono, monospace" font-size="13" x="510" y="424" text-anchor="middle">output</text>
+
+      <!-- Arrow markers -->
+      <defs>
+        <marker id="arrowSG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 2L8 5L2 8" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="arrowSGp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 2L8 5L2 8" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="figure-caption">Standard FFN (left) vs SwiGLU FFN (right). The purple path is the learned gate — a separate projection that controls which features survive.</div>
+  </div>
+
+  <h3>Why split into two brains?</h3>
+
+  <p>In the standard FFN, <code>W₁</code> has to do two jobs at once: extract useful features from the input <em>and</em> produce values that survive the activation function well. These objectives can conflict — maybe the optimal feature value is −0.3, but GELU nearly zeros that out.</p>
+
+  <p>SwiGLU splits these responsibilities. The <code>W₁</code> path focuses on <em>what features to propose</em>. The <code>W₃</code> gate focuses on <em>which of those features to let through</em>. Critically, the gate is <strong>linear</strong> — no activation squashing it — so it can output any value: 0.01, 5.0, −2.0. This gives it much more flexible control than GELU's fixed S-curve.</p>
+
+  <p>Think of it as: one brain deciding what to say (<code>W₁</code>) and a separate brain deciding how loudly to say it (<code>W₃</code>). A single brain trying to do both compromises on each.</p>
+
+  <h3>Dimensions</h3>
+
+  <p>If the model has hidden dimension <code>d_model</code> and FFN intermediate dimension <code>d_ff</code>:</p>
+
+  <pre><code>W₁: (d_model, d_ff)    <span class="cm"># feature proposal</span>
+W₃: (d_model, d_ff)    <span class="cm"># gate (same shape as W₁)</span>
+W₂: (d_ff, d_model)    <span class="cm"># project back</span></code></pre>
+
+  <p>That's 3 weight matrices instead of 2, roughly 50% more FFN parameters. In practice, LLaMA compensates by making <code>d_ff</code> slightly smaller so the total parameter count stays comparable — and SwiGLU still wins on perplexity per parameter.</p>
+
+  <h3>Implementation</h3>
+  <pre><code><span class="cm"># Standard FFN</span>
+def standard_ffn(x, W1, W2):
+    return W2 @ gelu_tanh(W1 @ x)
+
+<span class="cm"># SwiGLU FFN</span>
+def swiglu_ffn(x, W1, W2, W3):
+    return W2 @ (silu(W1 @ x) * (W3 @ x))
+    <span class="cm">#              ^^^^^^^^^^^^   ^^^^^^^^</span>
+    <span class="cm">#              activated path  gate path</span>
+    <span class="cm">#                    multiplied element-wise</span></code></pre>
+
+  <div class="callout tip">
+    <div class="callout-label">Variants</div>
+    <p>Replace Swish with GELU and you get <strong>GeGLU</strong>. Replace with ReLU and you get <strong>ReGLU</strong>. The activation name is the prefix; GLU is the gating pattern. Shazeer (2020) tested all variants — SwiGLU was marginally best, but the big win is gating itself over no gating.</p>
+  </div>
+
+  <h3>Where it's used today</h3>
+  <p>LLaMA 1 &amp; 2 (Meta, 2023), PaLM (Google, 2022), Mistral (2023), and most recent open-source LLMs. If you're interviewing at Meta, Google, or any role involving large language models, understanding SwiGLU is expected. The key insight to communicate: it's not about the specific activation — it's about the architectural choice to separate feature computation from feature gating.</p>
+</section>
+
+<hr class="divider">
+
+<!-- ==================== 10. COMPARISON ==================== -->
 <section id="comparison">
-  <h2><span class="num">09</span>Side-by-Side Comparison</h2>
+  <h2><span class="num">10</span>Side-by-Side Comparison</h2>
 
   <table class="comparison-table">
     <thead>
@@ -985,7 +1156,7 @@ def silu_derivative(x):
 
 <!-- ==================== 10. INTERVIEW ==================== -->
 <section id="interview">
-  <h2><span class="num">10</span>Interview Questions</h2>
+  <h2><span class="num">11</span>Interview Questions</h2>
   <p>These range from basics to the follow-ups that separate strong candidates. I've included the key points for each answer — not scripted responses, because you want to explain these in your own words.</p>
 
   <div class="qa">
