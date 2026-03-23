@@ -151,6 +151,20 @@
             transform: translateX(5px);
         }
 
+        .blog-card .new-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+            color: #000;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
         .about {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -230,6 +244,20 @@
         </div>
 
         <div class="blog-grid">
+            <div class="blog-card">
+                <span class="new-badge">New</span>
+                <div class="blog-icon">🔗</div>
+                <h2>Backpropagation Through Every Layer</h2>
+                <div class="blog-meta">
+                    <span>📚 Complete Guide</span>
+                    <span>⏱️ 20 min</span>
+                </div>
+                <p>
+                    The complete derivation guide for backprop through BCE + Sigmoid, Softmax + Cross-Entropy, Batch Normalization, Dropout, and L2 Regularization. Every gradient derived from first principles with visual intuition — no code, just math and the reasoning behind it.
+                </p>
+                <a href="backprop-through-every-layer.html" class="btn">Read Article →</a>
+            </div>
+
             <div class="blog-card">
                 <div class="blog-icon">⚡</div>
                 <h2>Mastering Optimization Algorithms</h2>
