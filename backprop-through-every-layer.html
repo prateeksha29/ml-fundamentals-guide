@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backpropagation Through Every Layer — A Complete Derivation Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #FAFAF7;
+    --bg-secondary: #F0EFE9;
+    --bg-card: #FFFFFF;
+    --bg-math: #F5F4EF;
+    --bg-callout: #EDF4F8;
+    --text-primary: #1A1A18;
+    --text-secondary: #555550;
+    --text-tertiary: #8A8A82;
+    --accent: #B44A2D;
+    --accent-light: #FDF0EC;
+    --accent-secondary: #2D6B8A;
+    --accent-secondary-light: #E8F2F7;
+    --border: #E2E0D8;
+    --border-light: #EDEBE4;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+    --shadow-hover: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05);
+    --code-bg: #F5F4EF;
+    --callout-green-bg: #EEF6EE;
+    --callout-green-border: #6B9B6B;
+    --callout-amber-bg: #FEF6E8;
+    --callout-amber-border: #C49A3C;
+    --callout-blue-bg: #EDF4F8;
+    --callout-blue-border: #4A8DAC;
+    --fig-bg: #FFFFFF;
+    --fig-stroke: #1A1A18;
+    --fig-fill-1: #B44A2D;
+    --fig-fill-2: #2D6B8A;
+    --fig-fill-3: #6B9B6B;
+    --fig-fill-muted: #E2E0D8;
+    --fig-text: #1A1A18;
+    --fig-text-light: #555550;
+    --toc-hover: #F5F4EF;
+  }
+
+  [data-theme="dark"] {
+    --bg-primary: #141413;
+    --bg-secondary: #1C1C1A;
+    --bg-card: #1E1E1C;
+    --bg-math: #1E1E1C;
+    --text-primary: #E8E6DF;
+    --text-secondary: #A8A69E;
+    --text-tertiary: #6E6D68;
+    --accent: #D4764E;
+    --accent-light: #2A1F18;
+    --accent-secondary: #5AADCF;
+    --accent-secondary-light: #162630;
+    --border: #2E2E2A;
+    --border-light: #262622;
+    --shadow: 0 1px 3px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.15);
+    --shadow-hover: 0 2px 8px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.2);
+    --code-bg: #1E1E1C;
+    --callout-green-bg: #1A231A;
+    --callout-green-border: #5A8A5A;
+    --callout-amber-bg: #231F14;
+    --callout-amber-border: #B8923A;
+    --callout-blue-bg: #141F26;
+    --callout-blue-border: #4A8DAC;
+    --fig-bg: #1E1E1C;
+    --fig-stroke: #E8E6DF;
+    --fig-fill-1: #D4764E;
+    --fig-fill-2: #5AADCF;
+    --fig-fill-3: #6EAA6E;
+    --fig-fill-muted: #3A3A36;
+    --fig-text: #E8E6DF;
+    --fig-text-light: #A8A69E;
+    --toc-hover: #222220;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    font-family: 'Newsreader', Georgia, serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.78;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 100;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: var(--shadow);
+    transition: all 0.2s;
+  }
+  .theme-toggle:hover { box-shadow: var(--shadow-hover); transform: scale(1.05); }
+
+  /* Layout */
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Hero */
+  .hero {
+    padding: 100px 0 60px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 2.8rem;
+    font-weight: 500;
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
+  }
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    max-width: 540px;
+    margin: 0 auto 28px;
+    line-height: 1.6;
+  }
+  .hero-meta {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+  }
+
+  /* Table of contents */
+  .toc {
+    padding: 40px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+  }
+  .toc ol {
+    list-style: none;
+    counter-reset: toc-counter;
+  }
+  .toc li {
+    counter-increment: toc-counter;
+    margin-bottom: 4px;
+  }
+  .toc li a {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: block;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .toc li a:hover { background: var(--toc-hover); color: var(--text-primary); }
+  .toc li a::before {
+    content: counter(toc-counter, decimal-leading-zero) " ";
+    color: var(--text-tertiary);
+    font-weight: 500;
+    margin-right: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Article content */
+  .article { padding: 48px 0 80px; }
+
+  .article h2 {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 1.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 64px 0 8px;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+  }
+  .article h2 .section-num {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .article h3 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 36px 0 12px;
+  }
+
+  .article p {
+    margin-bottom: 20px;
+    color: var(--text-primary);
+  }
+
+  .article strong { font-weight: 600; }
+  .article em { font-style: italic; }
+
+  /* Math blocks */
+  .math-block {
+    background: var(--bg-math);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+    overflow-x: auto;
+    text-align: center;
+  }
+  .math-block .katex { font-size: 1.05em; }
+
+  .math-block.highlight {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-light);
+  }
+
+  .math-block.result {
+    border-left: 3px solid var(--callout-green-border);
+    background: var(--callout-green-bg);
+  }
+
+  /* Inline math */
+  .katex { font-size: 0.97em; }
+
+  /* Callouts */
+  .callout {
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 28px 0;
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+  .callout-label {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .callout.intuition {
+    background: var(--callout-blue-bg);
+    border: 1px solid var(--callout-blue-border);
+  }
+  .callout.intuition .callout-label { color: var(--callout-blue-border); }
+  .callout.key-result {
+    background: var(--callout-green-bg);
+    border: 1px solid var(--callout-green-border);
+  }
+  .callout.key-result .callout-label { color: var(--callout-green-border); }
+  .callout.warning {
+    background: var(--callout-amber-bg);
+    border: 1px solid var(--callout-amber-border);
+  }
+  .callout.warning .callout-label { color: var(--callout-amber-border); }
+
+  /* Figures */
+  .figure {
+    margin: 36px 0;
+    text-align: center;
+  }
+  .figure svg {
+    max-width: 100%;
+    height: auto;
+  }
+  .figure-caption {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    margin-top: 12px;
+    font-style: italic;
+  }
+
+  /* Derivation steps */
+  .derivation {
+    background: var(--bg-math);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin: 28px 0;
+  }
+  .derivation-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .deriv-step {
+    margin-bottom: 14px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .deriv-step:last-child { margin-bottom: 0; }
+  .step-num {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--bg-primary);
+    background: var(--accent);
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  .step-content {
+    flex: 1;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+
+  /* Section divider */
+  .section-divider {
+    width: 60px;
+    height: 1px;
+    background: var(--border);
+    margin: 64px auto;
+  }
+
+  /* Summary table */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 0.88rem;
+  }
+  .summary-table th {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .summary-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+  }
+
+  /* Footer */
+  .article-footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 0 80px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    html { font-size: 16px; }
+    .hero h1 { font-size: 2rem; }
+    .hero { padding: 80px 0 48px; }
+    .article h2 { font-size: 1.55rem; }
+    .math-block { padding: 16px 14px; }
+    .derivation { padding: 18px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span id="theme-icon">☽</span>
+</button>
+
+<div class="container">
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<header class="hero">
+  <div class="hero-label">Deep Learning Fundamentals</div>
+  <h1>Backpropagation Through Every Layer</h1>
+  <p class="hero-sub">The complete derivation guide for BCE, Softmax, BatchNorm, Dropout, and L2 Regularization — from first principles to final gradients.</p>
+  <div class="hero-meta">Pratiksha · 2026 · 20 min read</div>
+</header>
+
+<!-- ═══════════════════ TOC ═══════════════════ -->
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#prereq">The Chain Rule Refresher</a></li>
+    <li><a href="#bce-sigmoid">Backprop Through BCE + Sigmoid</a></li>
+    <li><a href="#softmax-ce">Backprop Through Softmax + Cross-Entropy</a></li>
+    <li><a href="#batchnorm">Backprop Through Batch Normalization</a></li>
+    <li><a href="#dropout">Backprop Through Dropout</a></li>
+    <li><a href="#l2">Backprop Through L2 Regularization</a></li>
+    <li><a href="#summary">The Complete Picture</a></li>
+  </ol>
+</nav>
+
+<!-- ═══════════════════ ARTICLE ═══════════════════ -->
+<article class="article">
+
+<p>When you call <code>loss.backward()</code> in PyTorch, dozens of gradient computations fire in sequence. Each layer type — loss functions, activations, normalization, regularization — has its own backward pass with its own derivation.</p>
+
+<p>This article derives every one of them from scratch. No code, no hand-waving. Just the math and the intuition behind it, so that when you see a gradient formula, you know <em>exactly</em> where it came from and <em>why</em> it looks the way it does.</p>
+
+<p>We'll start with the simplest case and build up. By the end, you'll have derived the backward pass for the five most important building blocks in deep learning.</p>
+
+<!-- ═══════════════════ SECTION 1 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="prereq"><span class="section-num">01 — Prerequisite</span>The Chain Rule Refresher</h2>
+
+<p>Every derivation in this article relies on one idea: the <strong>chain rule</strong>. If you have a composition of functions $$L = f(g(h(x)))$$, the derivative of $$L$$ with respect to $$x$$ is:</p>
+
+<div class="math-block">$$\frac{\partial L}{\partial x} = \frac{\partial L}{\partial f} \cdot \frac{\partial f}{\partial g} \cdot \frac{\partial g}{\partial h} \cdot \frac{\partial h}{\partial x}$$</div>
+
+<p>In a neural network, information flows forward through layers, and gradients flow backward through the same layers in reverse order. At each layer, we receive an <strong>upstream gradient</strong> (what came from the layers above us) and we need to compute two things:</p>
+
+<p><strong>Parameter gradients</strong> — how much should this layer's weights change? This is what the optimizer uses.</p>
+
+<p><strong>Downstream gradient</strong> — what gradient should we pass to the layer below us? This keeps the chain going.</p>
+
+<div class="callout intuition">
+  <div class="callout-label">Intuition</div>
+  Think of backprop like a blame game. The loss says "something went wrong." Each layer passes the blame backward, saying "here's how much of this was <em>my</em> fault" (parameter gradients) and "here's how much was <em>your</em> fault" (downstream gradient to the previous layer).
+</div>
+
+<p>With that, let's derive our first backward pass.</p>
+
+<!-- ═══════════════════ SECTION 2 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="bce-sigmoid"><span class="section-num">02 — Binary Classification</span>Backprop Through BCE + Sigmoid</h2>
+
+<p>In binary classification, the last two operations in the forward pass are the <strong>sigmoid</strong> activation and the <strong>binary cross-entropy</strong> loss. We need the gradient of the loss with respect to the <em>pre-activation logits</em> — the values before sigmoid is applied.</p>
+
+<h3>Setting up the forward pass</h3>
+
+<p>The sigmoid function squashes any real number into $$(0, 1)$$:</p>
+
+<div class="math-block">$$\hat{y} = \sigma(z) = \frac{1}{1 + e^{-z}}$$</div>
+
+<p>Then binary cross-entropy measures how far these probabilities are from the true labels:</p>
+
+<div class="math-block">$$L = -\frac{1}{N}\sum_{i=1}^{N}\left[y_i \log \hat{y}_i + (1 - y_i)\log(1 - \hat{y}_i)\right]$$</div>
+
+<p>We want $$\frac{\partial L}{\partial z}$$. By the chain rule, this decomposes into two pieces:</p>
+
+<div class="math-block">$$\frac{\partial L}{\partial z} = \frac{\partial L}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z}$$</div>
+
+<h3>Piece 1: The sigmoid derivative</h3>
+
+<p>The sigmoid has one of the cleanest derivatives in all of calculus. Starting from $$\sigma(z) = (1 + e^{-z})^{-1}$$:</p>
+
+<div class="derivation">
+  <div class="derivation-title">Deriving the sigmoid derivative</div>
+  <div class="deriv-step">
+    <div class="step-num">1</div>
+    <div class="step-content">Apply the power rule and chain rule: $$\frac{d\sigma}{dz} = -1 \cdot (1 + e^{-z})^{-2} \cdot (-e^{-z})= \frac{e^{-z}}{(1 + e^{-z})^2}$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">2</div>
+    <div class="step-content">Split the fraction into two factors: $$= \frac{1}{1 + e^{-z}} \cdot \frac{e^{-z}}{1 + e^{-z}}$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">3</div>
+    <div class="step-content">Recognize the first factor as $$\sigma(z)$$ and the second as $$1 - \sigma(z)$$: $$\frac{d\sigma}{dz} = \sigma(z)\bigl(1 - \sigma(z)\bigr)$$</div>
+  </div>
+</div>
+
+<p>This means the derivative is entirely expressible in terms of the <em>output</em> of sigmoid, which is convenient — we've already computed it during the forward pass.</p>
+
+<div class="callout warning">
+  <div class="callout-label">Watch out</div>
+  The maximum value of $$\sigma(z)(1-\sigma(z))$$ is $$0.25$$, occurring at $$z = 0$$. This means every sigmoid layer <em>at best</em> scales the gradient down by a factor of 4. Stack ten sigmoid layers and the gradient shrinks by $$0.25^{10} \approx 10^{-6}$$. This is the <strong>vanishing gradient problem</strong>.
+</div>
+
+<!-- Sigmoid derivative visualization -->
+<div class="figure">
+<svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowhead" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" fill="var(--fig-text-light)"/>
+    </marker>
+  </defs>
+  <rect width="600" height="280" fill="var(--fig-bg)" rx="8"/>
+  <!-- Axes -->
+  <line x1="60" y1="240" x2="560" y2="240" stroke="var(--fig-text-light)" stroke-width="0.8" marker-end="url(#arrowhead)"/>
+  <line x1="310" y1="250" x2="310" y2="20" stroke="var(--fig-text-light)" stroke-width="0.8" marker-end="url(#arrowhead)"/>
+  <!-- Tick labels -->
+  <text x="310" y="260" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="11">0</text>
+  <text x="560" y="260" text-anchor="end" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="11">z</text>
+  <!-- σ(z) curve -->
+  <path d="M60,230 C100,230 150,228 200,218 C240,208 270,180 290,150 C310,115 320,80 340,58 C370,38 420,28 480,25 C520,23 550,22 560,22" fill="none" stroke="var(--fig-fill-2)" stroke-width="2.5"/>
+  <text x="565" y="28" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="12" font-weight="500">σ(z)</text>
+  <!-- σ'(z) = σ(1-σ) curve — bell shaped, peaks at 0.25 -->
+  <path d="M60,238 C100,238 160,236 210,228 C240,222 270,200 290,168 C300,150 307,140 310,135 C313,140 320,150 330,168 C350,200 380,222 410,228 C460,236 520,238 560,238" fill="none" stroke="var(--fig-fill-1)" stroke-width="2.5" stroke-dasharray="6,4"/>
+  <text x="565" y="242" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="12" font-weight="500">σ'(z)</text>
+  <!-- Peak annotation -->
+  <line x1="310" y1="135" x2="310" y2="145" stroke="var(--fig-fill-1)" stroke-width="1" stroke-dasharray="3,3"/>
+  <circle cx="310" cy="135" r="3.5" fill="var(--fig-fill-1)"/>
+  <text x="324" y="128" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="11">max = 0.25</text>
+  <!-- y = 1 reference -->
+  <line x1="60" y1="22" x2="560" y2="22" stroke="var(--fig-fill-muted)" stroke-width="0.6" stroke-dasharray="4,4"/>
+  <text x="55" y="26" text-anchor="end" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="11">1</text>
+</svg>
+<div class="figure-caption">The sigmoid function (solid) and its derivative (dashed). The derivative peaks at 0.25 — gradients can never grow through a sigmoid layer.</div>
+</div>
+
+<h3>Piece 2: The BCE derivative</h3>
+
+<p>Differentiating the BCE loss with respect to $$\hat{y}$$ (treating a single sample for clarity):</p>
+
+<div class="derivation">
+  <div class="derivation-title">Deriving the BCE gradient</div>
+  <div class="deriv-step">
+    <div class="step-num">1</div>
+    <div class="step-content">Start with: $$L = -\left[y\log\hat{y} + (1-y)\log(1-\hat{y})\right]$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">2</div>
+    <div class="step-content">Differentiate each term: $$\frac{\partial L}{\partial \hat{y}} = -\frac{y}{\hat{y}} + \frac{1-y}{1-\hat{y}}$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">3</div>
+    <div class="step-content">Combine over a common denominator: $$= \frac{-y(1-\hat{y}) + (1-y)\hat{y}}{\hat{y}(1-\hat{y})} = \frac{\hat{y} - y}{\hat{y}(1-\hat{y})}$$</div>
+  </div>
+</div>
+
+<h3>The magic: putting them together</h3>
+
+<p>Now we chain the two pieces together. This is where something beautiful happens:</p>
+
+<div class="derivation">
+  <div class="derivation-title">The cancellation</div>
+  <div class="deriv-step">
+    <div class="step-num">1</div>
+    <div class="step-content">Chain rule: $$\frac{\partial L}{\partial z} = \frac{\partial L}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z}$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">2</div>
+    <div class="step-content">Substitute both: $$= \frac{\hat{y} - y}{\hat{y}(1-\hat{y})} \cdot \hat{y}(1-\hat{y})$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">3</div>
+    <div class="step-content">The $$\hat{y}(1-\hat{y})$$ cancels completely:</div>
+  </div>
+</div>
+
+<div class="math-block result">$$\frac{\partial L}{\partial z} = \hat{y} - y$$</div>
+
+<div class="callout intuition">
+  <div class="callout-label">Intuition</div>
+  The gradient is simply the <em>prediction error</em>. If the network predicts 0.9 and the true label is 1, the gradient is just $$-0.1$$. No complex terms, no scaling issues. This is not a coincidence — BCE was specifically designed to pair with sigmoid to produce this clean gradient. It's also numerically stable: the separate form divides by $$\hat{y}(1 - \hat{y})$$, which explodes when predictions are near 0 or 1. The combined form avoids this entirely.
+</div>
+
+<!-- ═══════════════════ SECTION 3 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="softmax-ce"><span class="section-num">03 — Multi-class Classification</span>Backprop Through Softmax + Cross-Entropy</h2>
+
+<p>The multi-class version of what we just did. Instead of sigmoid squashing to one probability, softmax produces a probability distribution over $$C$$ classes:</p>
+
+<div class="math-block">$$\hat{y}_i = \text{softmax}(z)_i = \frac{e^{z_i}}{\sum_{j=1}^{C} e^{z_j}}$$</div>
+
+<p>And the multi-class cross-entropy loss (with one-hot labels $$y$$) is:</p>
+
+<div class="math-block">$$L = -\sum_{i=1}^{C} y_i \log \hat{y}_i$$</div>
+
+<p>We want $$\frac{\partial L}{\partial z_k}$$ — the gradient with respect to each logit.</p>
+
+<h3>The softmax Jacobian</h3>
+
+<p>Unlike sigmoid (which is element-wise), softmax couples all outputs — changing one logit affects <em>every</em> probability. So we need a full Jacobian matrix. For output $$\hat{y}_i$$ with respect to input $$z_k$$:</p>
+
+<div class="derivation">
+  <div class="derivation-title">Softmax Jacobian derivation</div>
+  <div class="deriv-step">
+    <div class="step-num">1</div>
+    <div class="step-content"><strong>Case $$i = k$$</strong> (diagonal): Using the quotient rule on $$\hat{y}_i = e^{z_i} / S$$ where $$S = \sum e^{z_j}$$: $$\frac{\partial \hat{y}_i}{\partial z_i} = \frac{e^{z_i} \cdot S - e^{z_i} \cdot e^{z_i}}{S^2} = \hat{y}_i - \hat{y}_i^2 = \hat{y}_i(1 - \hat{y}_i)$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">2</div>
+    <div class="step-content"><strong>Case $$i \neq k$$</strong> (off-diagonal): The numerator $$e^{z_i}$$ doesn't depend on $$z_k$$, so only $$S$$ contributes: $$\frac{\partial \hat{y}_i}{\partial z_k} = \frac{0 - e^{z_i} \cdot e^{z_k}}{S^2} = -\hat{y}_i \hat{y}_k$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">3</div>
+    <div class="step-content"><strong>Compact form</strong> using the Kronecker delta $$\delta_{ik}$$: $$\frac{\partial \hat{y}_i}{\partial z_k} = \hat{y}_i(\delta_{ik} - \hat{y}_k)$$</div>
+  </div>
+</div>
+
+<h3>Chaining with cross-entropy</h3>
+
+<p>The cross-entropy gradient with respect to $$\hat{y}_i$$ is straightforward: $$\frac{\partial L}{\partial \hat{y}_i} = -\frac{y_i}{\hat{y}_i}$$. Now we chain:</p>
+
+<div class="derivation">
+  <div class="derivation-title">Combined softmax + CE gradient</div>
+  <div class="deriv-step">
+    <div class="step-num">1</div>
+    <div class="step-content">$$\frac{\partial L}{\partial z_k} = \sum_{i=1}^{C} \frac{\partial L}{\partial \hat{y}_i} \cdot \frac{\partial \hat{y}_i}{\partial z_k}$$ (sum because each $$\hat{y}_i$$ depends on $$z_k$$)</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">2</div>
+    <div class="step-content">Substitute: $$= \sum_i \left(-\frac{y_i}{\hat{y}_i}\right) \cdot \hat{y}_i(\delta_{ik} - \hat{y}_k) = -\sum_i y_i(\delta_{ik} - \hat{y}_k)$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">3</div>
+    <div class="step-content">Expand: $$= -y_k + \hat{y}_k\sum_i y_i$$. Since $$y$$ is one-hot, $$\sum y_i = 1$$:</div>
+  </div>
+</div>
+
+<div class="math-block result">$$\frac{\partial L}{\partial z_k} = \hat{y}_k - y_k$$</div>
+
+<p>The exact same form as sigmoid + BCE. Prediction minus truth. This stunning symmetry is one of the most elegant results in machine learning.</p>
+
+<div class="callout intuition">
+  <div class="callout-label">Intuition</div>
+  In both the binary and multi-class cases, the gradient is simply "how wrong you were." If the true class is class 3 and you predicted $$[0.1, 0.2, 0.6, 0.1]$$, the gradient is $$[0.1, 0.2, -0.4, 0.1]$$. The predicted-class logit gets pushed <em>down</em> (because $$0.6 - 1 = -0.4$$), and all wrong-class logits get pushed <em>up</em>. The network learns to redistribute probability mass toward the correct answer.
+</div>
+
+<!-- ═══════════════════ SECTION 4 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="batchnorm"><span class="section-num">04 — Normalization</span>Backprop Through Batch Normalization</h2>
+
+<p>Batch normalization is applied between the linear transformation and the activation function. Its forward pass has three stages: normalize, scale, shift.</p>
+
+<div class="math-block">$$\mu = \frac{1}{N}\sum_{i=1}^N x_i \qquad \sigma^2 = \frac{1}{N}\sum_{i=1}^N (x_i - \mu)^2$$</div>
+<div class="math-block">$$\hat{x}_i = \frac{x_i - \mu}{\sqrt{\sigma^2 + \epsilon}} \qquad y_i = \gamma\hat{x}_i + \beta$$</div>
+
+<p>The backward pass is notoriously tricky because $$\mu$$ and $$\sigma^2$$ are <em>themselves functions of all the inputs</em>. Every input contributes to the mean and variance, which means differentiating through them couples every sample in the batch.</p>
+
+<h3>The easy gradients first</h3>
+
+<p>The learnable parameters $$\gamma$$ (scale) and $$\beta$$ (shift) have simple gradients, since $$y_i = \gamma\hat{x}_i + \beta$$:</p>
+
+<div class="math-block">$$\frac{\partial L}{\partial \gamma} = \sum_{i=1}^{N} \frac{\partial L}{\partial y_i} \cdot \hat{x}_i \qquad \frac{\partial L}{\partial \beta} = \sum_{i=1}^{N} \frac{\partial L}{\partial y_i}$$</div>
+
+<h3>The hard gradient: $$\partial L / \partial x_i$$</h3>
+
+<p>This is where the challenge lies. We need to differentiate through three interacting paths: $$x_i$$ appears directly in the numerator of $$\hat{x}_i$$, but it also affects $$\mu$$ and $$\sigma^2$$, which are in the denominator. We need to account for all three paths.</p>
+
+<!-- BatchNorm computation graph -->
+<div class="figure">
+<svg viewBox="0 0 600 220" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="220" fill="var(--fig-bg)" rx="8"/>
+  <!-- Nodes -->
+  <rect x="30" y="85" width="70" height="36" rx="6" fill="var(--fig-fill-2)" opacity="0.15" stroke="var(--fig-fill-2)" stroke-width="1.5"/>
+  <text x="65" y="108" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="13" font-weight="500">xᵢ</text>
+
+  <rect x="170" y="20" width="70" height="36" rx="6" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="205" y="43" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="13" font-weight="500">μ</text>
+
+  <rect x="170" y="150" width="70" height="36" rx="6" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="205" y="173" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="13" font-weight="500">σ²</text>
+
+  <rect x="320" y="85" width="70" height="36" rx="6" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="355" y="108" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12" font-weight="500">x̂ᵢ</text>
+
+  <rect x="470" y="85" width="70" height="36" rx="6" fill="var(--fig-fill-1)" opacity="0.15" stroke="var(--fig-fill-1)" stroke-width="1.5"/>
+  <text x="505" y="108" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="13" font-weight="500">yᵢ</text>
+
+  <!-- Arrows -->
+  <line x1="100" y1="95" x2="168" y2="45" stroke="var(--fig-text-light)" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+  <line x1="100" y1="110" x2="168" y2="160" stroke="var(--fig-text-light)" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+  <line x1="100" y1="103" x2="318" y2="103" stroke="var(--fig-fill-1)" stroke-width="1.8" marker-end="url(#arrowhead)"/>
+  <line x1="240" y1="38" x2="318" y2="95" stroke="var(--fig-text-light)" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+  <line x1="240" y1="168" x2="318" y2="112" stroke="var(--fig-text-light)" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+  <line x1="390" y1="103" x2="468" y2="103" stroke="var(--fig-text-light)" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+
+  <!-- Path labels -->
+  <text x="210" y="84" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="10" font-weight="600">direct path</text>
+  <text x="136" y="66" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">via μ</text>
+  <text x="136" y="145" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">via σ²</text>
+  <text x="425" y="96" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">γ, β</text>
+</svg>
+<div class="figure-caption">The three paths through which xᵢ influences the output. Backprop must account for all three.</div>
+</div>
+
+<p>Rather than tracking each path separately (which is valid but tedious), we can use a shortcut. Let $$d\hat{x}_i = \frac{\partial L}{\partial y_i} \cdot \gamma$$ be the gradient that has passed through $$\gamma$$. Then the full input gradient, after combining all three paths through the computational graph, simplifies to:</p>
+
+<div class="math-block result">$$\frac{\partial L}{\partial x_i} = \frac{1}{N} \cdot \frac{1}{\sqrt{\sigma^2 + \epsilon}}\left(N \cdot d\hat{x}_i - \sum_{j} d\hat{x}_j - \hat{x}_i \sum_{j} d\hat{x}_j \cdot \hat{x}_j\right)$$</div>
+
+<p>This formula packs three contributions into one expression. Let's unpack each term:</p>
+
+<p>The first term, $$N \cdot d\hat{x}_i$$, is the <strong>direct path</strong> — the gradient flowing straight through the normalization as if $$\mu$$ and $$\sigma^2$$ were constants.</p>
+
+<p>The second term, $$-\sum d\hat{x}_j$$, is the <strong>mean correction</strong>. Because $$x_i$$ contributes to $$\mu$$, which shifts every sample, we subtract the average gradient. This ensures the output gradients are zero-centered.</p>
+
+<p>The third term, $$-\hat{x}_i \sum d\hat{x}_j \hat{x}_j$$, is the <strong>variance correction</strong>. Because $$x_i$$ contributes to $$\sigma^2$$, which scales every sample, we subtract a term proportional to how far $$x_i$$ was from the mean.</p>
+
+<div class="callout intuition">
+  <div class="callout-label">Intuition</div>
+  BatchNorm's backward pass does something rather elegant: it <em>re-normalizes the gradients</em> too. The output gradients are guaranteed to have zero mean and a specific variance structure — just like the forward pass normalized the activations. This is part of why BatchNorm stabilizes training so effectively. Gradients that pass through it can't blow up or collapse.
+</div>
+
+<div class="callout warning">
+  <div class="callout-label">Interview note</div>
+  A common follow-up question: "What's different at inference time?" During training, you use per-batch $$\mu$$ and $$\sigma^2$$. During inference, you use a running average of these statistics collected during training. The parameters $$\gamma$$ and $$\beta$$ are always the same. This means the backward pass only exists during training — at inference time, BatchNorm is just a fixed linear transformation.
+</div>
+
+<!-- ═══════════════════ SECTION 5 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="dropout"><span class="section-num">05 — Regularization I</span>Backprop Through Dropout</h2>
+
+<p>Dropout is the simplest backward pass to derive, but its <em>design</em> involves a subtlety that trips people up: the inverted scaling.</p>
+
+<h3>Forward pass: inverted dropout</h3>
+
+<p>During training, each neuron is independently dropped with probability $$p$$. The surviving neurons are scaled up by $$\frac{1}{1-p}$$:</p>
+
+<div class="math-block">$$a_i^{\text{dropped}} = \frac{m_i \cdot a_i}{1-p} \qquad \text{where } m_i \sim \text{Bernoulli}(1-p)$$</div>
+
+<p>During inference, dropout is turned off entirely — activations pass through unchanged.</p>
+
+<h3>Why the $$1/(1-p)$$ scaling?</h3>
+
+<p>Without it, there's an expectation mismatch between training and inference.</p>
+
+<!-- Dropout figure -->
+<div class="figure">
+<svg viewBox="0 0 600 170" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="170" fill="var(--fig-bg)" rx="8"/>
+
+  <!-- Training side -->
+  <text x="150" y="24" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12" font-weight="600">Training (p = 0.5)</text>
+  <!-- Neurons -->
+  <circle cx="70" cy="70" r="16" fill="var(--fig-fill-2)" opacity="0.2" stroke="var(--fig-fill-2)" stroke-width="1.5"/>
+  <text x="70" y="75" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">a₁</text>
+  <circle cx="130" cy="70" r="16" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <line x1="122" y1="62" x2="138" y2="78" stroke="var(--fig-fill-1)" stroke-width="2"/>
+  <line x1="138" y1="62" x2="122" y2="78" stroke="var(--fig-fill-1)" stroke-width="2"/>
+  <circle cx="190" cy="70" r="16" fill="var(--fig-fill-2)" opacity="0.2" stroke="var(--fig-fill-2)" stroke-width="1.5"/>
+  <text x="190" y="75" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">a₃</text>
+  <circle cx="250" cy="70" r="16" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8" stroke-dasharray="3,3"/>
+  <line x1="242" y1="62" x2="258" y2="78" stroke="var(--fig-fill-1)" stroke-width="2"/>
+  <line x1="258" y1="62" x2="242" y2="78" stroke="var(--fig-fill-1)" stroke-width="2"/>
+
+  <text x="150" y="120" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="11">Expected output per neuron:</text>
+  <text x="150" y="140" text-anchor="middle" fill="var(--fig-text)" font-family="Newsreader, serif" font-size="13">(1−p) · a · 1/(1−p) = <tspan font-weight="600">a</tspan></text>
+
+  <!-- Divider -->
+  <line x1="310" y1="15" x2="310" y2="155" stroke="var(--fig-fill-muted)" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- Inference side -->
+  <text x="450" y="24" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12" font-weight="600">Inference (no dropout)</text>
+  <circle cx="370" cy="70" r="16" fill="var(--fig-fill-3)" opacity="0.2" stroke="var(--fig-fill-3)" stroke-width="1.5"/>
+  <text x="370" y="75" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">a₁</text>
+  <circle cx="420" cy="70" r="16" fill="var(--fig-fill-3)" opacity="0.2" stroke="var(--fig-fill-3)" stroke-width="1.5"/>
+  <text x="420" y="75" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">a₂</text>
+  <circle cx="470" cy="70" r="16" fill="var(--fig-fill-3)" opacity="0.2" stroke="var(--fig-fill-3)" stroke-width="1.5"/>
+  <text x="470" y="75" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">a₃</text>
+  <circle cx="520" cy="70" r="16" fill="var(--fig-fill-3)" opacity="0.2" stroke="var(--fig-fill-3)" stroke-width="1.5"/>
+  <text x="520" y="75" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">a₄</text>
+
+  <text x="450" y="120" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="11">Output per neuron:</text>
+  <text x="450" y="140" text-anchor="middle" fill="var(--fig-text)" font-family="Newsreader, serif" font-size="13" font-weight="600">a</text>
+  <text x="450" y="160" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11">✓ matches training</text>
+</svg>
+<div class="figure-caption">Inverted dropout scales surviving neurons during training so that expected values match inference without any modification at test time.</div>
+</div>
+
+<h3>The backward pass</h3>
+
+<p>Since the forward pass is just element-wise multiplication and scaling, the backward pass is identical in form:</p>
+
+<div class="math-block result">$$\frac{\partial L}{\partial a_i} = \frac{m_i}{1 - p} \cdot \frac{\partial L}{\partial a_i^{\text{dropped}}}$$</div>
+
+<p>The same mask, the same scaling. If a neuron was dropped during the forward pass, its gradient is zero — no learning signal flows through dead neurons. If it survived, the gradient is scaled up by $$\frac{1}{1-p}$$, just like the activation was.</p>
+
+<div class="callout key-result">
+  <div class="callout-label">Key result</div>
+  Dropout's backward pass is symmetric with its forward pass: multiply by the same mask, divide by the same $$(1-p)$$. The mask must be saved from the forward pass and reused — you cannot generate a new random mask during backprop.
+</div>
+
+<!-- ═══════════════════ SECTION 6 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="l2"><span class="section-num">06 — Regularization II</span>Backprop Through L2 Regularization</h2>
+
+<p>L2 regularization (weight decay) adds a penalty to the loss that discourages large weights. Unlike the other sections, this modifies the loss function itself rather than adding a new layer to backprop through.</p>
+
+<h3>The modified loss</h3>
+
+<div class="math-block">$$L_{\text{reg}} = L_{\text{data}} + \frac{\lambda}{2N}\sum_l \|W^{[l]}\|_F^2$$</div>
+
+<p>The $$\frac{1}{2}$$ is a convenience factor — it cancels when we differentiate the squared term. $$\lambda$$ controls regularization strength, and $$\|W\|_F^2 = \sum_{ij} w_{ij}^2$$ is the squared Frobenius norm.</p>
+
+<h3>The modified gradient</h3>
+
+<p>Since the regularization term only involves weights (not activations, not biases), it only adds to the weight gradients:</p>
+
+<div class="derivation">
+  <div class="derivation-title">L2 gradient derivation</div>
+  <div class="deriv-step">
+    <div class="step-num">1</div>
+    <div class="step-content">The regularization term for layer $$l$$ is $$\frac{\lambda}{2N}\sum_{ij}(w_{ij}^{[l]})^2$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">2</div>
+    <div class="step-content">Differentiating w.r.t. $$W^{[l]}$$: $$\frac{\partial}{\partial W^{[l]}}\frac{\lambda}{2N}\|W^{[l]}\|_F^2 = \frac{\lambda}{N} W^{[l]}$$</div>
+  </div>
+  <div class="deriv-step">
+    <div class="step-num">3</div>
+    <div class="step-content">Add this to the existing data gradient:</div>
+  </div>
+</div>
+
+<div class="math-block result">$$\frac{\partial L_{\text{reg}}}{\partial W^{[l]}} = \frac{\partial L_{\text{data}}}{\partial W^{[l]}} + \frac{\lambda}{N}W^{[l]}$$</div>
+
+<p>The gradient now has two components: the data term (which tells the network what the data wants) and the regularization term (which pushes weights toward zero).</p>
+
+<h3>The weight decay perspective</h3>
+
+<p>When you expand what SGD does with this gradient, something illuminating happens:</p>
+
+<div class="math-block">$$W \leftarrow W - \alpha\left(\nabla_W L_{\text{data}} + \frac{\lambda}{N}W\right) = (1 - \frac{\alpha\lambda}{N})W - \alpha\nabla_W L_{\text{data}}$$</div>
+
+<p>See that $$(1 - \frac{\alpha\lambda}{N})W$$ factor? At each step, the weights are multiplied by a number slightly less than 1 — they "decay" toward zero. This is why L2 regularization is also called <strong>weight decay</strong>.</p>
+
+<div class="callout warning">
+  <div class="callout-label">AdamW distinction</div>
+  With vanilla Adam, L2 regularization and weight decay are <em>not</em> the same thing. Adam's adaptive learning rate divides the gradient by $$\sqrt{v}$$, which also divides the regularization gradient — distorting the intended decay. AdamW fixes this by decoupling weight decay from the gradient update, applying the decay directly to the weights rather than through the gradient. This is why AdamW is the standard optimizer for modern deep learning.
+</div>
+
+<div class="callout intuition">
+  <div class="callout-label">Intuition</div>
+  Why only weights, not biases? Weights control the <em>complexity</em> of the function the network learns — large weights create steep, sharp decision boundaries. Biases just shift the function up or down without adding complexity. Regularizing biases would prevent the network from properly centering its predictions, which hurts more than it helps.
+</div>
+
+<!-- ═══════════════════ SECTION 7 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="summary"><span class="section-num">07 — Reference</span>The Complete Picture</h2>
+
+<p>Every gradient we've derived, in one place. These are the building blocks you chain together to backpropagate through any neural network.</p>
+
+<table class="summary-table">
+  <thead>
+    <tr>
+      <th>Component</th>
+      <th>Gradient</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Sigmoid + BCE</td>
+      <td>$$\frac{\partial L}{\partial z} = \hat{y} - y$$</td>
+    </tr>
+    <tr>
+      <td>Softmax + CE</td>
+      <td>$$\frac{\partial L}{\partial z_k} = \hat{y}_k - y_k$$</td>
+    </tr>
+    <tr>
+      <td>BatchNorm (input)</td>
+      <td>$$\frac{1}{N\sqrt{\sigma^2+\epsilon}}\left(N d\hat{x}_i - \Sigma d\hat{x} - \hat{x}_i \Sigma d\hat{x}\hat{x}\right)$$</td>
+    </tr>
+    <tr>
+      <td>Dropout</td>
+      <td>$$\frac{m_i}{1-p} \cdot \text{upstream gradient}$$</td>
+    </tr>
+    <tr>
+      <td>L2 Regularization</td>
+      <td>$$\nabla_W L_{\text{data}} + \frac{\lambda}{N}W$$</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Notice a pattern: the most mathematically complex derivations (sigmoid+BCE, softmax+CE) produce the simplest final gradients. The simplest concepts (dropout, L2) have the most transparent backward passes. And BatchNorm sits in between — moderately complex derivation, moderately complex result — which is exactly why it's the one that shows up as "derive this" in interviews.</p>
+
+<p>If you remember one thing from this article, let it be this: backpropagation is not one algorithm. It's a framework — the chain rule applied systematically — and what matters is knowing the derivative of each individual piece. Chain them together, and the gradients take care of themselves.</p>
+
+</article>
+
+<footer class="article-footer">
+  <p>Written as part of an ML interview preparation series.</p>
+</footer>
+
+</div><!-- /container -->
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    document.getElementById('theme-icon').textContent = next === 'dark' ? '☀' : '☽';
+    localStorage.setItem('theme', next);
+  }
+  // Load saved theme
+  const saved = localStorage.getItem('theme') || 
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.getElementById('theme-icon').textContent = '☀';
+  }
+
+  // KaTeX rendering
+  document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "$", right: "$", display: false}
+      ],
+      throwOnError: false
+    });
+  });
+</script>
+</body>
+</html>
