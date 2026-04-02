@@ -1,41 +1,18 @@
-# ML Interview Prep
+# ML Deep Dives
 
-Technical deep-dives on optimization and generalization for Applied Scientist interviews.
+Technical articles on machine learning — from first principles to interview-ready depth.
 
 ## Articles
 
-### [Optimization Algorithms](optimization_blog.html)
-GD, SGD, Momentum, RMSProp, Adam, AdamW — implementation, theory, and trade-offs.
+### [ML Core Concepts: A Deep Dive](ml_core_concepts_deep_dive.html)
+Linear regression, logistic regression, bias-variance tradeoff, regularization, gradient descent, overfitting, cross-validation, and feature scaling. Covers ~40 interview questions with detailed answers.
 
-**Covers:** NumPy implementations from scratch, bias correction derivation, when to use SGD vs Adam, debugging convergence, learning rate schedules, real interview questions from Anthropic/Google.
+### [Optimization Algorithms](optimization_blog.html)
+GD, SGD, Momentum, RMSProp, Adam, AdamW — mechanics, trade-offs, and NumPy implementations from scratch.
 
 ### [Loss Landscapes](loss_landscape_blog.html)
-Why sharp minima hurt generalization and how optimizers shape the loss surface.
-
-**Covers:** Hessian eigenvalues, flat vs sharp minima, batch size effects, SAM, why SGD beats Adam on vision, measuring sharpness in practice.
-
-## Study Approach
-
-Week 1-2: Implement each optimizer in NumPy, compare to PyTorch  
-Week 2-3: Connect optimizer behavior to loss landscape geometry  
-Week 3-4: Practice interview questions, debugging scenarios
-
-## Key Concepts
-
-**Must know:**
-- Implement SGD, Momentum, Adam from scratch
-- Explain Adam's bias correction mathematically
-- When SGD generalizes better than Adam (and why)
-- Sharp vs flat minima (Hessian eigenvalues)
-- Batch size → sharpness → generalization
-- Debugging: gradient norms, LR warmup, weight decay
-
-**Papers:**
-- Adam (Kingma & Ba, 2014)
-- AdamW (Loshchilov & Hutter, 2017)
-- SAM (Foret et al., 2020)
-- Large-batch sharp minima (Keskar et al., 2016)
+Sharp vs flat minima, batch size effects, Hessian eigenvalues, SAM, and why optimizer choice shapes generalization.
 
 ---
 
-Written for mid-senior Applied Scientists targeting OpenAI, Anthropic, Google, Meta.
+More articles coming: tree-based models & ensembles, recommendation systems, attention & transformers.
