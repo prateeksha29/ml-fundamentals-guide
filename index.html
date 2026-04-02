@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ML Interview Prep - Technical Blogs</title>
+    <title>ML Deep Dives</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -165,44 +165,35 @@
             border-radius: 4px;
         }
 
-        .about {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 40px;
-            margin-bottom: 40px;
+        .coming-soon {
+            border: 1px dashed var(--border);
+            background: transparent;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 280px;
         }
 
-        .about h2 {
-            font-family: 'Playfair Display', serif;
-            font-size: 2rem;
-            margin-bottom: 20px;
+        .coming-soon:hover {
+            border-color: var(--border);
+            transform: none;
+            box-shadow: none;
         }
 
-        .about p {
+        .coming-soon::before {
+            display: none;
+        }
+
+        .coming-soon h2 {
             color: var(--text-muted);
-            margin-bottom: 15px;
-            font-size: 1.05rem;
+            font-size: 1.5rem;
         }
 
-        .about ul {
-            list-style: none;
-            padding-left: 0;
-            margin-top: 20px;
-        }
-
-        .about ul li {
-            padding: 8px 0;
+        .coming-soon p {
             color: var(--text-muted);
-            position: relative;
-            padding-left: 25px;
-        }
-
-        .about ul li::before {
-            content: '→';
-            position: absolute;
-            left: 0;
-            color: var(--accent);
+            opacity: 0.6;
         }
 
         footer {
@@ -227,25 +218,27 @@
 <body>
     <div class="container">
         <header>
-            <h1>ML Interview Prep</h1>
-            <p class="tagline">Deep technical blogs for Applied Scientist interviews</p>
+            <h1>ML Deep Dives</h1>
+            <p class="tagline">Technical articles on machine learning — from first principles to interview-ready depth</p>
         </header>
-
-        <div class="about">
-            <h2>About This Site</h2>
-            <p>A collection of in-depth technical articles covering core machine learning concepts from an interview preparation perspective. Written for candidates targeting Applied Scientist, ML Engineer, and Research Scientist roles at top-tier companies.</p>
-            <p><strong>Target Companies:</strong> OpenAI, Anthropic, Google, Meta, Amazon, Netflix, Microsoft</p>
-            <ul>
-                <li>Deep mathematical foundations with practical insights</li>
-                <li>Real interview questions with strong vs. weak answer examples</li>
-                <li>Implementation details and debugging strategies</li>
-                <li>Geometric intuition for complex concepts</li>
-            </ul>
-        </div>
 
         <div class="blog-grid">
             <div class="blog-card">
                 <span class="new-badge">New</span>
+                <div class="blog-icon">🎯</div>
+                <h2>ML Core Concepts: A Deep Dive</h2>
+                <div class="blog-meta">
+                    <span>📚 Complete Guide</span>
+                    <span>⏱️ 25 min</span>
+                    <span>❓ ~40 Questions</span>
+                </div>
+                <p>
+                    Linear regression, logistic regression, bias-variance tradeoff, regularization, gradient descent, overfitting, cross-validation, and feature scaling. Each topic built from first principles with tough interview questions and detailed answers covering everything from the Bayesian interpretation of regularization to the curse of dimensionality.
+                </p>
+                <a href="ml_core_concepts_deep_dive.html" class="btn">Read Article →</a>
+            </div>
+
+            <div class="blog-card">
                 <div class="blog-icon">🔗</div>
                 <h2>Backpropagation Through Every Layer</h2>
                 <div class="blog-meta">
@@ -266,7 +259,7 @@
                     <span>⏱️ 15 min</span>
                 </div>
                 <p>
-                    Deep dive into GD, SGD, Momentum, RMSProp, Adam, and AdamW. Learn when to use each optimizer, how to implement them from scratch, and how to debug convergence issues. Includes real interview scenarios from Anthropic and Google.
+                    Deep dive into GD, SGD, Momentum, RMSProp, Adam, and AdamW. When to use each optimizer, how to implement them from scratch, and how to debug convergence issues. Includes real interview scenarios from Anthropic and Google.
                 </p>
                 <a href="optimization_blog.html" class="btn">Read Article →</a>
             </div>
@@ -279,7 +272,7 @@
                     <span>⏱️ 12 min</span>
                 </div>
                 <p>
-                    Understand why sharp vs. flat minima matter for generalization. Explore the geometry of optimization, learn how different optimizers shape the loss landscape, and discover why SGD often beats Adam on vision tasks.
+                    Why sharp vs. flat minima matter for generalization. The geometry of optimization, how different optimizers shape the loss landscape, and why SGD often beats Adam on vision tasks.
                 </p>
                 <a href="loss_landscape_blog.html" class="btn">Read Article →</a>
             </div>
@@ -292,28 +285,21 @@
                     <span>⏱️ 18 min</span>
                 </div>
                 <p>
-                    Sigmoid, Tanh, ReLU, Leaky ReLU, GELU, Swish/SiLU — every activation function that matters for interviews. Covers formulas, derivatives, NumPy implementations, SVG visualizations, and where each is used in modern architectures from BERT to LLaMA. Includes 10 real interview questions with detailed answers.
+                    Sigmoid, Tanh, ReLU, Leaky ReLU, GELU, Swish/SiLU — every activation function that matters for interviews. Formulas, derivatives, NumPy implementations, SVG visualizations, and where each is used in modern architectures from BERT to LLaMA.
                 </p>
                 <a href="activation-functions.html" class="btn">Read Article →</a>
             </div>
-        </div>
 
-        <div class="about">
-            <h2>How to Use These Resources</h2>
-            <p><strong>For Interview Prep:</strong></p>
-            <ul>
-                <li>Read each article 2-3 times (skim → deep read → review)</li>
-                <li>Implement the algorithms from scratch in both NumPy and PyTorch</li>
-                <li>Practice answering the interview questions out loud</li>
-                <li>Connect concepts across articles (e.g., how loss landscapes relate to optimizer choice)</li>
-            </ul>
-            <p style="margin-top: 20px;"><strong>Preparation Timeline:</strong> Allow 2-3 weeks to deeply internalize this material alongside coding practice.</p>
+            <div class="blog-card coming-soon">
+                <div class="blog-icon">🌲</div>
+                <h2>Tree-Based Models & Ensembles</h2>
+                <p>Decision trees, random forests, gradient boosting, XGBoost — coming soon.</p>
+            </div>
         </div>
     </div>
 
     <footer>
-        <p>ML Interview Prep Resources</p>
-        <p style="margin-top: 10px; font-size: 0.9rem;">Built for Applied Scientists preparing for technical interviews</p>
+        <p>ML Deep Dives</p>
     </footer>
 </body>
 </html>
