@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ML Core Concepts: A Deep Dive</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg-card: #181a24;
+    --bg-code: #1e2030;
+    --text: #d4d4dc;
+    --text-muted: #8b8da3;
+    --text-heading: #eaeaf0;
+    --accent: #7eb8f7;
+    --accent2: #c49bff;
+    --accent3: #6ee7b7;
+    --accent4: #fbbf24;
+    --border: #2a2d3e;
+    --border-highlight: #3d4158;
+    --tag-bg: rgba(126, 184, 247, 0.1);
+    --tag-text: #7eb8f7;
+    --warning-bg: rgba(251,191,36,0.08);
+    --warning-border: rgba(251,191,36,0.25);
+    --gotcha-bg: rgba(248,113,113,0.07);
+    --gotcha-border: rgba(248,113,113,0.25);
+    --gotcha-text: #fca5a5;
+    --tip-bg: rgba(110,231,183,0.07);
+    --tip-border: rgba(110,231,183,0.25);
+    --tip-text: #6ee7b7;
+  }
+
+  [data-theme="light"] {
+    --bg: #f8f7f4;
+    --bg-card: #ffffff;
+    --bg-code: #f0efe8;
+    --text: #3a3a44;
+    --text-muted: #6e6e7a;
+    --text-heading: #1a1a2e;
+    --accent: #2563eb;
+    --accent2: #7c3aed;
+    --accent3: #059669;
+    --accent4: #d97706;
+    --border: #e0ddd5;
+    --border-highlight: #ccc9bf;
+    --tag-bg: rgba(37, 99, 235, 0.08);
+    --tag-text: #2563eb;
+    --warning-bg: rgba(217,119,6,0.06);
+    --warning-border: rgba(217,119,6,0.25);
+    --gotcha-bg: rgba(220,38,38,0.05);
+    --gotcha-border: rgba(220,38,38,0.2);
+    --gotcha-text: #dc2626;
+    --tip-bg: rgba(5,150,105,0.05);
+    --tip-border: rgba(5,150,105,0.2);
+    --tip-text: #059669;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 17.5px;
+    line-height: 1.78;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 6rem;
+  }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    z-index: 100;
+    transition: border-color 0.2s;
+  }
+  .theme-toggle:hover { border-color: var(--accent); }
+
+  /* Header */
+  .article-header {
+    margin-bottom: 3.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .article-header .tag {
+    display: inline-block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tag-text);
+    background: var(--tag-bg);
+    padding: 0.25rem 0.7rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
+  .article-header h1 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1.18;
+    color: var(--text-heading);
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+  .article-header .subtitle {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+
+  /* Headings */
+  h2 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin: 3.5rem 0 1rem;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+  }
+  h3 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin: 2.2rem 0 0.7rem;
+    letter-spacing: -0.01em;
+  }
+  h4 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 2rem 0 0.6rem;
+  }
+
+  p { margin-bottom: 1.1rem; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  strong { color: var(--text-heading); font-weight: 600; }
+
+  /* Code */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82em;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+    overflow-x: auto;
+    margin: 1.3rem 0 1.5rem;
+    line-height: 1.55;
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.82rem;
+    color: var(--text);
+  }
+  .comment { color: var(--text-muted); }
+
+  /* Callout boxes */
+  .callout {
+    border-radius: 8px;
+    padding: 1.1rem 1.3rem;
+    margin: 1.5rem 0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.92rem;
+    line-height: 1.65;
+  }
+  .callout-title {
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.45rem;
+  }
+  .callout.warning {
+    background: var(--warning-bg);
+    border-left: 3px solid var(--warning-border);
+  }
+  .callout.warning .callout-title { color: var(--accent4); }
+  .callout.gotcha {
+    background: var(--gotcha-bg);
+    border-left: 3px solid var(--gotcha-border);
+  }
+  .callout.gotcha .callout-title { color: var(--gotcha-text); }
+  .callout.tip {
+    background: var(--tip-bg);
+    border-left: 3px solid var(--tip-border);
+  }
+  .callout.tip .callout-title { color: var(--tip-text); }
+
+  /* Interview Q&A */
+  .interview-q {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.3rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .interview-q .q-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent2);
+    margin-bottom: 0.35rem;
+  }
+  .interview-q .question {
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 0.8rem;
+    line-height: 1.5;
+  }
+  .interview-q .answer {
+    font-size: 0.95rem;
+    line-height: 1.72;
+    color: var(--text);
+  }
+  .interview-q .answer p:last-child { margin-bottom: 0; }
+
+  /* Math */
+  .math-block {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.3rem;
+    margin: 1.3rem 0;
+    overflow-x: auto;
+    text-align: center;
+  }
+
+  /* Table of contents */
+  .toc {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem 1.8rem;
+    margin: 2rem 0 3rem;
+  }
+  .toc-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 0.8rem;
+  }
+  .toc ol {
+    list-style: none;
+    counter-reset: toc;
+    padding-left: 0;
+  }
+  .toc li {
+    counter-increment: toc;
+    margin-bottom: 0.4rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.92rem;
+  }
+  .toc li::before {
+    content: counter(toc, decimal-leading-zero) ".";
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.8rem;
+    margin-right: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .toc a { color: var(--text); }
+  .toc a:hover { color: var(--accent); }
+
+  /* Section divider */
+  .section-divider {
+    border: none;
+    height: 1px;
+    background: var(--border);
+    margin: 3rem 0;
+  }
+
+  /* Lists inside article body */
+  .body-list {
+    padding-left: 1.5rem;
+    margin-bottom: 1.1rem;
+  }
+  .body-list li {
+    margin-bottom: 0.4rem;
+  }
+
+  @media (max-width: 600px) {
+    .article-header h1 { font-size: 1.85rem; }
+    h2 { font-size: 1.4rem; }
+    .container { padding: 2rem 1rem 4rem; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+
+<div class="container">
+
+<!-- HEADER -->
+<header class="article-header">
+  <span class="tag">Interview Prep — Part 1</span>
+  <h1>ML Core Concepts: A Deep Dive</h1>
+  <p class="subtitle">Linear regression, logistic regression, bias-variance tradeoff, regularization, gradient descent, overfitting, cross-validation, and feature scaling — from first principles to tough interview questions.</p>
+</header>
+
+<!-- TOC -->
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#linear-regression">Linear Regression</a></li>
+    <li><a href="#logistic-regression">Logistic Regression</a></li>
+    <li><a href="#bias-variance">The Bias-Variance Tradeoff</a></li>
+    <li><a href="#regularization">Regularization (L1 &amp; L2)</a></li>
+    <li><a href="#gradient-descent">Gradient Descent</a></li>
+    <li><a href="#overfitting">Overfitting &amp; Underfitting</a></li>
+    <li><a href="#cross-validation">Cross-Validation</a></li>
+    <li><a href="#feature-scaling">Feature Scaling &amp; Normalization</a></li>
+  </ol>
+</nav>
+
+
+<!-- ============================================================ -->
+<!-- 1. LINEAR REGRESSION -->
+<!-- ============================================================ -->
+<h2 id="linear-regression">1. Linear Regression</h2>
+
+<p>Linear regression models the relationship between features <strong>X</strong> and a continuous target <strong>y</strong> as a linear function: ŷ = Xw + b. The goal is to find weights w and bias b that minimize the distance between predictions and actuals.</p>
+
+<h3>The Loss Function: MSE</h3>
+
+<p>We minimize the Mean Squared Error:</p>
+
+<div class="math-block">$$\mathcal{L} = \frac{1}{N}\sum_{i=1}^{N}(y_i - \hat{y}_i)^2$$</div>
+
+<p>Why squared error? Squaring penalizes large errors more heavily, is differentiable everywhere (unlike absolute error), and yields a convex optimization landscape with a single global minimum for linear models.</p>
+
+<h3>MSE vs MAE: When to Use Which</h3>
+
+<p>MAE (Mean Absolute Error) penalizes all errors equally, making it robust to outliers — a single extreme prediction doesn't dominate the loss. MSE amplifies outlier influence quadratically. Use MAE when outliers are noise you want to ignore; use MSE when large errors are genuinely costly (e.g., financial forecasting where a $1M miss matters much more than a $100 miss). A practical note: MAE's gradient is discontinuous at zero, which can cause optimization issues — Huber loss combines the best of both (MSE near zero, MAE far from zero).</p>
+
+<h3>Closed-Form Solution (Normal Equation)</h3>
+
+<div class="math-block">$$w^* = (X^TX)^{-1}X^Ty$$</div>
+
+<p>This works by setting the gradient of MSE to zero and solving directly. But it requires inverting an (n_features × n_features) matrix, which is O(d³). For large feature dimensions or near-singular matrices, gradient descent or regularized approaches are preferred.</p>
+
+<div class="callout tip">
+  <div class="callout-title">Feature Scaling &amp; the Normal Equation</div>
+  The normal equation doesn't require feature scaling — it finds the exact solution regardless of feature magnitudes. But gradient descent does — features on different scales create elongated loss contours, causing oscillation and slow convergence. Always standardize features before gradient-based optimization. More on this in <a href="#feature-scaling">Section 8</a>.
+</div>
+
+<h3>Assumptions of Linear Regression</h3>
+
+<p>In a statistical context, OLS linear regression assumes: linearity (the true relationship is linear), independence of errors, homoscedasticity (constant error variance), no perfect multicollinearity among features, and normally distributed residuals (for inference, not prediction). In ML interviews, the key ones to mention are linearity, independence, and multicollinearity.</p>
+
+<div class="callout gotcha">
+  <div class="callout-title">Common Gotcha</div>
+  "Does linear regression assume features are normally distributed?" — <strong>No.</strong> The normality assumption applies to the <em>residuals</em>, not the features. And even that is only required for valid confidence intervals and p-values, not for the point estimates themselves.
+</div>
+
+<h3>R² and Adjusted R²</h3>
+
+<p>R² measures the proportion of variance explained: R² = 1 − (SS_res / SS_tot). It always increases (or stays flat) when you add features, even useless ones. Adjusted R² penalizes for additional features: it can decrease if a new feature doesn't improve the model enough to justify the added complexity. In interviews, always mention adjusted R² when discussing feature selection.</p>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">When would you use linear regression over a more complex model?</div>
+  <div class="answer">
+    <p>When interpretability matters (e.g., understanding which features drive predictions), when you have limited data relative to features (simpler models generalize better), when the relationship is approximately linear, or as a baseline before trying complex models. Linear regression also trains in seconds and serves in microseconds, which matters at scale.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">What happens to linear regression when features are highly correlated (multicollinearity)?</div>
+  <div class="answer">
+    <p>The weight estimates become unstable — small changes in data cause large swings in coefficients. The matrix X<sup>T</sup>X becomes near-singular, so its inverse amplifies noise. The model still predicts fine (predictions are stable), but individual weights become uninterpretable. The fix: drop correlated features, use PCA, or apply regularization (Ridge regression specifically addresses this).</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Can linear regression be used for non-linear relationships?</div>
+  <div class="answer">
+    <p>Yes — through feature engineering. You can add polynomial features (x², x³, x₁·x₂), log/sqrt transforms, or any non-linear transformation of the inputs. The model is still "linear" because it's linear <em>in the parameters</em> — ŷ = w₁x + w₂x² is linear regression on features [x, x²]. This is called polynomial regression. The risk is overfitting with too many engineered features.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">When would you use MAE instead of MSE as your loss function?</div>
+  <div class="answer">
+    <p>Use MAE when your data has outliers that you want to be robust to — MSE squares errors, so a single outlier can dominate the loss and distort your model. MAE treats all errors linearly. The tradeoff: MAE produces a model that predicts the <em>median</em> of the target, while MSE predicts the <em>mean</em>. If you want the best of both, use Huber loss — it behaves like MSE for small errors (smooth, easy to optimize) and like MAE for large errors (robust to outliers). The transition point δ is a hyperparameter you tune.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Can R² be negative?</div>
+  <div class="answer">
+    <p>Yes — and this surprises most people who assume R² lives in [0, 1]. R² = 1 − (SS_res / SS_tot). If SS_res > SS_tot, meaning your model's predictions are <em>worse</em> than simply predicting the mean of y for every example, then R² goes negative. This can happen when you evaluate a model on a test set that it was not fit on, especially if the model is badly overfit or the test distribution has shifted. On the training set of an OLS model, R² is guaranteed ≥ 0 (you can't do worse than the mean when you're optimizing against that same data). But on unseen data, anything goes.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">How do you interpret a coefficient of 0.3 on feature X in a linear regression?</div>
+  <div class="answer">
+    <p>"A one-unit increase in X is associated with a 0.3 increase in y, <em>holding all other features constant</em>." That last phrase is critical — and it's where things get tricky. If X is correlated with other features, the "holding constant" assumption is artificial: in reality, changing X also shifts the correlated features. The coefficient reflects the <em>partial</em> effect, not the total effect. With strong multicollinearity, individual coefficients can flip signs or inflate wildly, even though the model predicts well overall. If interpretability is the goal, consider standardizing features first so coefficients are on the same scale, and use techniques like SHAP values or partial dependence plots for more robust attribution.</p>
+  </div>
+</div>
+
+<hr class="section-divider" />
+
+
+<!-- ============================================================ -->
+<!-- 2. LOGISTIC REGRESSION -->
+<!-- ============================================================ -->
+<h2 id="logistic-regression">2. Logistic Regression</h2>
+
+<p>Despite the name, logistic regression is a <strong>classification</strong> algorithm. It models the probability that an input belongs to class 1 by passing a linear combination through the sigmoid function:</p>
+
+<div class="math-block">$$P(y=1|x) = \sigma(w^Tx + b) = \frac{1}{1 + e^{-(w^Tx + b)}}$$</div>
+
+<p>The sigmoid squashes any real number into (0, 1), giving us a valid probability. The decision boundary is the hyperplane where w<sup>T</sup>x + b = 0, which corresponds to P = 0.5 at default threshold.</p>
+
+<h3>The Loss: Binary Cross-Entropy</h3>
+
+<div class="math-block">$$\mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N}\Big[y_i\log(\hat{p}_i) + (1-y_i)\log(1-\hat{p}_i)\Big]$$</div>
+
+<p>Why not MSE? MSE with sigmoid creates a non-convex loss landscape with many local minima. Cross-entropy is convex for logistic regression and has a probabilistic justification: minimizing BCE is equivalent to maximum likelihood estimation of the Bernoulli distribution parameters.</p>
+
+<h3>The Gradient: Elegant Simplicity</h3>
+
+<p>The gradient of BCE with respect to the logit z = w<sup>T</sup>x + b simplifies beautifully: ∂L/∂z = ŷ − y. The sigmoid's derivative and the log in cross-entropy cancel out perfectly, leaving just the difference between prediction and label. This means the gradient is large when the model is confidently wrong and small when it's close — exactly the behavior you want. The weight gradient follows: ∂L/∂w = (ŷ − y)·x.</p>
+
+<h3>Maximum Likelihood Interpretation</h3>
+
+<p>Cross-entropy isn't an arbitrary choice — it falls directly out of maximum likelihood estimation. If you model each label as a Bernoulli random variable with parameter p = σ(w<sup>T</sup>x), the log-likelihood of the data is exactly the negative of BCE. So minimizing cross-entropy = maximizing the likelihood that the model assigned to the observed labels. This is why logistic regression produces well-calibrated probabilities: it's directly optimizing the likelihood of the data under a probabilistic model.</p>
+
+<h3>Why the Sigmoid?</h3>
+
+<p>The sigmoid arises naturally from modeling log-odds as a linear function. If you assume log(P/(1−P)) = w<sup>T</sup>x + b (the log-odds are linear in features), then solving for P gives you exactly the sigmoid. It's not an arbitrary choice — it's the canonical link function for Bernoulli data in the generalized linear model framework.</p>
+
+<h3>Multiclass Extension: Softmax Regression</h3>
+
+<p>For K classes, replace sigmoid with softmax: P(y=k) = exp(z_k) / Σ_j exp(z_j), and use categorical cross-entropy as the loss. Each class gets its own weight vector. This is sometimes called multinomial logistic regression.</p>
+
+<h3>No Closed-Form Solution</h3>
+
+<p>Unlike linear regression, logistic regression has no closed-form solution — the cross-entropy loss with sigmoid doesn't yield a system of equations you can solve directly. You must use iterative optimization: gradient descent, Newton's method (used by statsmodels), or L-BFGS (sklearn's default). Newton's method converges in fewer iterations because it uses second-order curvature information, but each iteration is more expensive. For large datasets, SGD or L-BFGS is preferred.</p>
+
+<div class="callout warning">
+  <div class="callout-title">Threshold ≠ 0.5</div>
+  A common misconception: the optimal classification threshold is not always 0.5. For imbalanced classes (e.g., fraud detection with 0.1% positives), you tune the threshold using the precision-recall curve or by optimizing the F1 score. In an interview, always ask "what metric are we optimizing?" before picking a threshold.
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Why is logistic regression considered a linear model if it uses a non-linear sigmoid function?</div>
+  <div class="answer">
+    <p>The <em>decision boundary</em> is linear — it's the hyperplane w<sup>T</sup>x + b = 0. The sigmoid just maps the linear output to a probability. The model partitions feature space with a flat hyperplane; it can't learn curved decision boundaries without feature engineering. That's what makes it "linear" — not the output transformation, but the geometry of the decision surface.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">How do you handle class imbalance with logistic regression?</div>
+  <div class="answer">
+    <p>Several approaches, in rough priority order: (1) Adjust class weights in the loss function — weight the minority class higher so the model pays more attention to it. Most libraries support <code>class_weight='balanced'</code>. (2) Tune the decision threshold using PR curves instead of using 0.5. (3) Resample the data — oversample minority (SMOTE) or undersample majority. (4) Use evaluation metrics that handle imbalance: PR-AUC, F1, or MCC rather than accuracy. Approach (1) + (2) is usually the best starting point.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Can logistic regression output calibrated probabilities?</div>
+  <div class="answer">
+    <p>Logistic regression is naturally well-calibrated when its assumptions hold (the log-odds are linear in features) because it's optimizing the log-likelihood directly. This is one of its advantages over models like SVMs or random forests, which need post-hoc calibration (Platt scaling, isotonic regression). However, calibration degrades with strong regularization, feature mismatch, or distribution shift — always check with a calibration plot (reliability diagram).</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Derive the gradient of the logistic regression loss. Why is it so clean?</div>
+  <div class="answer">
+    <p>Start with BCE: L = −[y·log(σ(z)) + (1−y)·log(1−σ(z))]. Using the fact that σ'(z) = σ(z)·(1−σ(z)), the chain rule gives: ∂L/∂z = −[y·(1−σ(z)) − (1−y)·σ(z)] = σ(z) − y = ŷ − y. It's clean because the sigmoid and the log are "natural partners" — the sigmoid is the canonical link function for the Bernoulli distribution, and cross-entropy is the natural loss for that distribution. Any exponential family distribution paired with its canonical link and natural loss produces a gradient of this form: (prediction − label).</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">What's the relationship between logistic regression and naive Bayes?</div>
+  <div class="answer">
+    <p>They're a generative-discriminative pair. Naive Bayes is generative — it models P(x|y) for each class and uses Bayes' theorem. Logistic regression is discriminative — it models P(y|x) directly. If the naive Bayes assumptions hold (features are conditionally independent given the class), both converge to the same decision boundary. But logistic regression is more robust when assumptions are violated because it directly optimizes the decision boundary without modeling the full data distribution. Naive Bayes needs less data to converge; logistic regression achieves lower asymptotic error.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Logistic regression vs SVM — when would you choose one over the other?</div>
+  <div class="answer">
+    <p>Both learn linear decision boundaries, but they optimize different things. Logistic regression minimizes cross-entropy (log-likelihood) and outputs calibrated probabilities. SVM maximizes the margin between classes and outputs distances, not probabilities. Choose <strong>logistic regression</strong> when you need probability estimates (ranking candidates, thresholding for different precision/recall tradeoffs), when interpretability of coefficients matters, or when you plan to use the model's confidence scores downstream. Choose <strong>SVM</strong> when you care only about the decision boundary (not probabilities), when you want to use the kernel trick for non-linear boundaries without explicit feature engineering, or in high-dimensional spaces where the margin-based objective can generalize better. In practice, logistic regression is more commonly used in industry because probabilities are almost always useful, and kernel SVMs don't scale well to large datasets.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Can logistic regression overfit?</div>
+  <div class="answer">
+    <p>Yes — and this trips up candidates who think of logistic regression as "too simple to overfit." It overfits in several scenarios: (1) <strong>High-dimensional sparse data</strong> — with many features relative to examples, the model has enough capacity to memorize noise. (2) <strong>Perfectly separable classes</strong> — if a hyperplane can perfectly separate the classes, the weights diverge to ±∞ trying to push probabilities to exactly 0 and 1. The loss keeps decreasing but the model becomes overconfident. (3) <strong>Many engineered features</strong> — polynomial feature expansion can blow up dimensionality. This is exactly why sklearn's <code>LogisticRegression</code> applies L2 regularization by default (C=1.0) — unregularized logistic regression is rarely what you want in practice.</p>
+  </div>
+</div>
+
+<hr class="section-divider" />
+
+
+<!-- ============================================================ -->
+<!-- 3. BIAS-VARIANCE TRADEOFF -->
+<!-- ============================================================ -->
+<h2 id="bias-variance">3. The Bias-Variance Tradeoff</h2>
+
+<p>This is arguably the most important conceptual framework in ML. For any model, the expected prediction error decomposes as:</p>
+
+<div class="math-block">$$\text{Error} = \text{Bias}^2 + \text{Variance} + \text{Irreducible Noise}$$</div>
+
+<p><strong>Bias</strong> is the error from the model's assumptions — how far off the average prediction is from the truth. A linear model fit to a quadratic relationship has high bias. It will consistently miss the true pattern regardless of how much data you have.</p>
+
+<p><strong>Variance</strong> is how much predictions change across different training sets. A deep decision tree memorizes training data, so its predictions shift wildly with different samples. High variance = model is too sensitive to the specific training data.</p>
+
+<p><strong>Irreducible noise</strong> (Bayes error) is the inherent randomness in the data that no model can capture — measurement error, missing features, genuinely stochastic outcomes.</p>
+
+<h3>The Tradeoff in Practice</h3>
+
+<p>Simple models (linear regression, shallow trees) tend toward high bias, low variance. Complex models (deep trees, large neural nets, high-degree polynomials) tend toward low bias, high variance. The sweet spot is where total error is minimized — enough complexity to capture the true pattern, not so much that you fit noise.</p>
+
+<p>Regularization, ensemble methods, and cross-validation are all tools for navigating this tradeoff. Regularization constrains complexity (reducing variance at the cost of some bias). Bagging (Random Forests) reduces variance by averaging. Boosting reduces bias by iteratively correcting errors.</p>
+
+<div class="callout tip">
+  <div class="callout-title">Modern Nuance: Double Descent</div>
+  The classical bias-variance tradeoff predicts a U-shaped test error curve as model complexity grows. But in modern deep learning, we observe "double descent" — test error decreases, increases (the classical peak), then <em>decreases again</em> as models become massively overparameterized. This happens because very large models find interpolating solutions that are smooth and generalize well. In an interview, mentioning this shows you're up to date, but frame it as: "the classical tradeoff holds for traditional models; in the overparameterized regime, there's interesting new understanding."
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">You have a model with high training accuracy but low test accuracy. Is this a bias or variance problem? How do you fix it?</div>
+  <div class="answer">
+    <p>This is a <strong>variance problem</strong> (overfitting). The model has learned training-set-specific patterns that don't generalize. Fixes: add regularization (L1/L2, dropout), reduce model complexity (fewer features, shallower tree, smaller network), get more training data, use data augmentation, apply early stopping, or use ensemble methods like bagging. The diagnostic: plot learning curves — if training error is low and validation error is high with a large gap, it's variance.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Both training and test accuracy are low. What's happening?</div>
+  <div class="answer">
+    <p>This is a <strong>bias problem</strong> (underfitting). The model is too simple to capture the underlying pattern. Fixes: use a more complex model, add more/better features, reduce regularization strength, train longer (if the model hasn't converged). Also check for data issues — label noise, data leakage in the wrong direction, or bugs in preprocessing can also cause universally poor performance.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">How does ensemble learning relate to the bias-variance tradeoff?</div>
+  <div class="answer">
+    <p><strong>Bagging</strong> (e.g., Random Forests) primarily reduces variance. By training many high-variance models on bootstrap samples and averaging, the variance drops roughly as 1/N while bias stays similar. That's why you bag deep trees (high variance) — averaging stabilizes them.</p>
+    <p><strong>Boosting</strong> (e.g., XGBoost) primarily reduces bias. It starts with a simple model and iteratively fits residuals, building complexity gradually. Each round reduces bias. But it can increase variance if you boost too many rounds — that's why you need early stopping or regularization with boosting.</p>
+  </div>
+</div>
+
+<hr class="section-divider" />
+
+
+<!-- ============================================================ -->
+<!-- 4. REGULARIZATION -->
+<!-- ============================================================ -->
+<h2 id="regularization">4. Regularization (L1 &amp; L2)</h2>
+
+<p>Regularization adds a penalty term to the loss function that discourages large weights, preventing overfitting. The general form:</p>
+
+<div class="math-block">$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{data}} + \lambda \cdot \Omega(w)$$</div>
+
+<p>where λ (the regularization strength) controls the tradeoff between fitting the data and keeping weights small.</p>
+
+<h3>L2 Regularization (Ridge)</h3>
+
+<div class="math-block">$$\Omega_{L2}(w) = \sum_j w_j^2 = \|w\|_2^2$$</div>
+
+<p>L2 adds the sum of squared weights to the loss. Its gradient is 2λw — it's proportional to the weight itself. This means large weights get penalized proportionally more, pushing all weights toward zero but never exactly to zero. The result: weights shrink smoothly, multicollinearity is handled (the matrix X<sup>T</sup>X + λI is always invertible), and the model generalizes better.</p>
+
+<h3>L1 Regularization (Lasso)</h3>
+
+<div class="math-block">$$\Omega_{L1}(w) = \sum_j |w_j| = \|w\|_1$$</div>
+
+<p>L1 adds the sum of absolute weights. Its subgradient is λ·sign(w) — a constant push toward zero regardless of weight magnitude. This creates a qualitatively different effect: many weights are driven to <em>exactly</em> zero, producing a sparse model. L1 performs automatic feature selection.</p>
+
+<h3>Why Does L1 Produce Sparsity But L2 Doesn't?</h3>
+
+<p>The geometric intuition: the L1 constraint region is a diamond (with corners on the axes), while L2 is a sphere. The loss function's contours are more likely to intersect the diamond at a corner, where some coordinates are exactly zero. The sphere has no corners, so intersections almost always have all coordinates nonzero.</p>
+
+<p>The gradient intuition: L2's gradient (2λw) shrinks toward zero but gets weaker as w approaches zero — it asymptotically approaches but never reaches it. L1's subgradient (λ·sign(w)) applies constant force regardless of magnitude, actually pushing weights through zero.</p>
+
+<h3>Elastic Net</h3>
+
+<p>Combines both: α·L1 + (1−α)·L2. You get L1's sparsity with L2's stability for correlated features. In practice, L1 arbitrarily picks one of a group of correlated features; Elastic Net tends to keep or drop them together.</p>
+
+<h3>The Bayesian Interpretation</h3>
+
+<p>Regularization has an elegant Bayesian justification. L2 regularization is equivalent to placing a <strong>Gaussian prior</strong> (mean=0, variance=1/λ) on each weight — you're saying "I believe weights are probably small." L1 is equivalent to a <strong>Laplace prior</strong> (mean=0, scale=1/λ) — the Laplace distribution has a sharp peak at zero, which is why it encourages exact sparsity. The regularized loss is the negative log of the posterior: L_data is the likelihood, Ω(w) is the prior, and MAP estimation gives you the regularized solution. This framing lets you justify regularization as "incorporating prior knowledge" rather than just "adding a penalty."</p>
+
+<div class="callout gotcha">
+  <div class="callout-title">AdamW vs L2 — Know the Difference</div>
+  Standard L2 regularization adds the weight penalty to the loss, so the penalty flows through the optimizer's moment estimates. AdamW <em>decouples</em> weight decay — it subtracts λw directly from weights after the Adam step, bypassing the adaptive learning rates. This matters because Adam's per-parameter scaling can suppress the regularization effect of L2. AdamW is the standard for training transformers. This is a common "show me you understand modern training" question.
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">When would you choose L1 over L2 regularization?</div>
+  <div class="answer">
+    <p>Use L1 when you believe many features are irrelevant and want automatic feature selection — the resulting sparse model is more interpretable and cheaper to serve. Use L2 when most features are useful and you want to keep them all but prevent any single feature from dominating. If features are correlated, L2 is more stable (L1 arbitrarily picks one from a correlated group). In practice: try Elastic Net if you're unsure, or use L1 first to identify important features, then retrain with L2 on the selected subset.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Do you regularize the bias term?</div>
+  <div class="answer">
+    <p>No. Regularizing the bias would penalize the model for shifting predictions up or down, which prevents it from fitting the mean of the target correctly. The bias captures the output's baseline level and has nothing to do with model complexity. All standard implementations exclude the bias from the penalty — and so should you.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">How do you choose the regularization strength λ?</div>
+  <div class="answer">
+    <p>Cross-validation. Train models with different λ values (typically on a log scale: 0.001, 0.01, 0.1, 1, 10, ...), evaluate on a validation set, and pick the λ that minimizes validation error. Scikit-learn's <code>RidgeCV</code> and <code>LassoCV</code> do this efficiently using leave-one-out CV (for Ridge) or coordinate descent path (for Lasso). Never select λ based on training error.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">What happens as λ → 0 and λ → ∞?</div>
+  <div class="answer">
+    <p>As <strong>λ → 0</strong>: the penalty vanishes, and you recover the unregularized model. For linear regression, this is OLS. You get minimum bias but maximum variance — the model fits training data as closely as possible, including noise. As <strong>λ → ∞</strong>: the penalty dominates, forcing all weights to zero (for both L1 and L2). The model ignores all features and predicts the mean of y (regression) or the majority class (classification) — it's the simplest possible "model." Maximum bias, zero variance. The optimal λ is somewhere in between, and you find it through cross-validation. This is the bias-variance tradeoff expressed through a single hyperparameter.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">You have 500 features. How do you decide which ones to keep?</div>
+  <div class="answer">
+    <p>Three families of methods, each with different tradeoffs:</p>
+    <p><strong>Filter methods</strong> — rank features independently of any model using statistical tests: correlation with the target, mutual information, chi-squared test (categorical), or variance threshold (drop near-constant features). Fast and model-agnostic, but they ignore feature interactions — two individually weak features might be powerful together.</p>
+    <p><strong>Embedded methods</strong> — the model performs selection as part of training. L1/Lasso drives irrelevant weights to zero (as discussed above). Tree-based feature importance (Gini importance, permutation importance) ranks features by how much they contribute to splits. These capture interactions and are usually the best practical choice.</p>
+    <p><strong>Wrapper methods</strong> — train models with different feature subsets and pick the best-performing one. Forward selection (add features greedily), backward elimination (remove features greedily), or recursive feature elimination (RFE). Most accurate but expensive — each evaluation requires training a model. Only feasible with hundreds of features, not thousands.</p>
+    <p>A practical pipeline: start with filter methods to remove obvious noise (zero variance, near-duplicate features), then use L1 or tree importance to narrow to a strong subset, and finally validate with cross-validation that removing features didn't hurt performance.</p>
+  </div>
+</div>
+
+<hr class="section-divider" />
+
+
+<!-- ============================================================ -->
+<!-- 5. GRADIENT DESCENT -->
+<!-- ============================================================ -->
+<h2 id="gradient-descent">5. Gradient Descent</h2>
+
+<p>Gradient descent is the workhorse optimization algorithm for ML. The idea: iteratively update parameters in the direction that decreases the loss most steeply.</p>
+
+<div class="math-block">$$w \leftarrow w - \eta \cdot \nabla_w \mathcal{L}$$</div>
+
+<p>where η is the learning rate and ∇L is the gradient of the loss with respect to weights.</p>
+
+<h3>Variants</h3>
+
+<p><strong>Batch GD</strong> computes the gradient over the entire dataset. Stable but slow for large datasets — each step requires a full pass through the data. Memory-intensive: you need all data in memory simultaneously.</p>
+
+<p><strong>Stochastic GD (SGD)</strong> updates after every single example. Very noisy gradients, but each step is fast. The noise actually helps escape local minima and saddle points. In practice, the noise is often too much — convergence is erratic.</p>
+
+<p><strong>Mini-batch SGD</strong> is the practical middle ground. Compute the gradient on a batch of B examples (typically 32–512). You get parallelism from batch computation (GPU utilization), noise reduction from averaging, and frequent updates. This is what everyone uses in practice.</p>
+
+<h3>Learning Rate: The Most Important Hyperparameter</h3>
+
+<p>Too large: oscillate past the minimum or diverge entirely. Too small: take forever to converge and get stuck in sharp local minima. The optimal learning rate depends on the loss landscape, which changes during training — that's why learning rate schedules (warmup + cosine decay, step decay, etc.) and adaptive methods exist.</p>
+
+<h3>Learning Rate Schedules</h3>
+
+<p><strong>Step decay</strong> drops the LR by a factor (e.g., ÷10) at fixed epoch milestones. Simple and still common for CNNs. <strong>Cosine decay</strong> smoothly anneals the LR following a cosine curve from peak to near-zero — the standard for transformer training, often paired with warmup. <strong>Reduce-on-plateau</strong> monitors validation loss and drops the LR when progress stalls — adaptive and requires no schedule tuning, good for experimentation. <strong>1-cycle policy</strong> ramps up then down in a single cycle — can achieve faster convergence in fewer epochs. The general principle: start with a high enough LR to make progress, then decay it so the model can settle into a good minimum.</p>
+
+<h3>Adaptive Optimizers</h3>
+
+<p><strong>SGD with Momentum</strong> adds a velocity term that accumulates past gradients: v ← βv + ∇L, then w ← w − ηv. This smooths out noisy updates, accelerates through flat regions, and helps escape shallow local minima. β is typically 0.9.</p>
+
+<p><strong>RMSProp</strong> keeps a running average of squared gradients and divides by √(avg), giving each parameter its own effective learning rate. Parameters with large gradients get smaller updates — this handles sparse features and different scales well.</p>
+
+<p><strong>Adam</strong> combines momentum (first moment) with RMSProp (second moment), plus bias correction for the early steps. Adam is the default optimizer for most deep learning tasks. Its main weakness: it can converge to sharper minima than SGD+momentum, which sometimes generalizes worse.</p>
+
+<p><strong>AdamW</strong> fixes Adam's interaction with weight decay (as discussed in the regularization section). This is the standard for training transformers.</p>
+
+<div class="callout tip">
+  <div class="callout-title">Interview Pro Tip</div>
+  If asked "which optimizer would you use?", a strong answer is: "AdamW with warmup + cosine decay for transformers and most deep learning. SGD + momentum with step decay for CNNs/computer vision where it's been shown to find flatter minima. Adam for fast prototyping. Always tune the learning rate — it matters more than the optimizer choice."
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Why does SGD sometimes generalize better than Adam?</div>
+  <div class="answer">
+    <p>SGD + momentum tends to converge to <em>flatter</em> minima (regions where the loss doesn't change much if you perturb the weights), which generalize better to unseen data. Adam's per-parameter adaptive rates can guide the model into <em>sharp</em> minima (narrow valleys in the loss landscape) that have low training loss but are sensitive to distribution shift. The noise in SGD acts as implicit regularization, effectively averaging over nearby points. This is why for some tasks (image classification with CNNs), SGD still outperforms Adam on test accuracy despite being slower to converge.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">What problems can gradient descent encounter?</div>
+  <div class="answer">
+    <p>Several: (1) <strong>Vanishing gradients</strong> — in deep networks, gradients shrink exponentially through layers, stalling learning in early layers. Fixes: ReLU activations, residual connections, proper initialization. (2) <strong>Exploding gradients</strong> — the opposite; gradients grow exponentially. Fix: gradient clipping. (3) <strong>Saddle points</strong> — in high dimensions, saddle points (not local minima) are the main concern; SGD noise and momentum help escape them. (4) <strong>Ill-conditioning</strong> — when the loss landscape is very elongated in some directions, GD oscillates. Fix: adaptive learning rates (Adam) or preconditioning.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">What happens if you initialize all weights to zero?</div>
+  <div class="answer">
+    <p>Every neuron in a layer computes the same output, receives the same gradient, and gets the same update — forever. This is the <strong>symmetry problem</strong>: identical neurons stay identical because nothing breaks the symmetry. The network effectively has one neuron per layer regardless of width. The fix is random initialization, but the scale matters. Too large → activations explode through layers and gradients blow up. Too small → activations shrink to zero and gradients vanish. <strong>Xavier/Glorot initialization</strong> (Var = 2/(fan_in + fan_out)) keeps variance stable across layers and works well with sigmoid/tanh. <strong>He initialization</strong> (Var = 2/fan_in) accounts for ReLU zeroing out half the outputs and is the standard for ReLU networks. Biases are typically initialized to zero — they don't have the symmetry problem since each neuron's bias is independent.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Explain the learning rate warmup. Why is it needed?</div>
+  <div class="answer">
+    <p>Warmup gradually increases the learning rate from a very small value to the target rate over the first few hundred/thousand steps. It's needed because at initialization, the model's activations and gradients are unreliable — the loss landscape is poorly conditioned. Large learning rates at this point cause wildly unstable updates that the model may never recover from. Warmup lets the optimizer's statistics (momentum, second moment estimates) stabilize before taking large steps. It also sidesteps the bias correction problem in Adam — by the time the learning rate is large, the moments have converged naturally.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">How does batch size affect training?</div>
+  <div class="answer">
+    <p><strong>Larger batches</strong>: more accurate gradient estimates (less noise), better GPU utilization (more parallelism), but tend to converge to sharper minima that generalize worse. They also require learning rate scaling — the "linear scaling rule" says: if you double the batch size, double the learning rate. <strong>Smaller batches</strong>: noisier gradients act as regularization, tend to find flatter minima, but are slower per-epoch and underutilize GPU parallelism. The sweet spot depends on your hardware and dataset — 32 to 512 is typical. Very large batches (4K+) need careful LR warmup and sometimes LARS/LAMB optimizers to train well.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Is gradient descent guaranteed to find the global minimum?</div>
+  <div class="answer">
+    <p>It depends on the loss landscape. For <strong>convex</strong> problems (linear regression with MSE, logistic regression with BCE), yes — there's a single global minimum and gradient descent will find it (given a small enough learning rate). For <strong>non-convex</strong> problems (neural networks), no — the loss landscape has many local minima and saddle points. However, in practice this is less of a problem than it sounds. In high-dimensional spaces, most local minima have loss values very close to the global minimum (they're "equally good"). The real obstacles are <em>saddle points</em> — points where the gradient is zero but it's not a minimum. SGD noise and momentum help escape saddle points. The practical concern isn't "will I find the global minimum?" but "will I find a minimum that generalizes well?"</p>
+  </div>
+</div>
+
+<hr class="section-divider" />
+
+
+<!-- ============================================================ -->
+<!-- 6. OVERFITTING & UNDERFITTING -->
+<!-- ============================================================ -->
+<h2 id="overfitting">6. Overfitting &amp; Underfitting</h2>
+
+<p>Overfitting means the model has memorized the training data, including its noise, and fails to generalize. Underfitting means the model is too simple to capture the underlying pattern. These are the practical manifestations of the bias-variance tradeoff.</p>
+
+<h3>Diagnosing Overfitting</h3>
+
+<p>The primary diagnostic is the gap between training and validation performance. If training loss is very low but validation loss is much higher, you're overfitting. Learning curves (performance vs. training set size) are the best visual tool: a large gap that doesn't close as data grows indicates overfitting; a high floor for both curves indicates underfitting.</p>
+
+<h3>Causes of Overfitting</h3>
+
+<p>Model too complex relative to data (e.g., a deep network on 500 examples), training for too many epochs, noisy or mislabeled data (the model fits the noise), data leakage (validation data leaks into training through preprocessing or feature engineering), and too many features with too few observations (curse of dimensionality).</p>
+
+<h3>Remedies for Overfitting</h3>
+
+<p>More training data is almost always the best fix when possible. Regularization (L1, L2, dropout, weight decay). Reduce model complexity (fewer layers/features, shallower trees). Early stopping — monitor validation loss and stop training when it starts to increase. Data augmentation — create synthetic training examples. Ensembling — average multiple models to reduce variance. Feature selection — remove noisy or irrelevant features.</p>
+
+<h3>Remedies for Underfitting</h3>
+
+<p>Use a more expressive model. Add more or better features. Reduce regularization. Train longer. Check for data problems (wrong labels, bad preprocessing, missing values handled poorly).</p>
+
+<h3>The Train / Validation / Test Split</h3>
+
+<p>Three sets, three purposes. The <strong>training set</strong> is what the model learns from. The <strong>validation set</strong> is for tuning hyperparameters (learning rate, regularization strength, architecture choices) and for early stopping — you make many decisions based on validation performance. The <strong>test set</strong> is touched exactly once, at the very end, to get an unbiased estimate of real-world performance. If you tune on the test set (even indirectly), you're effectively training on it, and your performance estimate is optimistic. A common split is 80/10/10 for large datasets. For smaller data, cross-validation replaces the fixed validation set.</p>
+
+<div class="callout warning">
+  <div class="callout-title">Data Leakage</div>
+  The most dangerous cause of seemingly great performance is data leakage — when information from the test/validation set bleeds into training. Examples: fitting a scaler on the full dataset before splitting, using future data as features in time-series, including the target (or a proxy) as a feature. In interviews, if a model seems "too good," always consider leakage first.
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Your model's validation accuracy plateaus at 85% despite high training accuracy. You add more data but the gap doesn't close. What's happening?</div>
+  <div class="answer">
+    <p>If more data doesn't help, the issue might be: (1) <strong>Label noise</strong> — if 15% of your labels are wrong, 85% may be the ceiling. Check label quality. (2) <strong>Feature insufficiency</strong> — the features you have simply can't distinguish beyond 85%. You need better features, not more data. (3) <strong>Distribution mismatch</strong> — your validation set might come from a different distribution than training. (4) <strong>Data leakage</strong> inflating training metrics — check your preprocessing pipeline. The key insight: more data fixes variance problems, not bias problems or data quality problems.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">How does dropout work and why does it help with overfitting?</div>
+  <div class="answer">
+    <p>During training, dropout randomly zeroes out neurons with probability p (typically 0.1–0.5) at each forward pass. This forces the network to not rely on any single neuron — it must learn redundant representations. The effect is similar to training an ensemble of all possible subnetworks. At inference, all neurons are active, and outputs are scaled by (1−p) to compensate for the higher activation — or equivalently, training uses "inverted dropout" that scales by 1/(1−p) during training so inference needs no change. Dropout acts as a stochastic regularizer that prevents co-adaptation of neurons.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">What's early stopping, and how do you implement it properly?</div>
+  <div class="answer">
+    <p>Monitor validation loss after each epoch. If it doesn't improve for N consecutive epochs (the "patience"), stop training and restore the weights from the epoch with the best validation loss. Key details: (1) use a separate validation set that you never train on, (2) save the best checkpoint, don't just stop — the last epoch might not be the best, (3) choose patience based on how noisy your validation curve is (5–20 epochs is typical), (4) early stopping is effectively a form of regularization — it limits the model's effective capacity by limiting training time.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">How does the number of features relative to training examples affect overfitting?</div>
+  <div class="answer">
+    <p>When features (d) approach or exceed the number of examples (N), overfitting becomes almost inevitable — this is the <strong>curse of dimensionality</strong>. With d > N, there are infinitely many perfect-fit solutions (the system is underdetermined), and the model will find one that memorizes training data but fails on unseen data. A rough rule of thumb: for stable linear models, you want at least 10–20× more examples than features. For neural networks, the picture is more nuanced — overparameterized networks can generalize well due to implicit regularization from SGD, but they still need enough data to learn meaningful patterns. The practical fix when d is large relative to N: regularization, dimensionality reduction (PCA), feature selection, or collecting more data.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Your dataset has 30% missing values in a feature. What do you do?</div>
+  <div class="answer">
+    <p>First, understand <em>why</em> the data is missing — this determines your strategy. <strong>Missing completely at random (MCAR)</strong>: safe to drop rows, but wasteful. <strong>Missing at random (MAR)</strong>: missingness depends on other observed features — imputation works well. <strong>Missing not at random (MNAR)</strong>: missingness is informative (e.g., high-income people skip the income question) — you need to model the missingness itself.</p>
+    <p>Practical approaches: (1) <strong>Simple imputation</strong> — fill with mean/median (numerical) or mode (categorical). Fast but ignores relationships between features. (2) <strong>Add a missingness indicator</strong> — create a binary feature "is_missing" alongside the imputed value. This lets the model learn that missingness itself is a signal. (3) <strong>Model-based imputation</strong> — use KNN or iterative imputation (sklearn's <code>IterativeImputer</code>) to predict missing values from other features. More accurate but more expensive. (4) <strong>Drop the feature</strong> — if 90%+ is missing and the feature isn't critical, it may not be worth the imputation noise. For tree-based models, some implementations (XGBoost, LightGBM) handle missing values natively by learning optimal split directions for missing data — often the best option when available.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">What are some data augmentation techniques, and when do they help?</div>
+  <div class="answer">
+    <p>Data augmentation creates synthetic training examples by applying label-preserving transformations, effectively increasing dataset size without collecting new data. It directly combats overfitting by increasing variance in the training set. Techniques vary by domain: <strong>Images</strong> — random flips, rotations, crops, color jitter, cutout/random erasing, mixup (blend two images and their labels). These are standard and nearly always help. <strong>Text</strong> — back-translation (translate to another language and back), synonym replacement, random insertion/deletion. More fragile — you can easily change meaning. <strong>Tabular data</strong> — SMOTE (for class imbalance, not general augmentation), mixup, noise injection. Less established and less reliably helpful than image augmentation — often regularization is more effective for tabular data. The key principle: augmentations must preserve the label. Flipping a cat photo still shows a cat, but flipping a chest X-ray might change the diagnosis.</p>
+  </div>
+</div>
+
+<hr class="section-divider" />
+
+
+<!-- ============================================================ -->
+<!-- 7. CROSS-VALIDATION -->
+<!-- ============================================================ -->
+<h2 id="cross-validation">7. Cross-Validation</h2>
+
+<p>Cross-validation is the standard technique for getting a reliable estimate of model performance and for tuning hyperparameters when you don't have a large enough dedicated validation set.</p>
+
+<h3>K-Fold Cross-Validation</h3>
+
+<p>Split the data into K equal folds (typically K=5 or K=10). For each fold: train on K−1 folds, evaluate on the held-out fold. Average the K performance scores. Every example appears in a test fold exactly once, and in training folds K−1 times. This gives a much more reliable performance estimate than a single train/test split.</p>
+
+<h3>Variants</h3>
+
+<p><strong>Stratified K-Fold</strong> preserves the class distribution in each fold — critical for imbalanced datasets. If your data has 5% positives, each fold will also have approximately 5% positives. Always use stratified K-fold for classification.</p>
+
+<p><strong>Leave-One-Out (LOO)</strong> is K-fold with K = N (each fold has one example). It's nearly unbiased but has high variance and is computationally expensive. Useful for very small datasets. For Ridge regression, LOO CV has a closed-form solution, making it efficient.</p>
+
+<p><strong>Repeated K-Fold</strong> runs K-fold multiple times with different random splits and averages all results. Reduces variance of the estimate at the cost of more computation.</p>
+
+<p><strong>Group K-Fold</strong> ensures all examples from the same group (e.g., the same patient, the same user) end up in the same fold. Critical when examples within a group are correlated — without this, you get data leakage.</p>
+
+<p><strong>Time Series Split</strong> respects temporal ordering: each fold uses all previous data as training and the next chunk as validation. You never train on future data. This is essential for any time-dependent prediction task.</p>
+
+<h3>Nested Cross-Validation</h3>
+
+<p>When you use CV to both select hyperparameters and estimate performance, you're optimistically biased — you've selected the hyperparameters that work best on the same data you're using to estimate performance. Nested CV fixes this: an outer CV loop estimates performance, and an inner CV loop (within each outer fold) selects hyperparameters. The outer loop gives an unbiased performance estimate of the entire model selection procedure.</p>
+
+<div class="callout gotcha">
+  <div class="callout-title">The #1 CV Mistake</div>
+  Preprocessing before splitting. If you fit a StandardScaler on the entire dataset and then do cross-validation, the test fold's mean and variance have leaked into the training folds. Every preprocessing step that "learns" from data (scaling, imputation, PCA, feature selection) must be fit only on training folds and applied to the test fold. Use <code>sklearn.pipeline.Pipeline</code> to guarantee this.
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Should you use cross-validation or a single holdout set? When?</div>
+  <div class="answer">
+    <p>Use CV when data is limited and you need a reliable performance estimate — 5-fold CV uses data 5× more efficiently. Use a single holdout (or even a separate test set) when data is abundant — with millions of examples, a fixed 80/10/10 split gives reliable estimates without the computational cost of multiple training runs. Also use holdout for computationally expensive models (large neural nets) where CV is prohibitive. In production ML, a common pattern: use CV during development/experimentation, then train on all data and evaluate on a held-out test set for the final model.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">You're building a model to predict next week's user engagement on Prime Video. What cross-validation strategy do you use?</div>
+  <div class="answer">
+    <p><strong>Time-series split</strong> — never standard K-fold. User behavior has temporal patterns (seasonality, trends, content release schedules). If you randomly split, your training set will contain future data, creating leakage. Use expanding or sliding window: train on weeks 1–4, validate on week 5; train on weeks 1–5, validate on week 6; etc. Also consider <strong>group-aware splitting</strong> so that all of a user's data stays in the same split, preventing user-level leakage. For Prime Video specifically, account for content release events — a new show launch changes the distribution, and your CV should test how the model handles that.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">What's the difference between K-fold CV and bootstrapping?</div>
+  <div class="answer">
+    <p>K-fold partitions data into disjoint folds — each example appears in the test set exactly once. <strong>Bootstrapping</strong> samples N examples <em>with replacement</em> for training, and tests on the ~36.8% of examples not selected (the "out-of-bag" samples). Bootstrap has more bias (some examples appear multiple times, some never), but can give confidence intervals on performance. K-fold is the standard for model evaluation and hyperparameter tuning; bootstrapping is used more for estimating confidence intervals on statistics and is the basis for bagging in Random Forests. For model selection, K-fold is generally preferred.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">How do you choose K in K-fold cross-validation?</div>
+  <div class="answer">
+    <p>K controls a bias-variance tradeoff <em>of the CV estimator itself</em>. Higher K (e.g., K=N, LOO): each training set is nearly the full dataset, so bias is low — but the K models are very similar to each other, so variance of the estimate is high. Lower K (e.g., K=2): each training set is only half the data, so bias is higher (the estimate reflects a model trained on less data than you actually have). <strong>K=5 or K=10</strong> is the standard compromise — empirical studies show these give the best tradeoff. Use K=5 for large datasets or expensive models; K=10 when you have more compute. For very small datasets (&lt;100 examples), LOO or repeated K-fold is worth the cost.</p>
+  </div>
+</div>
+
+
+<hr class="section-divider" />
+
+
+<!-- ============================================================ -->
+<!-- 8. FEATURE SCALING -->
+<!-- ============================================================ -->
+<h2 id="feature-scaling">8. Feature Scaling &amp; Normalization</h2>
+
+<p>Feature scaling transforms features to comparable ranges. It sounds like a minor preprocessing detail, but it has a major impact on model training and is a frequent source of interview questions — especially around <em>when</em> it matters and <em>when</em> it doesn't.</p>
+
+<h3>Standardization (Z-score Normalization)</h3>
+
+<div class="math-block">$$x' = \frac{x - \mu}{\sigma}$$</div>
+
+<p>Centers features to mean=0 and scales to unit variance. This is the default choice for most ML models. It doesn't bound the range (outliers can still produce large values), but it works well when features are approximately Gaussian.</p>
+
+<h3>Min-Max Normalization</h3>
+
+<div class="math-block">$$x' = \frac{x - x_{\min}}{x_{\max} - x_{\min}}$$</div>
+
+<p>Scales features to [0, 1]. Useful when you need bounded values (e.g., inputs to neural networks with sigmoid outputs, or image pixel values). The downside: it's very sensitive to outliers — a single extreme value compresses the rest of the data into a tiny range.</p>
+
+<h3>When Scaling Matters</h3>
+
+<p><strong>Distance-based models</strong> (KNN, SVM, K-means) are directly affected by feature magnitudes. A feature ranging 0–1000 will dominate distance calculations over a feature ranging 0–1, even if the smaller feature is more informative. Scaling is essential here.</p>
+
+<p><strong>Gradient-based optimization</strong> (linear/logistic regression with GD, neural networks) converges much faster with scaled features. Unscaled features create elongated elliptical loss contours — the gradient points away from the minimum, causing oscillation. Scaled features create roughly circular contours where the gradient points directly toward the minimum.</p>
+
+<p><strong>Regularization</strong> requires scaling. L1 and L2 penalties treat all weights equally — but if feature A has range [0, 1000] and feature B has range [0, 1], then w_A will naturally be ~1000× smaller than w_B to produce similar-sized contributions. The regularizer will penalize w_B much more heavily, unfairly suppressing it. Scaling ensures the penalty is applied fairly across features.</p>
+
+<h3>When Scaling Doesn't Matter</h3>
+
+<p><strong>Tree-based models</strong> (decision trees, random forests, XGBoost) are invariant to monotonic transformations of features. They split on thresholds, so only the rank ordering of values matters, not their magnitudes. Scaling a feature from [0, 1000] to [0, 1] doesn't change where the optimal split is. This is one of the practical advantages of tree-based models.</p>
+
+<p><strong>The normal equation</strong> for linear regression solves directly without iterative optimization, so feature scales don't affect convergence or the final solution.</p>
+
+<div class="callout gotcha">
+  <div class="callout-title">Fit on Train, Transform on Test</div>
+  Always compute scaling parameters (mean, std, min, max) from the training set only, then apply those same parameters to the validation and test sets. If you fit the scaler on the full dataset before splitting, statistics from test data leak into your training preprocessing. This is one of the most common and subtle forms of data leakage. Use <code>sklearn.pipeline.Pipeline</code> to enforce this automatically.
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Should you standardize or normalize your features? How do you decide?</div>
+  <div class="answer">
+    <p>Use <strong>standardization</strong> (z-score) as the default — it's robust, works for most models, and doesn't assume bounded data. Use <strong>min-max normalization</strong> when the model expects bounded inputs (neural nets with sigmoid/tanh, or when you specifically need [0,1] range). Use <strong>robust scaling</strong> (subtract median, divide by IQR) when you have heavy outliers that would distort the mean and standard deviation. For sparse data (e.g., bag-of-words), don't center (it destroys sparsity) — use MaxAbs scaling instead, which divides by the max absolute value without shifting.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Your model uses a mix of tree-based features and a linear model in a stacking ensemble. Do you scale?</div>
+  <div class="answer">
+    <p>You don't scale for the tree-based models in the first layer — they're scale-invariant. But if the meta-learner (second layer) is a linear or distance-based model, you should scale its inputs — which are the outputs of the first-layer models. The key principle: scaling decisions are about the <em>consumer</em> of the features, not the producer. Each model in the pipeline only needs scaling if that specific model is sensitive to feature magnitudes.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">How does feature scaling interact with regularization?</div>
+  <div class="answer">
+    <p>Without scaling, regularization is effectively applied unevenly. A feature with range [0, 1M] needs a tiny weight (~1e-6) to contribute meaningfully, while a feature with range [0, 1] needs a weight ~1. The regularizer penalizes both weights equally, so it disproportionately shrinks the large-weight feature. After standardization, all features contribute through similar-magnitude weights, so the regularizer penalizes model complexity fairly. This is why sklearn's Lasso and Ridge documentation recommends standardizing features before fitting — it's not optional with regularization, it's effectively required for correct behavior.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Do you scale one-hot encoded categorical features?</div>
+  <div class="answer">
+    <p>Generally <strong>no</strong> — one-hot features are already binary (0 or 1), so they're on a natural scale. Standardizing them would break their interpretability and produce non-intuitive values. However, there's a subtlety with regularization: if your continuous features are standardized (mean 0, std 1) but one-hot features are 0/1, the regularizer may still treat them unevenly depending on class frequency. A rare category (0.01 mean) has different variance than a common one (0.5 mean). Some practitioners standardize one-hot features for this reason, but it's not common practice. For <strong>ordinal</strong> encoded features (e.g., education level: 1, 2, 3, 4, 5), scaling may be appropriate if the model is distance-based or gradient-based, since the range depends on the number of categories.</p>
+  </div>
+</div>
+
+
+</div> <!-- container -->
+
+<script>
+  // Theme toggle
+  const toggle = document.getElementById('themeToggle');
+  const saved = localStorage.getItem('ml-theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    toggle.textContent = '☀️';
+  }
+  toggle.addEventListener('click', () => {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    if (isLight) {
+      document.documentElement.removeAttribute('data-theme');
+      toggle.textContent = '🌙';
+      localStorage.setItem('ml-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      toggle.textContent = '☀️';
+      localStorage.setItem('ml-theme', 'light');
+    }
+  });
+
+  // KaTeX rendering
+  document.addEventListener('DOMContentLoaded', () => {
+    renderMathInElement(document.body, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false
+    });
+  });
+</script>
+
+</body>
+</html>
