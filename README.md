@@ -12,7 +12,3 @@ GD, SGD, Momentum, RMSProp, Adam, AdamW — mechanics, trade-offs, and NumPy imp
 
 ### [Loss Landscapes](loss_landscape_blog.html)
 Sharp vs flat minima, batch size effects, Hessian eigenvalues, SAM, and why optimizer choice shapes generalization.
-
----
-
-More articles coming: tree-based models & ensembles, recommendation systems, attention & transformers.
