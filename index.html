@@ -61,6 +61,25 @@
             font-weight: 300;
         }
 
+        .series-header {
+            margin: 60px 0 30px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .series-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .series-header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            font-weight: 300;
+        }
+
         .blog-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
@@ -106,7 +125,7 @@
             margin-bottom: 20px;
         }
 
-        .blog-card h2 {
+        .blog-card h3 {
             font-family: 'Playfair Display', serif;
             font-size: 2rem;
             margin-bottom: 15px;
@@ -165,6 +184,20 @@
             border-radius: 4px;
         }
 
+        .blog-card .series-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
         .coming-soon {
             border: 1px dashed var(--border);
             background: transparent;
@@ -186,7 +219,7 @@
             display: none;
         }
 
-        .coming-soon h2 {
+        .coming-soon h3 {
             color: var(--text-muted);
             font-size: 1.5rem;
         }
@@ -222,11 +255,85 @@
             <p class="tagline">Technical articles on machine learning — from first principles to interview-ready depth</p>
         </header>
 
+        <!-- TRANSFORMER SERIES -->
+        <div class="series-header">
+            <h2>🔥 Transformer Interview Prep Series</h2>
+            <p>A 7-part deep dive covering everything you need to know about Transformers for Applied Scientist interviews</p>
+        </div>
+
+        <div class="blog-grid">
+            <div class="blog-card">
+                <span class="series-badge">Part 1 of 7</span>
+                <div class="blog-icon">⚡</div>
+                <h3>The Attention Revolution</h3>
+                <div class="blog-meta">
+                    <span>📚 Foundations</span>
+                    <span>⏱️ 20 min</span>
+                    <span>❓ 8 Questions</span>
+                </div>
+                <p>
+                    From RNNs to Self-Attention — why Transformers were invented. Covers vanishing gradients, LSTM/GRU gating, Bahdanau &amp; Luong attention mechanisms, and the leap to self-attention. Every equation with proper math rendering and SVG diagrams.
+                </p>
+                <a href="attention_revolution.html" class="btn">Read Article →</a>
+            </div>
+
+            <div class="blog-card">
+                <span class="series-badge">Part 2 of 7</span>
+                <div class="blog-icon">🏗️</div>
+                <h3>Transformer Architecture End-to-End</h3>
+                <div class="blog-meta">
+                    <span>📚 Architecture</span>
+                    <span>⏱️ 30 min</span>
+                    <span>❓ 13 Questions</span>
+                </div>
+                <p>
+                    Complete walkthrough of every component — encoder blocks, decoder blocks, self-attention math (Q/K/V with dimensionality trace), FFN, residual connections, LayerNorm, causal masking, cross-attention, Noam schedule, and label smoothing. 8 architecture diagrams.
+                </p>
+                <a href="transformer_architecture.html" class="btn">Read Article →</a>
+            </div>
+
+            <div class="blog-card coming-soon">
+                <div class="blog-icon">🧮</div>
+                <h3>Self-Attention: The Math</h3>
+                <p>Part 3 — Scaled dot-product attention with worked numerical examples, √d_k derivation, softmax temperature — coming soon.</p>
+            </div>
+
+            <div class="blog-card coming-soon">
+                <div class="blog-icon">🧩</div>
+                <h3>Multi-Head Attention &amp; Positional Encoding</h3>
+                <p>Part 4 — Why multiple heads, sinusoidal vs learned vs RoPE vs ALiBi — coming soon.</p>
+            </div>
+
+            <div class="blog-card coming-soon">
+                <div class="blog-icon">🔧</div>
+                <h3>Residuals, Normalization &amp; Training</h3>
+                <p>Part 5 — Pre-norm vs post-norm, training stability, attention collapse, dropout — coming soon.</p>
+            </div>
+
+            <div class="blog-card coming-soon">
+                <div class="blog-icon">🔀</div>
+                <h3>BERT vs GPT vs Encoder-Decoder</h3>
+                <p>Part 6 — MLM vs next-token prediction, architectural choices, when to use each — coming soon.</p>
+            </div>
+
+            <div class="blog-card coming-soon">
+                <div class="blog-icon">🚀</div>
+                <h3>Modern Extensions</h3>
+                <p>Part 7 — Flash Attention, MoE, KV-cache, context length extension — coming soon.</p>
+            </div>
+        </div>
+
+        <!-- FUNDAMENTALS -->
+        <div class="series-header">
+            <h2>ML Fundamentals</h2>
+            <p>Core concepts, backpropagation, optimization, and more</p>
+        </div>
+
         <div class="blog-grid">
             <div class="blog-card">
                 <span class="new-badge">New</span>
                 <div class="blog-icon">🎯</div>
-                <h2>ML Core Concepts: A Deep Dive</h2>
+                <h3>ML Core Concepts: A Deep Dive</h3>
                 <div class="blog-meta">
                     <span>📚 Complete Guide</span>
                     <span>⏱️ 25 min</span>
@@ -240,7 +347,7 @@
 
             <div class="blog-card">
                 <div class="blog-icon">🔗</div>
-                <h2>Backpropagation Through Every Layer</h2>
+                <h3>Backpropagation Through Every Layer</h3>
                 <div class="blog-meta">
                     <span>📚 Complete Guide</span>
                     <span>⏱️ 20 min</span>
@@ -253,7 +360,7 @@
 
             <div class="blog-card">
                 <div class="blog-icon">⚡</div>
-                <h2>Mastering Optimization Algorithms</h2>
+                <h3>Mastering Optimization Algorithms</h3>
                 <div class="blog-meta">
                     <span>📚 Complete Guide</span>
                     <span>⏱️ 15 min</span>
@@ -266,7 +373,7 @@
 
             <div class="blog-card">
                 <div class="blog-icon">📐</div>
-                <h2>Loss Landscapes & Generalization</h2>
+                <h3>Loss Landscapes &amp; Generalization</h3>
                 <div class="blog-meta">
                     <span>🎯 Advanced</span>
                     <span>⏱️ 12 min</span>
@@ -279,7 +386,7 @@
 
             <div class="blog-card">
                 <div class="blog-icon">🧠</div>
-                <h2>Activation Functions</h2>
+                <h3>Activation Functions</h3>
                 <div class="blog-meta">
                     <span>📚 Complete Guide</span>
                     <span>⏱️ 18 min</span>
@@ -292,7 +399,7 @@
 
             <div class="blog-card coming-soon">
                 <div class="blog-icon">🌲</div>
-                <h2>Tree-Based Models & Ensembles</h2>
+                <h3>Tree-Based Models &amp; Ensembles</h3>
                 <p>Decision trees, random forests, gradient boosting, XGBoost — coming soon.</p>
             </div>
         </div>
