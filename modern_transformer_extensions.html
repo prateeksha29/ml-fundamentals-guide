@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog 7: Modern Transformer Extensions — Flash Attention, MoE, KV-Cache, and Beyond</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=JetBrains+Mono:wght@400;500&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#faf9f6;--text:#1a1a1a;--ts:#555;--ac:#c0392b;--al:#fdf0ee;--bd:#e0ddd8;--cb:#f5f3ef;--db:#fff;--bl:#2471a3;--gn:#1e8449;--or:#d4780a;--pu:#7d3c98;--hl:#fff9e6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);font-size:17px;line-height:1.78}
+.hero{background:linear-gradient(135deg,#1a1a2e,#0f3460 50%,#16213e);color:#fff;padding:80px 20px 60px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,.015) 40px,rgba(255,255,255,.015) 41px)}
+.hc{position:relative;z-index:1;max-width:700px;margin:0 auto}
+.hero h1{font-family:'Newsreader',serif;font-size:clamp(2rem,5vw,2.8rem);font-weight:700;line-height:1.2;margin-bottom:16px;letter-spacing:-.02em}
+.hero .sub{font-size:1.1rem;color:rgba(255,255,255,.7);max-width:540px;margin:0 auto 24px}
+.hero .tag{display:inline-block;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 16px;font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;margin-bottom:20px}
+.c{max-width:740px;margin:0 auto;padding:40px 20px 80px}
+h2{font-family:'Newsreader',serif;font-size:1.9rem;font-weight:700;margin:56px 0 20px;letter-spacing:-.01em;line-height:1.3}
+h3{font-family:'Newsreader',serif;font-size:1.35rem;font-weight:600;margin:40px 0 14px;line-height:1.3}
+p{margin-bottom:16px}strong{font-weight:600}em{font-style:italic}
+a{color:var(--ac);text-decoration:none}
+ol,ul{margin:0 0 16px 20px;line-height:1.9}
+.eq{background:var(--cb);border-left:3px solid var(--ac);padding:20px 24px;margin:24px 0;overflow-x:auto;border-radius:0 6px 6px 0}
+.eq .el{font-size:.8rem;color:var(--ts);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.eq .katex{font-size:1.1em}.katex{font-size:1.05em}
+.d{background:var(--db);border:1px solid var(--bd);border-radius:8px;padding:24px;margin:28px 0;text-align:center;overflow-x:auto}
+.d svg{max-width:100%;height:auto}
+.dc{font-size:.85rem;color:var(--ts);margin-top:12px;font-style:italic}
+.co{border-radius:8px;padding:20px 24px;margin:24px 0}
+.ci{background:#eef6ff;border-left:4px solid var(--bl)}
+.cw{background:var(--al);border-left:4px solid var(--ac)}
+.ck{background:var(--hl);border-left:4px solid var(--or)}
+.ct{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.ci .ct{color:var(--bl)}.cw .ct{color:var(--ac)}.ck .ct{color:var(--or)}
+table.tb{width:100%;border-collapse:collapse;margin:24px 0;font-size:.92rem}
+table.tb th{background:#1a1a2e;color:#fff;padding:12px 14px;text-align:left;font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em}
+table.tb td{padding:10px 14px;border-bottom:1px solid var(--bd)}
+table.tb tr:nth-child(even){background:#f9f8f5}
+table.tb tr.h{background:#eef6ee;font-weight:600}
+.iq{background:#f5f3ef;border-radius:8px;padding:20px 24px;margin:20px 0;border:1px solid var(--bd)}
+.iq .ql{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--ac);font-weight:500;margin-bottom:6px}
+.iq .qt{font-weight:700;font-size:1.05rem;margin-bottom:12px;line-height:1.4}
+.iq .at{font-size:.95rem;color:var(--ts);line-height:1.65}
+.pr{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;background:#f9f8f5;border-radius:6px;margin:12px 0;font-size:.9rem}
+.pr .pi{font-size:1.2rem;flex-shrink:0}.pr .pt{font-weight:600}.pr .pa{color:var(--ts);font-size:.85rem}
+.sd{text-align:center;margin:48px 0;color:var(--bd);font-size:1.5rem;letter-spacing:.5em}
+@media(max-width:600px){.hero{padding:60px 16px 40px}.hero h1{font-size:1.8rem}.c{padding:24px 16px 60px}h2{font-size:1.5rem}.eq{padding:14px 16px}table.tb{font-size:.8rem}table.tb th,table.tb td{padding:8px}}
+</style>
+</head>
+<body>
+<div class="hero"><div class="hc">
+<div class="tag">Transformer Interview Prep · Part 7 of 7</div>
+<h1>Modern Transformer Extensions:<br>Flash Attention, MoE, KV-Cache &amp; Beyond</h1>
+<p class="sub">Efficiency innovations, scaling techniques, and positional encoding advances that power today's production LLMs</p>
+</div></div>
+<div class="c">
+
+<!-- ===== SECTION 1: FLASH ATTENTION ===== -->
+<h2>1. Flash Attention: Making Attention Fast Without Approximation</h2>
+
+<div class="pr"><div class="pi">📄</div><div><div class="pt">FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness</div><div class="pa">Dao, Fu, Ermon, Rudra &amp; Ré · NeurIPS 2022</div></div></div>
+
+<p>Standard attention materializes the full \(n \times n\) attention matrix in GPU high-bandwidth memory (HBM). Flash Attention's insight: <strong>attention is memory-bound, not compute-bound</strong>. Modern GPUs have enormous compute throughput (312 TFLOPS on A100) but relatively slow memory bandwidth. The bottleneck isn't the arithmetic — it's reading and writing the large intermediate matrices to and from memory.</p>
+
+<h3>1.1 The GPU Memory Hierarchy</h3>
+
+<div class="d">
+<svg viewBox="0 0 580 200" xmlns="http://www.w3.org/2000/svg" style="font-family:'Source Sans 3',sans-serif">
+<!-- SRAM -->
+<rect x="30" y="30" width="160" height="80" rx="8" fill="#eef6ee" stroke="#1e8449" stroke-width="2"/>
+<text x="110" y="58" text-anchor="middle" font-size="14" font-weight="700" fill="#1e8449">SRAM</text>
+<text x="110" y="78" text-anchor="middle" font-size="11" fill="#555">~20 MB (A100)</text>
+<text x="110" y="95" text-anchor="middle" font-size="11" fill="#1e8449" font-weight="600">19 TB/s bandwidth</text>
+<text x="110" y="130" text-anchor="middle" font-size="10" fill="#888">On-chip · Very fast · Very small</text>
+<!-- Arrow -->
+<line x1="200" y1="70" x2="250" y2="70" stroke="#888" stroke-width="2"/>
+<text x="225" y="60" text-anchor="middle" font-size="9" fill="#c0392b" font-weight="600">bottleneck</text>
+<text x="225" y="88" text-anchor="middle" font-size="22" fill="#c0392b">⟷</text>
+<!-- HBM -->
+<rect x="260" y="30" width="160" height="80" rx="8" fill="#eef6ff" stroke="#2471a3" stroke-width="2"/>
+<text x="340" y="58" text-anchor="middle" font-size="14" font-weight="700" fill="#2471a3">HBM</text>
+<text x="340" y="78" text-anchor="middle" font-size="11" fill="#555">40-80 GB (A100)</text>
+<text x="340" y="95" text-anchor="middle" font-size="11" fill="#2471a3" font-weight="600">1.5-2 TB/s bandwidth</text>
+<text x="340" y="130" text-anchor="middle" font-size="10" fill="#888">Off-chip · Slow · Large</text>
+<!-- Ratio -->
+<rect x="440" y="42" width="120" height="55" rx="6" fill="#fdf0ee" stroke="#c0392b" stroke-width="1"/>
+<text x="500" y="62" text-anchor="middle" font-size="10" font-weight="700" fill="#c0392b">Speed gap:</text>
+<text x="500" y="82" text-anchor="middle" font-size="16" font-weight="700" fill="#c0392b">~10×</text>
+</svg>
+<div class="dc">Figure 1: GPU memory hierarchy. SRAM is ~10× faster than HBM but ~2000× smaller. Standard attention reads/writes intermediate matrices to HBM repeatedly. Flash Attention keeps computation in SRAM.</div>
+</div>
+
+<h3>1.2 The Problem with Standard Attention</h3>
+
+<p>Standard attention computes three intermediate matrices that must be stored in HBM:</p>
+
+<div class="d">
+<svg viewBox="0 0 620 170" xmlns="http://www.w3.org/2000/svg" style="font-family:'Source Sans 3',sans-serif">
+<defs><marker id="af" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#555"/></marker></defs>
+<!-- Step 1 -->
+<rect x="10" y="30" width="95" height="50" rx="5" fill="#eef6ff" stroke="#2471a3" stroke-width="1.5"/>
+<text x="57" y="52" text-anchor="middle" font-size="10" font-weight="600" fill="#2471a3">Q, K, V</text>
+<text x="57" y="67" text-anchor="middle" font-size="9" fill="#888">n × d</text>
+<!-- Arrow -->
+<line x1="105" y1="55" x2="125" y2="55" stroke="#555" stroke-width="1" marker-end="url(#af)"/>
+<!-- Step 2: S = QK^T -->
+<rect x="128" y="20" width="100" height="70" rx="5" fill="#fdf0ee" stroke="#c0392b" stroke-width="1.5"/>
+<text x="178" y="45" text-anchor="middle" font-size="10" font-weight="600" fill="#c0392b">S = QK⊤</text>
+<text x="178" y="62" text-anchor="middle" font-size="9" fill="#c0392b">n × n</text>
+<text x="178" y="78" text-anchor="middle" font-size="8" fill="#888">← write to HBM</text>
+<line x1="228" y1="55" x2="248" y2="55" stroke="#555" stroke-width="1" marker-end="url(#af)"/>
+<!-- Step 3: P = softmax(S) -->
+<rect x="251" y="20" width="100" height="70" rx="5" fill="#fdf0ee" stroke="#c0392b" stroke-width="1.5"/>
+<text x="301" y="45" text-anchor="middle" font-size="10" font-weight="600" fill="#c0392b">P = softmax(S)</text>
+<text x="301" y="62" text-anchor="middle" font-size="9" fill="#c0392b">n × n</text>
+<text x="301" y="78" text-anchor="middle" font-size="8" fill="#888">← read S, write P</text>
+<line x1="351" y1="55" x2="371" y2="55" stroke="#555" stroke-width="1" marker-end="url(#af)"/>
+<!-- Step 4: O = PV -->
+<rect x="374" y="30" width="95" height="50" rx="5" fill="#eef6ee" stroke="#1e8449" stroke-width="1.5"/>
+<text x="421" y="52" text-anchor="middle" font-size="10" font-weight="600" fill="#1e8449">O = PV</text>
+<text x="421" y="67" text-anchor="middle" font-size="9" fill="#888">n × d</text>
+<!-- Problem label -->
+<rect x="140" y="110" width="240" height="40" rx="5" fill="#fdf0ee" stroke="#c0392b" stroke-width="1"/>
+<text x="260" y="126" text-anchor="middle" font-size="10" font-weight="600" fill="#c0392b">S and P are both n × n</text>
+<text x="260" y="141" text-anchor="middle" font-size="10" fill="#c0392b">Must be stored in HBM → O(n²) memory</text>
+<!-- Right: Flash -->
+<text x="530" y="40" text-anchor="middle" font-size="11" font-weight="700" fill="#1e8449">Flash Attention:</text>
+<text x="530" y="58" text-anchor="middle" font-size="10" fill="#1e8449">Never materializes</text>
+<text x="530" y="73" text-anchor="middle" font-size="10" fill="#1e8449">S or P in HBM</text>
+<text x="530" y="91" text-anchor="middle" font-size="10" fill="#1e8449" font-weight="600">→ O(n) memory</text>
+</svg>
+<div class="dc">Figure 2: Standard attention writes two n×n intermediate matrices (S and P) to slow HBM. Flash Attention computes attention in tiles within fast SRAM, never materializing the full matrices.</div>
+</div>
+
+<h3>1.3 How Flash Attention Works: Tiling + Online Softmax</h3>
+
+<p>Flash Attention splits Q, K, V into <strong>small blocks</strong> that fit in SRAM. It loads one block of K, V into SRAM, then iterates over blocks of Q, computing the attention output tile-by-tile. The challenge: softmax requires the full row to normalize. Flash Attention uses the <strong>online softmax trick</strong> — it keeps running statistics (max and sum) that are updated as each block is processed, giving the exact same result as materializing the full matrix.</p>
+
+<div class="d">
+<svg viewBox="0 0 600 240" xmlns="http://www.w3.org/2000/svg" style="font-family:'Source Sans 3',sans-serif">
+<!-- Q matrix (vertical blocks) -->
+<text x="30" y="20" text-anchor="middle" font-size="11" font-weight="600" fill="#2471a3">Q</text>
+<rect x="10" y="28" width="40" height="35" rx="3" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/>
+<text x="30" y="50" text-anchor="middle" font-size="8" fill="#2471a3">Q₁</text>
+<rect x="10" y="65" width="40" height="35" rx="3" fill="#93c5fd" stroke="#2471a3" stroke-width="1"/>
+<text x="30" y="87" text-anchor="middle" font-size="8" fill="#2471a3">Q₂</text>
+<rect x="10" y="102" width="40" height="35" rx="3" fill="#60a5fa" stroke="#2471a3" stroke-width="1"/>
+<text x="30" y="124" text-anchor="middle" font-size="8" fill="#fff">Q₃</text>
+<rect x="10" y="139" width="40" height="35" rx="3" fill="#3b82f6" stroke="#2471a3" stroke-width="1"/>
+<text x="30" y="161" text-anchor="middle" font-size="8" fill="#fff">Q₄</text>
+
+<!-- K,V matrix (horizontal blocks) -->
+<text x="160" y="20" text-anchor="middle" font-size="11" font-weight="600" fill="#d4780a">K, V</text>
+<rect x="80" y="28" width="40" height="20" rx="3" fill="#fef3c7" stroke="#d4780a" stroke-width="1"/>
+<text x="100" y="42" text-anchor="middle" font-size="7" fill="#d4780a">K₁V₁</text>
+<rect x="122" y="28" width="40" height="20" rx="3" fill="#fde68a" stroke="#d4780a" stroke-width="1"/>
+<text x="142" y="42" text-anchor="middle" font-size="7" fill="#d4780a">K₂V₂</text>
+<rect x="164" y="28" width="40" height="20" rx="3" fill="#fcd34d" stroke="#d4780a" stroke-width="1"/>
+<text x="184" y="42" text-anchor="middle" font-size="7" fill="#d4780a">K₃V₃</text>
+<rect x="206" y="28" width="40" height="20" rx="3" fill="#f59e0b" stroke="#d4780a" stroke-width="1"/>
+<text x="226" y="42" text-anchor="middle" font-size="7" fill="#fff">K₄V₄</text>
+
+<!-- SRAM box -->
+<rect x="290" y="30" width="170" height="130" rx="10" fill="#eef6ee" stroke="#1e8449" stroke-width="2"/>
+<text x="375" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#1e8449">SRAM (on-chip)</text>
+<!-- Current blocks in SRAM -->
+<rect x="305" y="60" width="60" height="25" rx="3" fill="#93c5fd" stroke="#2471a3" stroke-width="1"/>
+<text x="335" y="77" text-anchor="middle" font-size="8" fill="#2471a3">Q₂ block</text>
+<rect x="305" y="92" width="60" height="25" rx="3" fill="#fde68a" stroke="#d4780a" stroke-width="1"/>
+<text x="335" y="109" text-anchor="middle" font-size="8" fill="#d4780a">K₃V₃ block</text>
+<rect x="305" y="124" width="60" height="25" rx="3" fill="#e8daef" stroke="#7d3c98" stroke-width="1"/>
+<text x="335" y="141" text-anchor="middle" font-size="8" fill="#7d3c98">stats (m, ℓ)</text>
+<!-- Compute -->
+<rect x="380" y="70" width="68" height="65" rx="5" fill="#fff" stroke="#1e8449" stroke-width="1"/>
+<text x="414" y="90" text-anchor="middle" font-size="9" font-weight="600" fill="#1e8449">Compute</text>
+<text x="414" y="105" text-anchor="middle" font-size="8" fill="#555">QK⊤ → softmax</text>
+<text x="414" y="118" text-anchor="middle" font-size="8" fill="#555">→ × V → update O</text>
+
+<!-- Arrows: load from HBM -->
+<path d="M55,87 L288,80" stroke="#2471a3" stroke-width="1.5" stroke-dasharray="4,3"/>
+<path d="M184,50 L303,100" stroke="#d4780a" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+<!-- Output arrow -->
+<line x1="462" y1="100" x2="520" y2="100" stroke="#1e8449" stroke-width="1.5" marker-end="url(#af)"/>
+<rect x="522" y="82" width="65" height="35" rx="5" fill="#eef6ee" stroke="#1e8449" stroke-width="1.5"/>
+<text x="554" y="100" text-anchor="middle" font-size="9" font-weight="600" fill="#1e8449">O block</text>
+<text x="554" y="112" text-anchor="middle" font-size="7" fill="#888">→ write HBM</text>
+
+<!-- Legend -->
+<text x="300" y="195" text-anchor="middle" font-size="10" fill="#555" font-weight="600">Outer loop: iterate over K,V blocks (red arrows in paper)</text>
+<text x="300" y="212" text-anchor="middle" font-size="10" fill="#555">Inner loop: iterate over Q blocks (blue arrows)</text>
+<text x="300" y="229" text-anchor="middle" font-size="10" fill="#1e8449" font-weight="600">Never materialize full n×n matrix — only block-sized tiles in SRAM</text>
+</svg>
+<div class="dc">Figure 3: Flash Attention tiling. Blocks of Q, K, V are loaded into fast SRAM. Attention is computed tile-by-tile with running softmax statistics, then the output block is written back to HBM. The full n×n matrix never exists.</div>
+</div>
+
+<div class="co ck"><div class="ct">⚡ The key results</div>
+<ul>
+<li><strong>Exact</strong> — produces identical output to standard attention. No approximation, no quality loss.</li>
+<li><strong>Memory:</strong> \(O(n)\) instead of \(O(n^2)\) — the n×n matrix is never stored.</li>
+<li><strong>Speed:</strong> 2-4× faster wall-clock despite same FLOPs (even slightly more due to recomputation in backward pass) — because fewer slow HBM reads/writes.</li>
+<li><strong>HBM accesses:</strong> \(O(N^2 d^2 M^{-1})\) vs standard \(O(Nd + N^2)\), where M is SRAM size.</li>
+<li><strong>Longer sequences:</strong> enables 4-16× longer context on the same GPU.</li>
+</ul>
+</div>
+
+<div class="co ci"><div class="ct">💡 Why this matters conceptually</div>
+<p>Flash Attention proved that the attention bottleneck wasn't <em>computation</em> but <em>memory bandwidth</em>. Approximate attention methods (Linformer, Performer) tried to reduce FLOPs by changing the math — but often didn't achieve wall-clock speedup because they didn't address the IO bottleneck. Flash Attention keeps the exact same math but reorganizes <em>where</em> the computation happens in the memory hierarchy. This is a systems insight, not an algorithmic one — and it's now the default attention implementation in virtually all production models.</p>
+</div>
+
+<div class="sd">· · ·</div>
+
+<!-- ===== SECTION 2: KV-CACHE ===== -->
+<h2>2. KV-Cache: Avoiding Redundant Computation at Inference</h2>
+
+<h3>2.1 The Problem</h3>
+
+<p>During autoregressive generation, at step \(t\) the decoder must attend to all positions 1 through \(t\). Without caching, this means <strong>recomputing K and V for every previous token at every step</strong> — pure waste, since token 1's K and V never change.</p>
+
+<div class="d">
+<svg viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg" style="font-family:'Source Sans 3',sans-serif">
+<!-- Without cache -->
+<text x="155" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="#c0392b">Without KV-Cache</text>
+<g transform="translate(20,28)">
+<rect x="0" y="0" width="270" height="25" rx="3" fill="#fdf0ee" stroke="#c0392b" stroke-width="1"/>
+<text x="135" y="17" text-anchor="middle" font-size="9" fill="#c0392b">Step 1: compute K₁,V₁ from token 1</text>
+<rect x="0" y="30" width="270" height="25" rx="3" fill="#fdf0ee" stroke="#c0392b" stroke-width="1"/>
+<text x="135" y="47" text-anchor="middle" font-size="9" fill="#c0392b">Step 2: recompute K₁,V₁ + compute K₂,V₂</text>
+<rect x="0" y="60" width="270" height="25" rx="3" fill="#fdf0ee" stroke="#c0392b" stroke-width="1"/>
+<text x="135" y="77" text-anchor="middle" font-size="9" fill="#c0392b">Step 3: recompute K₁,K₂,V₁,V₂ + compute K₃,V₃</text>
+<rect x="0" y="95" width="270" height="25" rx="3" fill="#fdf0ee" stroke="#c0392b" stroke-width="1.5"/>
+<text x="135" y="112" text-anchor="middle" font-size="9" font-weight="600" fill="#c0392b">Total: 1+2+3+...+n = O(n²) token computations</text>
+</g>
+<!-- With cache -->
+<text x="470" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="#1e8449">With KV-Cache</text>
+<g transform="translate(335,28)">
+<rect x="0" y="0" width="270" height="25" rx="3" fill="#eef6ee" stroke="#1e8449" stroke-width="1"/>
+<text x="135" y="17" text-anchor="middle" font-size="9" fill="#1e8449">Step 1: compute K₁,V₁ → cache</text>
+<rect x="0" y="30" width="270" height="25" rx="3" fill="#eef6ee" stroke="#1e8449" stroke-width="1"/>
+<text x="135" y="47" text-anchor="middle" font-size="9" fill="#1e8449">Step 2: compute K₂,V₂ only → append to cache</text>
+<rect x="0" y="60" width="270" height="25" rx="3" fill="#eef6ee" stroke="#1e8449" stroke-width="1"/>
+<text x="135" y="77" text-anchor="middle" font-size="9" fill="#1e8449">Step 3: compute K₃,V₃ only → append to cache</text>
+<rect x="0" y="95" width="270" height="25" rx="3" fill="#eef6ee" stroke="#1e8449" stroke-width="1.5"/>
+<text x="135" y="112" text-anchor="middle" font-size="9" font-weight="600" fill="#1e8449">Total: n token computations = O(n)</text>
+</g>
+<!-- Bottom comparison -->
+<text x="310" y="170" text-anchor="middle" font-size="11" fill="#555">At each step, only the <tspan font-weight="700">new token</tspan> passes through the model.</text>
+<text x="310" y="188" text-anchor="middle" font-size="11" fill="#555">Attention: Q_new × [K₁...K_t]ᵀ using cached K,V.</text>
+</svg>
+<div class="dc">Figure 4: Without caching, previous K,V are recomputed at every step (O(n²) total work). With KV-cache, each step only processes one new token and appends to the cache (O(n) total).</div>
+</div>
+
+<h3>2.2 Memory Cost</h3>
+
+<div class="eq"><div class="el">KV-Cache Memory per Token</div>
+$$\text{KV per token} = 2 \times n_{\text{layers}} \times n_{\text{kv\_heads}} \times d_{\text{head}} \times \text{bytes}$$
+</div>
+
+<p>For Llama 2 70B (80 layers, 8 KV heads with GQA, d_head=128, float16):</p>
+<ul>
+<li>Per token: \(2 \times 80 \times 8 \times 128 \times 2 = 320\) KB</li>
+<li>4096-token context: <strong>1.3 GB per sequence</strong></li>
+<li>Batch of 32: <strong>~42 GB just for KV-cache</strong></li>
+</ul>
+
+<p>This is often the inference bottleneck — more GPU memory goes to KV-cache than model weights. This is why the following optimizations exist:</p>
+
+<h3>2.3 PagedAttention (vLLM)</h3>
+
+<p>Standard KV-cache pre-allocates a contiguous block of memory for the maximum sequence length per request. If a request uses only 200 tokens of a 4096-token allocation, the remaining 3896 tokens worth of memory is <strong>wasted</strong>. Across hundreds of concurrent requests, this fragmentation wastes 60-80% of GPU memory.</p>
+
+<p><strong>PagedAttention</strong> (Kwon et al., 2023, from the vLLM project at UC Berkeley) borrows the idea of <strong>virtual memory paging</strong> from operating systems. Instead of contiguous allocation, the KV-cache is divided into fixed-size blocks (pages). Each sequence's KV-cache is stored as a chain of non-contiguous pages, allocated on demand as the sequence grows. A page table maps logical positions to physical memory blocks.</p>
+
+<div class="co ci"><div class="ct">💡 Why this matters for production</div>
+<p>PagedAttention eliminates fragmentation, achieving near-zero waste. This enables <strong>2-4× higher throughput</strong> (more concurrent requests per GPU) with the same hardware. It also enables <strong>prefix caching</strong> — if multiple requests share the same system prompt, they can share KV-cache pages for that prefix (copy-on-write, like OS fork). At Amazon scale serving millions of users, this is the difference between needing 100 GPUs vs 30 GPUs. vLLM with PagedAttention is now the dominant serving framework for LLMs.</p>
+</div>
+
+<h3>2.4 KV-Cache Quantization</h3>
+
+<p>Store cached K and V vectors in <strong>int8 or int4</strong> instead of float16. This halves or quarters the cache memory with minimal quality impact — K and V values tend to be well-distributed and quantize cleanly. Combined with GQA, you can achieve 8-16× cache reduction (4× from GQA × 2-4× from quantization), making long-context serving feasible on limited hardware.</p>
+
+<div class="sd">· · ·</div>
+
+<!-- ===== SECTION 3: GQA/MQA ===== -->
+<h2>3. Multi-Query &amp; Grouped-Query Attention: Shrinking the KV-Cache</h2>
+
+<p>Full multi-head attention (MHA) gives each head its own K and V projections. The KV-cache stores separate K,V for every head — expensive.</p>
+
+<div class="d">
+<svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg" style="font-family:'Source Sans 3',sans-serif">
+<!-- MHA -->
+<g transform="translate(15,20)">
+<text x="90" y="0" text-anchor="middle" font-size="11" font-weight="700" fill="#2471a3">MHA (Original)</text>
+<text x="90" y="16" text-anchor="middle" font-size="9" fill="#888">8 Q heads, 8 K heads, 8 V heads</text>
+<!-- Q heads -->
+<text x="20" y="40" font-size="8" fill="#555">Q:</text>
+<rect x="35" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="53" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="71" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="89" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="107" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="125" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="143" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="161" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/>
+<!-- K heads -->
+<text x="20" y="62" font-size="8" fill="#555">K:</text>
+<rect x="35" y="52" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="53" y="52" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="71" y="52" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="89" y="52" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="107" y="52" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="125" y="52" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="143" y="52" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="161" y="52" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/>
+<!-- V heads same -->
+<text x="20" y="84" font-size="8" fill="#555">V:</text>
+<rect x="35" y="74" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="53" y="74" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="71" y="74" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="89" y="74" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="107" y="74" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="125" y="74" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="143" y="74" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/><rect x="161" y="74" width="16" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1"/>
+<text x="90" y="110" text-anchor="middle" font-size="9" fill="#c0392b" font-weight="600">KV cache: 8× size</text>
+</g>
+<!-- MQA -->
+<g transform="translate(225,20)">
+<text x="90" y="0" text-anchor="middle" font-size="11" font-weight="700" fill="#7d3c98">MQA (Shazeer, 2019)</text>
+<text x="90" y="16" text-anchor="middle" font-size="9" fill="#888">8 Q heads, 1 K head, 1 V head</text>
+<text x="20" y="40" font-size="8" fill="#555">Q:</text>
+<rect x="35" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="53" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="71" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="89" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="107" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="125" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="143" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="161" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/>
+<text x="20" y="62" font-size="8" fill="#555">K:</text>
+<rect x="35" y="52" width="142" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1.5"/>
+<text x="106" y="64" text-anchor="middle" font-size="8" fill="#d4780a" font-weight="600">shared across all heads</text>
+<text x="20" y="84" font-size="8" fill="#555">V:</text>
+<rect x="35" y="74" width="142" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1.5"/>
+<text x="106" y="86" text-anchor="middle" font-size="8" fill="#d4780a" font-weight="600">shared across all heads</text>
+<text x="90" y="110" text-anchor="middle" font-size="9" fill="#1e8449" font-weight="600">KV cache: 1× size (8× reduction)</text>
+</g>
+<!-- GQA -->
+<g transform="translate(435,20)">
+<text x="90" y="0" text-anchor="middle" font-size="11" font-weight="700" fill="#1e8449">GQA (Ainslie+, 2023)</text>
+<text x="90" y="16" text-anchor="middle" font-size="9" fill="#888">8 Q heads, 2 KV groups</text>
+<text x="20" y="40" font-size="8" fill="#555">Q:</text>
+<rect x="35" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="53" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="71" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="89" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="107" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="125" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="143" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/><rect x="161" y="30" width="16" height="16" rx="2" fill="#dbeafe" stroke="#2471a3" stroke-width="1"/>
+<text x="20" y="62" font-size="8" fill="#555">K:</text>
+<rect x="35" y="52" width="70" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1.5"/>
+<text x="70" y="64" text-anchor="middle" font-size="7" fill="#d4780a">group 1</text>
+<rect x="107" y="52" width="70" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1.5"/>
+<text x="142" y="64" text-anchor="middle" font-size="7" fill="#d4780a">group 2</text>
+<text x="20" y="84" font-size="8" fill="#555">V:</text>
+<rect x="35" y="74" width="70" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1.5"/>
+<text x="70" y="86" text-anchor="middle" font-size="7" fill="#d4780a">group 1</text>
+<rect x="107" y="74" width="70" height="16" rx="2" fill="#fde68a" stroke="#d4780a" stroke-width="1.5"/>
+<text x="142" y="86" text-anchor="middle" font-size="7" fill="#d4780a">group 2</text>
+<text x="90" y="110" text-anchor="middle" font-size="9" fill="#1e8449" font-weight="600">KV cache: 2× size (4× reduction)</text>
+</g>
+<!-- Comparison bar -->
+<rect x="15" y="145" width="610" height="50" rx="6" fill="#f5f3ef" stroke="#ddd" stroke-width="1"/>
+<text x="100" y="168" text-anchor="middle" font-size="10" fill="#555"><tspan font-weight="600">MHA:</tspan> Best quality, most memory</text>
+<text x="320" y="168" text-anchor="middle" font-size="10" fill="#555"><tspan font-weight="600">MQA:</tspan> Most memory savings, slight quality drop</text>
+<text x="530" y="168" text-anchor="middle" font-size="10" fill="#1e8449" font-weight="600">GQA: Best tradeoff → Llama 2/3</text>
+<text x="320" y="185" text-anchor="middle" font-size="9" fill="#888">Quality: MHA ≥ GQA > MQA · Memory: MQA < GQA < MHA</text>
+</svg>
+<div class="dc">Figure 5: MHA vs MQA vs GQA. MHA: each head has unique K,V (most memory). MQA: all heads share one K,V (8× cache reduction, some quality loss). GQA: groups of heads share K,V (middle ground — used in Llama 2/3, Mistral).</div>
+</div>
+
+<div class="sd">· · ·</div>
+
+<!-- ===== SECTION 4: MoE ===== -->
+<h2>4. Mixture of Experts: Scaling Parameters Without Scaling Compute</h2>
+
+<div class="pr"><div class="pi">📄</div><div><div class="pt">Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer</div><div class="pa">Shazeer et al. · ICLR 2017 (applied to Transformers in Switch Transformer, Fedus et al. 2022)</div></div></div>
+
+<p>In a standard Transformer, every token passes through the <strong>same</strong> FFN — all parameters are used for every token. MoE replaces the single FFN with <strong>multiple expert FFNs</strong> plus a <strong>gating/router network</strong> that selects which experts to activate for each token. Only top-k experts (typically k=1 or k=2) process each token.</p>
+
+<div class="d">
+<svg viewBox="0 0 620 280" xmlns="http://www.w3.org/2000/svg" style="font-family:'Source Sans 3',sans-serif">
+<!-- Standard FFN -->
+<text x="130" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="#2471a3">Standard Transformer</text>
+<g transform="translate(30,35)">
+<!-- Input tokens -->
+<circle cx="30" cy="30" r="14" fill="#eef6ff" stroke="#2471a3" stroke-width="1.5"/><text x="30" y="34" text-anchor="middle" font-size="8" fill="#2471a3">t₁</text>
+<circle cx="70" cy="30" r="14" fill="#eef6ff" stroke="#2471a3" stroke-width="1.5"/><text x="70" y="34" text-anchor="middle" font-size="8" fill="#2471a3">t₂</text>
+<circle cx="110" cy="30" r="14" fill="#eef6ff" stroke="#2471a3" stroke-width="1.5"/><text x="110" y="34" text-anchor="middle" font-size="8" fill="#2471a3">t₃</text>
+<circle cx="150" cy="30" r="14" fill="#eef6ff" stroke="#2471a3" stroke-width="1.5"/><text x="150" y="34" text-anchor="middle" font-size="8" fill="#2471a3">t₄</text>
+<!-- Single FFN -->
+<rect x="10" y="70" width="180" height="45" rx="6" fill="#eef6ff" stroke="#2471a3" stroke-width="2"/>
+<text x="100" y="97" text-anchor="middle" font-size="11" font-weight="600" fill="#2471a3">Single FFN</text>
+<!-- All arrows go to same FFN -->
+<line x1="30" y1="44" x2="60" y2="68" stroke="#2471a3" stroke-width="1"/><line x1="70" y1="44" x2="80" y2="68" stroke="#2471a3" stroke-width="1"/><line x1="110" y1="44" x2="100" y2="68" stroke="#2471a3" stroke-width="1"/><line x1="150" y1="44" x2="130" y2="68" stroke="#2471a3" stroke-width="1"/>
+<text x="100" y="140" text-anchor="middle" font-size="9" fill="#555">All tokens → same FFN</text>
+<text x="100" y="155" text-anchor="middle" font-size="9" fill="#555">100% params activated</text>
+</g>
+
+<!-- MoE -->
+<text x="440" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="#1e8449">Mixture of Experts</text>
+<g transform="translate(300,35)">
+<!-- Input tokens -->
+<circle cx="40" cy="30" r="14" fill="#eef6ee" stroke="#1e8449" stroke-width="1.5"/><text x="40" y="34" text-anchor="middle" font-size="8" fill="#1e8449">t₁</text>
+<circle cx="90" cy="30" r="14" fill="#eef6ee" stroke="#1e8449" stroke-width="1.5"/><text x="90" y="34" text-anchor="middle" font-size="8" fill="#1e8449">t₂</text>
+<circle cx="140" cy="30" r="14" fill="#eef6ee" stroke="#1e8449" stroke-width="1.5"/><text x="140" y="34" text-anchor="middle" font-size="8" fill="#1e8449">t₃</text>
+<circle cx="190" cy="30" r="14" fill="#eef6ee" stroke="#1e8449" stroke-width="1.5"/><text x="190" y="34" text-anchor="middle" font-size="8" fill="#1e8449">t₄</text>
+<!-- Router -->
+<rect x="60" y="55" width="120" height="25" rx="4" fill="#fff9e6" stroke="#d4780a" stroke-width="1.5"/>
+<text x="120" y="72" text-anchor="middle" font-size="10" font-weight="600" fill="#d4780a">Router / Gate</text>
+<!-- Expert FFNs -->
+<rect x="0" y="100" width="55" height="35" rx="5" fill="#eef6ee" stroke="#1e8449" stroke-width="1.5"/>
+<text x="27" y="122" text-anchor="middle" font-size="9" font-weight="600" fill="#1e8449">E₁</text>
+<rect x="60" y="100" width="55" height="35" rx="5" fill="#eef6ee" stroke="#1e8449" stroke-width="1.5"/>
+<text x="87" y="122" text-anchor="middle" font-size="9" font-weight="600" fill="#1e8449">E₂</text>
+<rect x="120" y="100" width="55" height="35" rx="5" fill="#f5f3ef" stroke="#888" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="147" y="122" text-anchor="middle" font-size="9" fill="#888">E₃</text>
+<rect x="180" y="100" width="55" height="35" rx="5" fill="#f5f3ef" stroke="#888" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="207" y="122" text-anchor="middle" font-size="9" fill="#888">E₄</text>
+<!-- Routing arrows (only some activated) -->
+<line x1="40" y1="44" x2="100" y2="53" stroke="#1e8449" stroke-width="1"/>
+<line x1="90" y1="44" x2="110" y2="53" stroke="#1e8449" stroke-width="1"/>
+<line x1="140" y1="44" x2="130" y2="53" stroke="#1e8449" stroke-width="1"/>
+<line x1="190" y1="44" x2="140" y2="53" stroke="#1e8449" stroke-width="1"/>
+<!-- Router to experts -->
+<line x1="90" y1="80" x2="27" y2="98" stroke="#1e8449" stroke-width="1.5"/><line x1="120" y1="80" x2="87" y2="98" stroke="#1e8449" stroke-width="1.5"/>
+<text x="120" y="160" text-anchor="middle" font-size="9" fill="#1e8449" font-weight="600">Each token → top-k experts (k=2)</text>
+<text x="120" y="175" text-anchor="middle" font-size="9" fill="#555">Only ~25% params activated per token</text>
+<text x="120" y="193" text-anchor="middle" font-size="9" fill="#888">Dashed = inactive experts for this token</text>
+</g>
+
+<!-- Bottom comparison -->
+<rect x="30" y="240" width="560" height="30" rx="5" fill="#f5f3ef" stroke="#ddd" stroke-width="1"/>
+<text x="310" y="260" text-anchor="middle" font-size="10" fill="#555"><tspan font-weight="700">Result:</tspan> 4× more total parameters, same compute per token. Mixtral 8×7B has 47B params but runs like a 13B model.</text>
+</svg>
+<div class="dc">Figure 6: Standard FFN (all tokens through same FFN, 100% params active) vs MoE (router selects top-k experts per token, ~25% params active). MoE scales capacity without proportional compute increase.</div>
+</div>
+
+<h3>4.1 How the Router Works</h3>
+
+<p>The router is surprisingly simple — a <strong>single linear layer</strong> that maps each token's representation to a probability distribution over experts:</p>
+
+<div class="eq"><div class="el">Router / Gating Network</div>
+$$g(x) = \text{softmax}(W_g \cdot x) \quad W_g \in \mathbb{R}^{d_{\text{model}} \times N_{\text{experts}}}$$
+$$\text{output} = \sum_{i \in \text{top-}k} g_i(x) \cdot E_i(x)$$
+</div>
+
+<p>For each token, the router produces a score for every expert, selects the top-k (typically k=1 or k=2), and the token is processed by only those experts. The final output is a weighted sum of the selected experts' outputs, weighted by their router probabilities. Tokens that weren't selected for an expert don't pass through it at all — the expert's parameters are not activated.</p>
+
+<p><strong>Token dropping:</strong> Each expert has a capacity limit (e.g., tokens per expert = batch_size × seq_len / num_experts × capacity_factor). When an expert is full, excess tokens are <strong>dropped</strong> — they bypass the FFN and pass through via the residual connection only. This prevents load imbalance from becoming a latency bottleneck (the slowest expert determines throughput). The capacity_factor (typically 1.0-1.5) controls the tradeoff between dropping tokens and wasting compute on empty expert slots.</p>
+
+<h3>4.2 The Gating Collapse Problem</h3>
+
+<p>The router can learn to send all tokens to the same expert — <strong>gating collapse</strong>. One expert gets all the traffic, others are wasted. This is solved with a <strong>load-balancing auxiliary loss</strong> that penalizes uneven expert utilization:</p>
+
+<div class="eq"><div class="el">Load-Balancing Loss (Switch Transformer)</div>
+$$\mathcal{L}_{\text{balance}} = \alpha \cdot N \sum_{i=1}^{N} f_i \cdot P_i$$
+<p style="margin-top:8px;font-size:.9rem;color:#555">where \(f_i\) = fraction of tokens routed to expert \(i\), \(P_i\) = average router probability for expert \(i\), \(\alpha\) = balancing coefficient (typically 0.01). This is minimized when all experts receive equal traffic.</p>
+</div>
+
+<div class="co cw"><div class="ct">⚠️ Connection to your work</div>
+<p>In your MFAR project, you encountered <strong>field weight collapse</strong> — your query-side gating layer would assign all weight to one metadata field, ignoring others. You fixed this with an MoE-inspired load-balancing loss. This is the exact same problem and solution — be ready to draw this parallel explicitly in the interview. The interviewer will likely ask: "Have you encountered this gating problem before?"</p>
+</div>
+
+<h3>4.3 Key Models</h3>
+
+<table class="tb">
+<thead><tr><th>Model</th><th>Total Params</th><th>Active Params</th><th>Experts</th><th>Top-k</th></tr></thead>
+<tbody>
+<tr><td>Switch Transformer</td><td>1.6T</td><td>~100B</td><td>128</td><td>1</td></tr>
+<tr><td>Mixtral 8×7B</td><td>47B</td><td>13B</td><td>8</td><td>2</td></tr>
+<tr><td>GPT-4 (rumored)</td><td>~1.8T</td><td>~220B</td><td>16</td><td>2</td></tr>
+<tr><td>DeepSeek-V2</td><td>236B</td><td>21B</td><td>160</td><td>6</td></tr>
+</tbody>
+</table>
+
+<div class="sd">· · ·</div>
+
+<!-- ===== SECTION 5: POSITIONAL ENCODING ===== -->
+<h2>5. Modern Positional Encoding: RoPE and ALiBi</h2>
+
+<h3>5.1 RoPE — Rotary Position Embedding (Su et al., 2021)</h3>
+
+<div class="pr"><div class="pi">📄</div><div><div class="pt">RoFormer: Enhanced Transformer with Rotary Position Embedding</div><div class="pa">Su, Lu, Pan, Murtadha, Wen &amp; Liu · arXiv 2021 · Used in Llama, GPT-NeoX, PaLM</div></div></div>
+
+<p>Instead of <strong>adding</strong> positional information to embeddings (sinusoidal), RoPE <strong>rotates</strong> the Q and K vectors by position-dependent angles. The key property: the dot product between rotated Q and K depends only on <strong>relative position</strong> \((m - n)\), not absolute positions \(m\) and \(n\).</p>
+
+<div class="d">
+<svg viewBox="0 0 600 220" xmlns="http://www.w3.org/2000/svg" style="font-family:'Source Sans 3',sans-serif">
+<!-- 2D rotation intuition -->
+<text x="150" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="#7d3c98">RoPE Intuition (2D)</text>
+<!-- Axes -->
+<line x1="50" y1="170" x2="250" y2="170" stroke="#ddd" stroke-width="1"/>
+<line x1="150" y1="70" x2="150" y2="180" stroke="#ddd" stroke-width="1"/>
+<!-- Original vector -->
+<line x1="150" y1="170" x2="220" y2="110" stroke="#2471a3" stroke-width="2"/>
+<circle cx="220" cy="110" r="4" fill="#2471a3"/>
+<text x="230" y="108" font-size="9" fill="#2471a3" font-weight="600">q (original)</text>
+<!-- Rotated vector pos=3 -->
+<line x1="150" y1="170" x2="100" y2="105" stroke="#1e8449" stroke-width="2"/>
+<circle cx="100" cy="105" r="4" fill="#1e8449"/>
+<text x="70" y="100" font-size="9" fill="#1e8449" font-weight="600">q at pos 3</text>
+<!-- Rotated vector pos=7 -->
+<line x1="150" y1="170" x2="90" y2="155" stroke="#d4780a" stroke-width="2"/>
+<circle cx="90" cy="155" r="4" fill="#d4780a"/>
+<text x="55" y="165" font-size="9" fill="#d4780a" font-weight="600">q at pos 7</text>
+<!-- Angle arcs -->
+<path d="M200,140 A30,30 0 0,1 175,115" fill="none" stroke="#1e8449" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="200" y="120" font-size="8" fill="#1e8449">3θ</text>
+<path d="M200,140 A60,60 0 0,1 120,148" fill="none" stroke="#d4780a" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="165" y="155" font-size="8" fill="#d4780a">7θ</text>
+
+<!-- Formula side -->
+<g transform="translate(310,30)">
+<rect x="0" y="0" width="270" height="170" rx="8" fill="#f5f3ef" stroke="#ddd" stroke-width="1"/>
+<text x="135" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="#555">How RoPE works</text>
+<text x="15" y="50" font-size="10" fill="#555">1. Pair up dimensions: (d₁,d₂), (d₃,d₄), ...</text>
+<text x="15" y="72" font-size="10" fill="#555">2. Rotate each pair by angle mθᵢ:</text>
+<text x="25" y="92" font-size="10" fill="#7d3c98" font-family="'JetBrains Mono',monospace">   q'= q·cos(mθ) - q_pair·sin(mθ)</text>
+<text x="15" y="114" font-size="10" fill="#555">3. Different θᵢ per pair (like sinusoidal)</text>
+<text x="15" y="136" font-size="10" fill="#1e8449" font-weight="600">4. Q·K dot product depends on (m-n):</text>
+<text x="25" y="156" font-size="10" fill="#1e8449" font-family="'JetBrains Mono',monospace">   ⟨RoPE(q,m), RoPE(k,n)⟩ = f(m-n)</text>
+</g>
+</svg>
+<div class="dc">Figure 7: RoPE rotates Q and K vectors by position-dependent angles. The dot product between two rotated vectors depends only on the angle difference (relative position m-n), not the absolute positions. Each dimension pair rotates at a different frequency, similar to sinusoidal PE.</div>
+</div>
+
+<div class="eq"><div class="el">RoPE Rotation (for one dimension pair)</div>
+$$\text{RoPE}(x_m^{(1)}, x_m^{(2)}, m) = \begin{pmatrix} \cos m\theta & -\sin m\theta \\ \sin m\theta & \cos m\theta \end{pmatrix} \begin{pmatrix} x_m^{(1)} \\ x_m^{(2)} \end{pmatrix}$$
+$$\theta_i = 10000^{-2i/d} \quad \text{(same base as sinusoidal PE)}$$
+</div>
+
+<p><strong>Key properties of RoPE:</strong></p>
+<ul>
+<li><strong>Relative position</strong> encoded through rotation — \(\langle \text{RoPE}(q, m),\, \text{RoPE}(k, n) \rangle\) is a function of \(m - n\) only</li>
+<li><strong>Norm-preserving</strong> — rotation doesn't change vector magnitude, preserving semantic information</li>
+<li><strong>No extra parameters</strong> — deterministic like sinusoidal, but applied to Q and K (not added to input)</li>
+<li><strong>Decaying dependency</strong> — attention naturally decreases with distance (desirable for language)</li>
+<li><strong>Applied at every layer</strong> — unlike sinusoidal which is added once at input; overhead is negligible</li>
+</ul>
+
+<p><strong>Context length extension with RoPE:</strong> Since the rotation angles are \(m\theta_i\), positions beyond training length produce unseen angles — the model encounters rotations it never saw during training, causing quality degradation.</p>
+
+<p><strong>Position Interpolation (Chen et al., 2023):</strong> The simplest fix — linearly scale down position indices so that the extended range maps back to the training range. For a model trained at 4K extending to 32K: position \(m\) becomes \(m \times 4096/32768\). All angles stay within the trained range. Requires a small amount of fine-tuning to adapt.</p>
+
+<p><strong>NTK-aware interpolation (Reddit/bloc97, 2023):</strong> Instead of scaling all frequencies equally (which destroys high-frequency position information), NTK-aware scaling increases the base frequency: \(\theta_{\text{base}} = 10000 \rightarrow 10000 \times \alpha\) where \(\alpha\) is the extension ratio. This compresses low-frequency (long-range) rotations more than high-frequency (short-range) ones, preserving local position resolution. Can work <strong>without fine-tuning</strong>.</p>
+
+<p><strong>YaRN (Peng et al., 2023):</strong> Combines NTK-aware scaling with a learned temperature factor that adjusts attention logit scale for extended contexts. Currently the most effective method — Llama models use YaRN-style extension to go from 4K training to 128K+ context.</p>
+
+<h3>5.2 ALiBi — Attention with Linear Biases (Press et al., 2022)</h3>
+
+<div class="pr"><div class="pi">📄</div><div><div class="pt">Train Short, Test Long: Attention with Linear Biases Enables Input Length Generalization</div><div class="pa">Press, Smith &amp; Lewis · ICLR 2022 · Used in BLOOM, MPT</div></div></div>
+
+<p>ALiBi takes the simplest possible approach: <strong>no positional encoding at all</strong>. Instead, add a linear penalty to attention scores based on distance:</p>
+
+<div class="eq"><div class="el">ALiBi</div>
+$$\text{attention}_{ij} = \text{softmax}\!\left(\frac{q_i \cdot k_j}{\sqrt{d_k}} - m \cdot |i - j|\right)$$
+<p style="margin-top:8px;font-size:.9rem;color:#555">where \(m\) is a head-specific slope (fixed, not learned). Closer tokens get higher scores, distant tokens are penalized linearly.</p>
+</div>
+
+<p><strong>Advantages:</strong> Extrapolates naturally to any length (linear bias extends trivially), zero additional parameters, simple to implement. <strong>Tradeoff:</strong> Less flexible than RoPE for tasks requiring precise long-range retrieval.</p>
+
+<h3>5.3 Sliding Window Attention (Mistral)</h3>
+
+<p>Each token only attends to the last \(w\) tokens (e.g., \(w = 4096\)) instead of all previous positions. Complexity drops from \(O(n^2)\) to \(O(n \cdot w)\). Information beyond the window still propagates through stacked layers — layer 2's window "sees" tokens that layer 1's window processed, effectively doubling the receptive field per layer. With \(L\) layers and window \(w\), the effective receptive field is \(L \times w\).</p>
+
+<table class="tb">
+<thead><tr><th>Method</th><th>Type</th><th>Relative Pos?</th><th>Extrapolation</th><th>Used In</th></tr></thead>
+<tbody>
+<tr><td>Sinusoidal</td><td>Added to input</td><td>Via linear transform</td><td>Theoretically yes</td><td>Original Transformer</td></tr>
+<tr><td>Learned</td><td>Added to input</td><td>No</td><td>No</td><td>BERT, GPT-2</td></tr>
+<tr><td>RoPE</td><td>Rotates Q, K</td><td>Yes (naturally)</td><td>With scaling tricks</td><td>Llama, PaLM, GPT-NeoX</td></tr>
+<tr><td>ALiBi</td><td>Bias on scores</td><td>Yes (linear decay)</td><td>Excellent</td><td>BLOOM, MPT</td></tr>
+<tr><td>Sliding Window</td><td>Attention mask</td><td>N/A (local only)</td><td>Unlimited (fixed cost)</td><td>Mistral, Longformer</td></tr>
+</tbody>
+</table>
+
+<div class="sd">· · ·</div>
+
+<!-- ===== SECTION 6: SPECULATIVE DECODING ===== -->
+<h2>6. Speculative Decoding: Parallelizing Inference</h2>
+
+<p>Autoregressive decoding is inherently sequential — one token at a time. Speculative decoding exploits the fact that <strong>verification is cheaper than generation</strong>:</p>
+
+<div class="d">
+<svg viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg" style="font-family:'Source Sans 3',sans-serif">
+<defs><marker id="as" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5" fill="#555"/></marker></defs>
+<!-- Step 1: Draft -->
+<rect x="10" y="20" width="180" height="65" rx="8" fill="#fff9e6" stroke="#d4780a" stroke-width="1.5"/>
+<text x="100" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="#d4780a">① Draft Model (1B)</text>
+<text x="100" y="58" text-anchor="middle" font-size="10" fill="#888">Quickly generates k=5 tokens:</text>
+<text x="100" y="74" text-anchor="middle" font-size="10" fill="#d4780a" font-family="'JetBrains Mono',monospace">"The cat sat on the"</text>
+<!-- Arrow -->
+<line x1="190" y1="52" x2="220" y2="52" stroke="#555" stroke-width="1.5" marker-end="url(#as)"/>
+<!-- Step 2: Verify -->
+<rect x="222" y="20" width="200" height="65" rx="8" fill="#eef6ee" stroke="#1e8449" stroke-width="1.5"/>
+<text x="322" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="#1e8449">② Big Model (70B)</text>
+<text x="322" y="58" text-anchor="middle" font-size="10" fill="#888">Verify all 5 in ONE forward pass:</text>
+<text x="322" y="74" text-anchor="middle" font-size="10" fill="#1e8449" font-family="'JetBrains Mono',monospace">✓ ✓ ✓ ✓ ✗</text>
+<!-- Arrow -->
+<line x1="422" y1="52" x2="452" y2="52" stroke="#555" stroke-width="1.5" marker-end="url(#as)"/>
+<!-- Step 3: Accept -->
+<rect x="454" y="20" width="155" height="65" rx="8" fill="#eef6ff" stroke="#2471a3" stroke-width="1.5"/>
+<text x="531" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="#2471a3">③ Accept prefix</text>
+<text x="531" y="58" text-anchor="middle" font-size="10" fill="#888">Accept 4 tokens, resample</text>
+<text x="531" y="74" text-anchor="middle" font-size="10" fill="#2471a3">5th from big model</text>
+<!-- Result box -->
+<rect x="100" y="110" width="420" height="50" rx="6" fill="#f5f3ef" stroke="#ddd" stroke-width="1"/>
+<text x="310" y="132" text-anchor="middle" font-size="11" fill="#555"><tspan font-weight="700">Result:</tspan> 4 tokens generated in the time of 1 big-model forward pass</text>
+<text x="310" y="150" text-anchor="middle" font-size="10" fill="#1e8449" font-weight="600">2-3× speedup · Zero quality loss (always verified by big model)</text>
+</svg>
+<div class="dc">Figure 8: Speculative decoding. A small draft model proposes k tokens cheaply. The large model verifies all k in one parallel forward pass. Correct prefix is accepted; the first wrong token is resampled from the big model. Exact same output distribution as the big model alone.</div>
+</div>
+
+<h3>6.1 Medusa: Parallel Decoding Without a Draft Model</h3>
+
+<div class="pr"><div class="pi">📄</div><div><div class="pt">Medusa: Simple LLM Inference Acceleration Framework with Multiple Decoding Heads</div><div class="pa">Cai et al. · 2024</div></div></div>
+
+<p>Instead of using a separate draft model, Medusa adds <strong>multiple lightweight prediction heads</strong> to the base model itself. Head 1 predicts token \(t+1\) (same as normal), head 2 predicts \(t+2\), head 3 predicts \(t+3\) — all in a single forward pass. Each extra head is just a few linear layers trained on top of the frozen base model.</p>
+
+<p>The candidates from all heads form a <strong>tree of possibilities</strong>. A tree-attention verification step checks which paths are correct. Compared to speculative decoding: no separate draft model to load into memory, simpler deployment, but slightly less flexible (the extra heads must be trained for each model).</p>
+
+<table class="tb">
+<thead><tr><th>Method</th><th>Needs Draft Model?</th><th>Speedup</th><th>Quality Loss</th><th>Complexity</th></tr></thead>
+<tbody>
+<tr><td>Speculative Decoding</td><td>Yes (separate small model)</td><td>2-3×</td><td>None (exact)</td><td>Must serve 2 models</td></tr>
+<tr><td>Medusa</td><td>No (extra heads on same model)</td><td>1.5-2.5×</td><td>Minimal</td><td>Train extra heads</td></tr>
+</tbody>
+</table>
+
+<div class="sd">· · ·</div>
+
+<!-- ===== SECTION 7: SSMs ===== -->
+<h2>7. State Space Models: The Alternative Architecture</h2>
+
+<div class="pr"><div class="pi">📄</div><div><div class="pt">Mamba: Linear-Time Sequence Modeling with Selective State Spaces</div><div class="pa">Gu &amp; Dao · 2023 · Parallel training + O(1) inference per step</div></div></div>
+
+<p>Instead of fixing Transformer inference, Mamba replaces attention entirely with <strong>selective state space layers</strong>. The key innovation: the same computation can be expressed as either a <strong>parallel scan</strong> (for training, like Transformers) or a <strong>recurrence</strong> (for inference, like RNNs).</p>
+
+<table class="tb">
+<thead><tr><th></th><th>Transformer</th><th>RNN</th><th>Mamba / SSM</th></tr></thead>
+<tbody>
+<tr><td><strong>Training</strong></td><td>O(1) parallel ✓</td><td>O(n) sequential ✗</td><td>O(1) parallel ✓</td></tr>
+<tr><td><strong>Inference per step</strong></td><td>O(t·d) attention + KV cache</td><td>O(d²) fixed</td><td>O(d) fixed ✓</td></tr>
+<tr><td><strong>Inference memory</strong></td><td>KV-cache grows with n</td><td>Fixed hidden state</td><td>Fixed state ✓</td></tr>
+<tr><td><strong>Long-range retrieval</strong></td><td>Direct O(1) lookup ✓</td><td>Degraded (compressed)</td><td>Good but not exact</td></tr>
+</tbody>
+</table>
+
+<p>Mamba gets the best of both worlds for training speed and inference cost. The tradeoff: attention's ability to do <strong>arbitrary lookup</strong> over the full context (token 500 directly accessing token 3 with full fidelity) is hard to match with a fixed-size state. Mamba works well for many tasks but can lag on tasks requiring precise long-range retrieval. Hybrid architectures (some attention layers + some Mamba layers) are an active area.</p>
+
+<div class="sd">· · ·</div>
+
+<!-- ===== SECTION 8: SUMMARY TABLE ===== -->
+<h2>8. Summary: The Modern Transformer Stack</h2>
+
+<table class="tb">
+<thead><tr><th>Innovation</th><th>What it does</th><th>Key benefit</th><th>Used in</th></tr></thead>
+<tbody>
+<tr><td><strong>Flash Attention</strong></td><td>IO-aware tiled attention</td><td>2-4× faster, O(n) memory, exact</td><td>Nearly everything</td></tr>
+<tr><td><strong>KV-Cache</strong></td><td>Cache K,V from previous steps</td><td>O(n) inference instead of O(n²)</td><td>All autoregressive models</td></tr>
+<tr><td><strong>GQA</strong></td><td>Share K,V across head groups</td><td>KV-cache reduction with minimal quality loss</td><td>Llama 2/3, Mistral</td></tr>
+<tr><td><strong>MoE</strong></td><td>Sparse FFN with routing</td><td>More params, same compute per token</td><td>Mixtral, Switch, GPT-4(?)</td></tr>
+<tr><td><strong>RoPE</strong></td><td>Rotary position encoding</td><td>Relative position, norm-preserving, extensible</td><td>Llama, PaLM, GPT-NeoX</td></tr>
+<tr><td><strong>ALiBi</strong></td><td>Linear bias on attention scores</td><td>Simple, excellent extrapolation</td><td>BLOOM, MPT</td></tr>
+<tr><td><strong>Sliding Window</strong></td><td>Local attention only</td><td>O(n·w) instead of O(n²)</td><td>Mistral</td></tr>
+<tr><td><strong>Speculative Decoding</strong></td><td>Draft + verify</td><td>2-3× inference speedup, no quality loss</td><td>Production serving</td></tr>
+<tr><td><strong>Mamba / SSM</strong></td><td>Replace attention entirely</td><td>O(1) inference, parallel training</td><td>Growing adoption</td></tr>
+</tbody>
+</table>
+
+<div class="sd">· · ·</div>
+
+<!-- ===== SECTION 9: PAPERS ===== -->
+<h2>9. Key Paper References</h2>
+
+<div class="pr"><div class="pi">📄</div><div><div class="pt">FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness</div><div class="pa">Dao, Fu, Ermon, Rudra &amp; Ré · NeurIPS 2022</div></div></div>
+<div class="pr"><div class="pi">📄</div><div><div class="pt">FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning</div><div class="pa">Dao · 2023</div></div></div>
+<div class="pr"><div class="pi">📄</div><div><div class="pt">Fast Transformer Decoding: One Write-Head is All You Need (MQA)</div><div class="pa">Shazeer · 2019</div></div></div>
+<div class="pr"><div class="pi">📄</div><div><div class="pt">GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints</div><div class="pa">Ainslie et al. · EMNLP 2023</div></div></div>
+<div class="pr"><div class="pi">📄</div><div><div class="pt">Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer</div><div class="pa">Shazeer et al. · ICLR 2017</div></div></div>
+<div class="pr"><div class="pi">📄</div><div><div class="pt">Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity</div><div class="pa">Fedus, Zoph &amp; Shazeer · JMLR 2022</div></div></div>
+<div class="pr"><div class="pi">📄</div><div><div class="pt">RoFormer: Enhanced Transformer with Rotary Position Embedding</div><div class="pa">Su et al. · arXiv 2021</div></div></div>
+<div class="pr"><div class="pi">📄</div><div><div class="pt">Train Short, Test Long: Attention with Linear Biases (ALiBi)</div><div class="pa">Press, Smith &amp; Lewis · ICLR 2022</div></div></div>
+<div class="pr"><div class="pi">📄</div><div><div class="pt">Mamba: Linear-Time Sequence Modeling with Selective State Spaces</div><div class="pa">Gu &amp; Dao · 2023</div></div></div>
+
+<div class="sd">· · ·</div>
+
+<!-- ===== SECTION 10: INTERVIEW QUESTIONS ===== -->
+<h2>10. Interview Questions</h2>
+
+<div class="iq"><div class="ql">Q1 — Flash Attention</div><div class="qt">What is Flash Attention and why is it faster despite having the same (or more) FLOPs?</div><div class="at">Flash Attention is an IO-aware exact attention algorithm. It uses <strong>tiling</strong> to compute attention in blocks within fast on-chip SRAM, avoiding materializing the full n×n attention matrix in slow HBM. Standard attention is <strong>memory-bound</strong>, not compute-bound — the bottleneck is reading/writing intermediate matrices to HBM, not the arithmetic. Flash Attention reduces HBM accesses from \(O(Nd + N^2)\) to \(O(N^2 d^2 M^{-1})\), achieving 2-4× wall-clock speedup and reducing memory from O(n²) to O(n). It produces <strong>exact</strong> results — no approximation.</div></div>
+
+<div class="iq"><div class="ql">Q2 — Flash Attention</div><div class="qt">How does Flash Attention handle softmax if it never materializes the full attention matrix?</div><div class="at">The <strong>online softmax trick</strong>. Standard softmax needs the full row to compute the normalization denominator. Flash Attention maintains running statistics — a running maximum \(m\) and running sum \(\ell\) — that are updated as each block of K is processed. When rescaling between blocks, it adjusts the partial outputs by the ratio of old and new normalization factors. After processing all blocks, the statistics contain the exact softmax denominator, giving identical results to standard attention.</div></div>
+
+<div class="iq"><div class="ql">Q3 — KV-Cache</div><div class="qt">What is KV-cache and why is it necessary for efficient Transformer inference?</div><div class="at">During autoregressive generation, the K and V vectors for previous tokens never change — only the new token's Q, K, V need computation. KV-cache stores the K and V from all previous positions, so at step \(t\) you only run 1 token through the model (not \(t\) tokens). This reduces total work from O(n²) to O(n) across all generation steps. The tradeoff: cache grows linearly with sequence length — for Llama 70B at 4096 tokens, that's ~1.3 GB per sequence, often exceeding the model weights as the memory bottleneck in production serving.</div></div>
+
+<div class="iq"><div class="ql">Q4 — GQA</div><div class="qt">What's the difference between MHA, MQA, and GQA?</div><div class="at"><strong>MHA</strong>: every head has its own K, V projections — maximum expressiveness, maximum KV-cache cost. <strong>MQA</strong> (Shazeer 2019): all heads share a single K, V — cache shrinks by factor of h (e.g., 8×), but quality drops noticeably. <strong>GQA</strong> (Ainslie et al. 2023): groups of heads share K, V (e.g., 8 Q heads, 2 KV groups) — 4× cache reduction with minimal quality loss. GQA is the dominant choice in modern LLMs (Llama 2/3, Mistral) because it hits the best tradeoff between memory and quality.</div></div>
+
+<div class="iq"><div class="ql">Q5 — MoE</div><div class="qt">How does Mixture of Experts work in Transformers? What problem does it solve?</div><div class="at">MoE replaces the single FFN with multiple expert FFNs + a learned router/gating network. For each token, the router selects top-k experts (typically k=2). Only those experts process the token; the rest are inactive. This decouples <strong>total model capacity</strong> (all expert parameters) from <strong>per-token compute</strong> (only k expert parameters). Mixtral 8×7B has 47B total params but only activates 13B per token — running like a 13B model while having the knowledge capacity of a much larger one.</div></div>
+
+<div class="iq"><div class="ql">Q6 — MoE + Your Work</div><div class="qt">What is gating collapse in MoE and how is it fixed?</div><div class="at">Gating collapse is when the router learns to send all tokens to the same expert, leaving others unused. It occurs because the rich-get-richer dynamic — a frequently-used expert gets better gradients, making the router prefer it more. Fixed with a <strong>load-balancing auxiliary loss</strong>: \(\mathcal{L}_{\text{balance}} = \alpha \cdot N \sum f_i \cdot P_i\), which penalizes uneven expert utilization. <em>I encountered the same problem in my MFAR work — query-side field gating would collapse to one metadata field. I used an MoE-inspired load-balancing loss to distribute weights across fields, which was critical for achieving the +30% recall improvement on ADO connectors.</em></div></div>
+
+<div class="iq"><div class="ql">Q7 — RoPE</div><div class="qt">How does RoPE encode positional information differently from sinusoidal PE?</div><div class="at">Sinusoidal PE <strong>adds</strong> a fixed vector to the input embedding at the first layer — position and semantics are mixed. RoPE <strong>rotates</strong> Q and K vectors by position-dependent angles at every layer. The key insight: the dot product between two rotated vectors depends only on the <strong>angle difference</strong> (relative position \(m - n\)), not absolute positions. This naturally gives relative position encoding. RoPE preserves vector norms (semantics untouched), requires no extra parameters, and enables context length extension through angle rescaling (NTK interpolation, YaRN).</div></div>
+
+<div class="iq"><div class="ql">Q8 — ALiBi</div><div class="qt">What is ALiBi and when would you choose it over RoPE?</div><div class="at">ALiBi adds a linear distance penalty directly to attention scores: \(\text{score}_{ij} = q_i \cdot k_j / \sqrt{d_k} - m \cdot |i-j|\). No positional encoding at all — position is purely in the attention bias. It's simpler to implement, has zero extra parameters, and extrapolates to any length trivially (the linear bias extends naturally). Choose ALiBi over RoPE when length extrapolation without fine-tuning is critical and you don't need precise long-range retrieval. RoPE is more flexible and dominant in practice (Llama, PaLM), while ALiBi is used in BLOOM and MPT.</div></div>
+
+<div class="iq"><div class="ql">Q9 — Speculative Decoding</div><div class="qt">How does speculative decoding speed up inference without losing quality?</div><div class="at">A small draft model generates k candidate tokens quickly. The large model then verifies all k tokens in <strong>one parallel forward pass</strong> (possible because verification is just checking — compute the logits for all k positions simultaneously). Accept the longest correct prefix; resample the first wrong token from the large model's distribution. The output distribution is <strong>mathematically identical</strong> to the large model alone — zero quality loss. Typical speedup: 2-3×. The key insight: verification (parallel) is cheaper than generation (sequential).</div></div>
+
+<div class="iq"><div class="ql">Q10 — Mamba/SSM</div><div class="qt">What are State Space Models and how do they compare to Transformers?</div><div class="at">SSMs (like Mamba) replace attention with selective state space layers that can be computed as either a <strong>parallel scan</strong> (training — like Transformers) or a <strong>recurrence</strong> (inference — like RNNs). This gives parallel training with O(1)-per-step inference and fixed memory — no KV-cache growth. The tradeoff: attention can do arbitrary lookup over the full context (any token directly accesses any other), which is hard to replicate with a fixed-size state. Mamba works well for many tasks but can lag on tasks requiring precise long-range retrieval. Hybrid architectures mixing attention and SSM layers are an active research area.</div></div>
+
+<div class="iq"><div class="ql">Q11 — Systems</div><div class="qt">If you were deploying a recommendation model at Prime Video scale, which of these techniques would matter most?</div><div class="at">For a <strong>retrieval model</strong> (encoding user histories): Flash Attention for training efficiency on long watch histories. Sliding window attention if histories are very long (thousands of items) — recent items matter most. RoPE for temporal position encoding.<br><br>For <strong>serving at scale</strong>: KV-cache with GQA to serve millions of concurrent users within GPU memory budgets. Speculative decoding if using an autoregressive model for generation (e.g., generating explanations for recommendations). MoE if different content types (movies vs TV vs sports) benefit from specialized expert FFNs.<br><br>The overarching principle: at Amazon scale, <strong>latency and memory are the constraints</strong>, not model quality in isolation. Every technique here is about getting Transformer-quality results within production budgets.</div></div>
+
+<div class="iq"><div class="ql">Q12 — Comparison</div><div class="qt">Compare Flash Attention, sparse attention, and linear attention. When would you use each?</div><div class="at"><strong>Flash Attention</strong>: exact attention, same O(n²) FLOPs but massively fewer HBM accesses → 2-4× wall-clock speedup. Use it always as the default — no quality tradeoff. <strong>Sparse attention</strong> (BigBird, Longformer): predefined patterns (local window + global tokens), O(n·k) complexity. Use when sequences are very long (documents, genomics) and local structure dominates. Quality loss on tasks needing full global attention. <strong>Linear attention</strong> (Performer, Katharopoulos): approximate softmax with kernels, O(n) complexity. Theoretically attractive but in practice often underperforms full attention by a noticeable margin. Use only if O(n²) is truly infeasible even with Flash Attention. In practice: Flash Attention first, sparse if sequences are extremely long, linear rarely.</div></div>
+
+</div><!-- end container -->
+<script>document.addEventListener("DOMContentLoaded",function(){renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:true},{left:"\\(",right:"\\)",display:false}],throwOnError:false})});</script>
+</body>
+</html>
