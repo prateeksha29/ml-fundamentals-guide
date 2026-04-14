@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gradient Flow Through the Transformer — How Backprop Actually Works in Modern LLMs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #FAFAF7;
+    --bg-secondary: #F0EFE9;
+    --bg-card: #FFFFFF;
+    --bg-math: #F5F4EF;
+    --text-primary: #1A1A18;
+    --text-secondary: #555550;
+    --text-tertiary: #8A8A82;
+    --accent: #B44A2D;
+    --accent-light: #FDF0EC;
+    --accent-secondary: #2D6B8A;
+    --accent-secondary-light: #E8F2F7;
+    --border: #E2E0D8;
+    --border-light: #EDEBE4;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+    --shadow-hover: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05);
+    --code-bg: #F5F4EF;
+    --callout-green-bg: #EEF6EE;
+    --callout-green-border: #6B9B6B;
+    --callout-amber-bg: #FEF6E8;
+    --callout-amber-border: #C49A3C;
+    --callout-blue-bg: #EDF4F8;
+    --callout-blue-border: #4A8DAC;
+    --callout-red-bg: #FCEBEB;
+    --callout-red-border: #C45A5A;
+    --fig-bg: #FFFFFF;
+    --fig-stroke: #1A1A18;
+    --fig-fill-1: #B44A2D;
+    --fig-fill-2: #2D6B8A;
+    --fig-fill-3: #6B9B6B;
+    --fig-fill-4: #9B6B9B;
+    --fig-fill-muted: #E2E0D8;
+    --fig-text: #1A1A18;
+    --fig-text-light: #555550;
+    --toc-hover: #F5F4EF;
+    --gradient-strong: #B44A2D;
+    --gradient-medium: #C49A3C;
+    --gradient-weak: #6B9B6B;
+  }
+  [data-theme="dark"] {
+    --bg-primary: #141413;
+    --bg-secondary: #1C1C1A;
+    --bg-card: #1E1E1C;
+    --bg-math: #1E1E1C;
+    --text-primary: #E8E6DF;
+    --text-secondary: #A8A69E;
+    --text-tertiary: #6E6D68;
+    --accent: #D4764E;
+    --accent-light: #2A1F18;
+    --accent-secondary: #5AADCF;
+    --accent-secondary-light: #162630;
+    --border: #2E2E2A;
+    --border-light: #262622;
+    --shadow: 0 1px 3px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.15);
+    --shadow-hover: 0 2px 8px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.2);
+    --code-bg: #1E1E1C;
+    --callout-green-bg: #1A231A;
+    --callout-green-border: #5A8A5A;
+    --callout-amber-bg: #231F14;
+    --callout-amber-border: #B8923A;
+    --callout-blue-bg: #141F26;
+    --callout-blue-border: #4A8DAC;
+    --callout-red-bg: #231414;
+    --callout-red-border: #B85A5A;
+    --fig-bg: #1E1E1C;
+    --fig-stroke: #E8E6DF;
+    --fig-fill-1: #D4764E;
+    --fig-fill-2: #5AADCF;
+    --fig-fill-3: #6EAA6E;
+    --fig-fill-4: #AA6EAA;
+    --fig-fill-muted: #3A3A36;
+    --fig-text: #E8E6DF;
+    --fig-text-light: #A8A69E;
+    --toc-hover: #222220;
+    --gradient-strong: #D4764E;
+    --gradient-medium: #B8923A;
+    --gradient-weak: #6EAA6E;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; font-size: 17px; -webkit-font-smoothing: antialiased; }
+  body { font-family: 'Newsreader', Georgia, serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.78; transition: background 0.3s ease, color 0.3s ease; }
+  .theme-toggle { position: fixed; top: 24px; right: 24px; z-index: 100; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: var(--shadow); transition: all 0.2s; }
+  .theme-toggle:hover { box-shadow: var(--shadow-hover); transform: scale(1.05); }
+  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  .hero { padding: 100px 0 60px; text-align: center; border-bottom: 1px solid var(--border); }
+  .hero-label { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; }
+  .hero h1 { font-family: 'Newsreader', Georgia, serif; font-size: 2.6rem; font-weight: 500; line-height: 1.15; color: var(--text-primary); margin-bottom: 20px; letter-spacing: -0.02em; }
+  .hero-sub { font-size: 1.1rem; color: var(--text-secondary); max-width: 560px; margin: 0 auto 28px; line-height: 1.6; }
+  .hero-meta { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: var(--text-tertiary); }
+  .toc { padding: 40px 0; border-bottom: 1px solid var(--border); }
+  .toc-title { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 16px; }
+  .toc ol { list-style: none; counter-reset: toc-counter; }
+  .toc li { counter-increment: toc-counter; margin-bottom: 4px; }
+  .toc li a { font-family: 'DM Sans', sans-serif; font-size: 0.92rem; color: var(--text-secondary); text-decoration: none; display: block; padding: 6px 12px; border-radius: 6px; transition: all 0.15s; }
+  .toc li a:hover { background: var(--toc-hover); color: var(--text-primary); }
+  .toc li a::before { content: counter(toc-counter, decimal-leading-zero) " "; color: var(--text-tertiary); font-weight: 500; margin-right: 8px; font-variant-numeric: tabular-nums; }
+  .article { padding: 48px 0 80px; }
+  .article h2 { font-family: 'Newsreader', Georgia, serif; font-size: 1.9rem; font-weight: 500; color: var(--text-primary); margin: 64px 0 8px; letter-spacing: -0.015em; line-height: 1.25; }
+  .article h2 .section-num { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 600; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .article h3 { font-family: 'DM Sans', sans-serif; font-size: 1.05rem; font-weight: 600; color: var(--text-primary); margin: 36px 0 12px; }
+  .article p { margin-bottom: 20px; color: var(--text-primary); }
+  .article strong { font-weight: 600; }
+  .article em { font-style: italic; }
+  .math-block { background: var(--bg-math); border: 1px solid var(--border-light); border-radius: 8px; padding: 20px 24px; margin: 24px 0; overflow-x: auto; text-align: center; }
+  .math-block .katex { font-size: 1.05em; }
+  .math-block.highlight { border-left: 3px solid var(--accent); background: var(--accent-light); }
+  .math-block.result { border-left: 3px solid var(--callout-green-border); background: var(--callout-green-bg); }
+  .callout { border-radius: 8px; padding: 18px 22px; margin: 28px 0; font-size: 0.92rem; line-height: 1.7; }
+  .callout-label { font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .callout.intuition { background: var(--callout-blue-bg); border: 1px solid var(--callout-blue-border); }
+  .callout.intuition .callout-label { color: var(--callout-blue-border); }
+  .callout.key-result { background: var(--callout-green-bg); border: 1px solid var(--callout-green-border); }
+  .callout.key-result .callout-label { color: var(--callout-green-border); }
+  .callout.warning { background: var(--callout-amber-bg); border: 1px solid var(--callout-amber-border); }
+  .callout.warning .callout-label { color: var(--callout-amber-border); }
+  .callout.danger { background: var(--callout-red-bg); border: 1px solid var(--callout-red-border); }
+  .callout.danger .callout-label { color: var(--callout-red-border); }
+  .figure { margin: 36px 0; text-align: center; }
+  .figure svg { max-width: 100%; height: auto; }
+  .figure-caption { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: var(--text-tertiary); margin-top: 12px; font-style: italic; }
+  .derivation { background: var(--bg-math); border: 1px solid var(--border-light); border-radius: 10px; padding: 24px 28px; margin: 28px 0; }
+  .derivation-title { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+  .deriv-step { margin-bottom: 14px; display: flex; gap: 14px; align-items: flex-start; }
+  .deriv-step:last-child { margin-bottom: 0; }
+  .step-num { font-family: 'DM Sans', sans-serif; font-size: 0.7rem; font-weight: 600; color: var(--bg-primary); background: var(--accent); width: 22px; height: 22px; min-width: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .step-content { flex: 1; font-size: 0.95rem; line-height: 1.7; overflow-x: auto; }
+  .section-divider { width: 60px; height: 1px; background: var(--border); margin: 64px auto; }
+  .summary-table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 0.88rem; }
+  .summary-table th { font-family: 'DM Sans', sans-serif; font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); color: var(--text-secondary); font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; }
+  .summary-table td { padding: 10px 14px; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+  .interview-q { margin: 28px 0; }
+  .interview-q .q-label { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .interview-q .q-text { font-weight: 500; font-size: 1.05rem; margin-bottom: 10px; }
+  .interview-q .q-answer { color: var(--text-secondary); font-size: 0.95rem; padding-left: 16px; border-left: 2px solid var(--border); }
+  .article-footer { border-top: 1px solid var(--border); padding: 40px 0 80px; text-align: center; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; color: var(--text-tertiary); }
+  code { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; }
+  @media (max-width: 600px) {
+    html { font-size: 16px; }
+    .hero h1 { font-size: 2rem; }
+    .hero { padding: 80px 0 48px; }
+    .article h2 { font-size: 1.55rem; }
+    .math-block { padding: 16px 14px; }
+    .derivation { padding: 18px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span id="theme-icon">☽</span>
+</button>
+
+<div class="container">
+
+<header class="hero">
+  <div class="hero-label">Transformer Interview Prep · Part 8 of 8</div>
+  <h1>Gradient Flow Through the Transformer</h1>
+  <p class="hero-sub">How backpropagation actually works in modern LLMs — from residual highways to MoE routing, every gradient path explained.</p>
+  <div class="hero-meta">Pratiksha · 2026 · 30 min read</div>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#residual">Gradient Through Residual Connections</a></li>
+    <li><a href="#layernorm">Gradient Through LayerNorm</a></li>
+    <li><a href="#attention">Gradient Through Attention</a></li>
+    <li><a href="#mask">Gradient Through the Causal Mask</a></li>
+    <li><a href="#attn-dropout">Gradient Through Attention Dropout</a></li>
+    <li><a href="#prenorm">Pre-Norm vs Post-Norm Gradient Analysis</a></li>
+    <li><a href="#embedding">Gradient Through the Embedding Layer</a></li>
+    <li><a href="#positional">Gradient Through Positional Encoding</a></li>
+    <li><a href="#weight-tying">Gradient Through Weight Tying</a></li>
+    <li><a href="#label-smoothing">Gradient at the Output: Label Smoothing</a></li>
+    <li><a href="#moe">Gradient Through MoE Routing</a></li>
+    <li><a href="#dynamics">Training Dynamics: Warmup, Accumulation, and Why Gradients Grow</a></li>
+    <li><a href="#full-picture">The Full Picture</a></li>
+    <li><a href="#questions">Interview Questions</a></li>
+  </ol>
+</nav>
+
+<article class="article">
+
+<p>You know how to derive the gradient for individual components — sigmoid, softmax, BatchNorm, dropout. You know the transformer architecture — attention, FFN, residuals, LayerNorm. This article connects the two: how do gradients actually flow through a complete transformer block during training?</p>
+
+<p>Understanding this gradient flow is what separates "I can implement a transformer" from "I understand <em>why</em> transformers train stably at 96 layers." Every section here answers a concrete interview question.</p>
+
+<!-- ═══════════════════ SECTION 1 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="residual"><span class="section-num">01 — The Gradient Highway</span>Gradient Through Residual Connections</h2>
+
+<p>Every sub-layer in a transformer has a residual connection: the input is added to the sub-layer's output. This seemingly trivial addition is the single most important design choice for training deep networks.</p>
+
+<h3>The math</h3>
+
+<p>For a residual block $y = x + f(x)$, where $f$ is the sub-layer (attention or FFN), the gradient is:</p>
+
+<div class="math-block result">$$\frac{\partial y}{\partial x} = I + \frac{\partial f(x)}{\partial x}$$</div>
+
+<p>The identity matrix $I$ means the gradient is <strong>always at least 1</strong> in every direction. Even if $\frac{\partial f}{\partial x}$ vanishes completely — the sub-layer contributes nothing — the gradient still flows through the skip connection undiminished.</p>
+
+<h3>What this means for deep networks</h3>
+
+<p>In a network with $L$ residual layers, the gradient from the loss to the input passes through $L$ such terms. Without residuals, the gradient is a product: $\prod_{l=1}^{L} \frac{\partial f_l}{\partial x_l}$. If each factor is less than 1, the product shrinks exponentially — vanishing gradients. With residuals, the gradient includes a sum of paths that skip layers entirely:</p>
+
+<div class="math-block">$$\frac{\partial \mathcal{L}}{\partial x_0} = \frac{\partial \mathcal{L}}{\partial x_L} \cdot \prod_{l=1}^{L}\left(I + \frac{\partial f_l}{\partial x_l}\right)$$</div>
+
+<p>When you expand this product, you get $2^L$ terms — one for every possible combination of "go through the sub-layer" or "skip it" at each layer. Crucially, one of those terms is just $\frac{\partial \mathcal{L}}{\partial x_L}$ with no sub-layer transformations at all — a direct gradient highway from the loss to the input. This is why GPT-3's 96 layers can train while a 96-layer vanilla network cannot.</p>
+
+<!-- Residual gradient flow figure -->
+<div class="figure">
+<svg viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" fill="var(--fig-text-light)"/>
+    </marker>
+    <marker id="arr-green" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" fill="var(--fig-fill-3)"/>
+    </marker>
+    <marker id="arr-red" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" fill="var(--fig-fill-1)"/>
+    </marker>
+  </defs>
+  <rect width="620" height="200" fill="var(--fig-bg)" rx="8"/>
+  <!-- Without residuals -->
+  <text x="155" y="24" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12" font-weight="600">Without residuals</text>
+  <rect x="30" y="80" width="50" height="32" rx="4" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="55" y="100" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="11">f₁</text>
+  <rect x="110" y="80" width="50" height="32" rx="4" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="135" y="100" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="11">f₂</text>
+  <rect x="190" y="80" width="50" height="32" rx="4" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="215" y="100" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="11">f₃</text>
+  <line x1="80" y1="96" x2="108" y2="96" stroke="var(--fig-fill-1)" stroke-width="1.8" marker-end="url(#arr-red)"/>
+  <line x1="160" y1="96" x2="188" y2="96" stroke="var(--fig-fill-1)" stroke-width="1.4" marker-end="url(#arr-red)"/>
+  <line x1="240" y1="96" x2="268" y2="96" stroke="var(--fig-fill-1)" stroke-width="0.8" marker-end="url(#arr-red)"/>
+  <text x="155" y="140" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="11">∂f₁/∂x · ∂f₂/∂x · ∂f₃/∂x</text>
+  <text x="155" y="158" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">Gradient shrinks exponentially</text>
+  <!-- Arrow thickness represents gradient magnitude -->
+  <text x="275" y="100" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">→ 0</text>
+  
+  <!-- With residuals -->
+  <text x="465" y="24" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12" font-weight="600">With residuals</text>
+  <rect x="340" y="80" width="50" height="32" rx="4" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="365" y="100" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="11">f₁</text>
+  <rect x="420" y="80" width="50" height="32" rx="4" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="445" y="100" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="11">f₂</text>
+  <rect x="500" y="80" width="50" height="32" rx="4" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="525" y="100" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="11">f₃</text>
+  <!-- Skip connections (green, strong) -->
+  <path d="M330,60 L580,60" fill="none" stroke="var(--fig-fill-3)" stroke-width="3" marker-end="url(#arr-green)"/>
+  <text x="455" y="53" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="10" font-weight="500">gradient highway (always = I)</text>
+  <!-- Through sub-layers -->
+  <line x1="390" y1="96" x2="418" y2="96" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="470" y1="96" x2="498" y2="96" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="550" y1="96" x2="578" y2="96" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  <text x="465" y="140" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11">I + ∂f/∂x at each layer</text>
+  <text x="465" y="158" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">Gradient always ≥ 1</text>
+  <text x="586" y="64" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="10">≥ 1</text>
+</svg>
+<div class="figure-caption">Without residuals (left), gradients are products that shrink exponentially. With residuals (right), a direct gradient highway bypasses all sub-layers. Arrow thickness represents gradient magnitude.</div>
+</div>
+
+<!-- ═══════════════════ SECTION 2 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="layernorm"><span class="section-num">02 — Re-normalizing Gradients</span>Gradient Through LayerNorm</h2>
+
+<p>You derived the BatchNorm backward pass in the backpropagation article. LayerNorm's backward is the same formula, but applied over the <strong>feature dimension</strong> instead of the batch dimension.</p>
+
+<p>For input $x$ with $d$ features, the forward pass is $\hat{x}_i = \frac{x_i - \mu}{\sqrt{\sigma^2 + \epsilon}}$, then $y_i = \gamma \hat{x}_i + \beta$. The backward pass for the input gradient, letting $d\hat{x}_i = \frac{\partial \mathcal{L}}{\partial y_i} \cdot \gamma$:</p>
+
+<div class="math-block">$$\frac{\partial \mathcal{L}}{\partial x_i} = \frac{1}{d\sqrt{\sigma^2 + \epsilon}} \left(d \cdot d\hat{x}_i - \sum_j d\hat{x}_j - \hat{x}_i \sum_j d\hat{x}_j \hat{x}_j \right)$$</div>
+
+<p>This formula has three terms: the direct gradient, minus the mean gradient, minus the variance-correlated gradient — identical structure to BatchNorm. The key difference is that the sums are over features (dimension $d$) rather than over the batch.</p>
+
+<h3>What LayerNorm does to gradients</h3>
+
+<p>LayerNorm doesn't just normalize activations in the forward pass — it also <strong>re-normalizes gradients</strong> in the backward pass. If you sum the output gradients $\frac{\partial \mathcal{L}}{\partial x_i}$ over the feature dimension, the mean-correction term ensures they sum to zero. This prevents any one feature from dominating the gradient signal.</p>
+
+<div class="callout intuition">
+  <div class="callout-label">Intuition</div>
+  LayerNorm acts as a gradient stabilizer at every layer boundary. Forward pass: activations are centered and scaled. Backward pass: gradients are centered and scaled by the same mechanism. Neither signal can drift or explode as it passes through the network.
+</div>
+
+<h3>LayerNorm vs BatchNorm — gradient perspective</h3>
+
+<table class="summary-table">
+  <thead><tr><th>Property</th><th>BatchNorm</th><th>LayerNorm</th></tr></thead>
+  <tbody>
+    <tr><td>Normalization axis</td><td>Batch (across samples)</td><td>Features (within each sample)</td></tr>
+    <tr><td>Gradient coupling</td><td>Each sample's gradient depends on <em>all other samples</em> in the batch</td><td>Each token's gradient is independent of other tokens</td></tr>
+    <tr><td>Batch size dependency</td><td>Gradient quality degrades with small batches</td><td>Works identically with batch size 1</td></tr>
+    <tr><td>Train/inference gap</td><td>Uses running stats at inference — gradient paths differ</td><td>Same computation always — no gap</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════ SECTION 3 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="attention"><span class="section-num">03 — The Heart of the Model</span>Gradient Through Attention</h2>
+
+<p>The attention mechanism computes $\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$. Backprop must flow through three stages: the value weighting, the softmax, and the score computation.</p>
+
+<h3>Stage 1: Through the value weighting</h3>
+
+<p>The output is $O = AV$ where $A$ is the attention weight matrix. Given upstream gradient $dO$:</p>
+
+<div class="math-block">$$dA = dO \cdot V^T \qquad dV = A^T \cdot dO$$</div>
+
+<p>These are standard matrix multiplication gradients. The key insight: $dV = A^T \cdot dO$ means a value vector receives gradient <strong>in proportion to how much attention it received</strong>. If position $j$ was barely attended to ($A_{ij} \approx 0$), its value vector gets nearly zero gradient — it learns nothing from this interaction.</p>
+
+<h3>Stage 2: Through softmax</h3>
+
+<p>The softmax Jacobian for row $i$ is $\frac{\partial A_{ij}}{\partial S_{ik}} = A_{ij}(\delta_{jk} - A_{ik})$, where $S = \frac{QK^T}{\sqrt{d_k}}$ is the score matrix. Given $dA$ from stage 1, the gradient through softmax for each row is:</p>
+
+<div class="math-block">$$dS_{i} = A_i \odot \left(dA_i - \sum_j dA_{ij} \cdot A_{ij}\right)$$</div>
+
+<p>where $\odot$ is element-wise multiplication. This is the same softmax backward you derived for cross-entropy, but applied to each row of the attention matrix independently.</p>
+
+<div class="callout danger">
+  <div class="callout-label">Attention collapse — the gradient problem</div>
+  When one attention weight dominates (say $A_{i,3} \approx 1$ and all others $\approx 0$), the softmax Jacobian becomes nearly zero for all non-dominant positions. The gradient for those positions vanishes — the model can't learn to attend to them. This is <strong>attention collapse</strong>: the rich get richer (the dominant position keeps its gradient) while all other positions are frozen out. Multi-head attention mitigates this because different heads can have different dominant positions.
+</div>
+
+<h3>Stage 3: Through the score computation and √dₖ</h3>
+
+<p>The scores are $S = \frac{QK^T}{\sqrt{d_k}}$. Given $dS$ from the softmax backward:</p>
+
+<div class="math-block">$$dQ = \frac{1}{\sqrt{d_k}} \cdot dS \cdot K \qquad dK = \frac{1}{\sqrt{d_k}} \cdot dS^T \cdot Q$$</div>
+
+<h3>Why √dₖ matters for gradients — the quantitative story</h3>
+
+<p>Without the $\sqrt{d_k}$ scaling, the scores $S = QK^T$ have variance proportional to $d_k$. For $d_k = 64$, the standard deviation of scores is $\sqrt{64} = 8$. When these large-magnitude scores hit softmax, one element dominates and the output is nearly one-hot.</p>
+
+<p>The softmax gradient at a near-one-hot distribution: $\frac{\partial A_i}{\partial S_j} = A_i(\delta_{ij} - A_j)$. If $A_i \approx 1$ for the dominant position, then $A_i(1 - A_i) \approx 0$ — the gradient for even the dominant element nearly vanishes. For all non-dominant positions, $A_j \approx 0$ gives gradient $\approx 0$ as well.</p>
+
+<p>With scaling, the score variance is brought back to 1, keeping softmax in its non-saturated regime where gradients are healthy. This is exactly the same phenomenon as the sigmoid vanishing gradient problem (max derivative 0.25 at $z=0$, approaching 0 at large $|z|$), but applied to the attention distribution.</p>
+
+<!-- Softmax saturation figure -->
+<div class="figure">
+<svg viewBox="0 0 600 220" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="220" fill="var(--fig-bg)" rx="8"/>
+  <!-- Left: healthy softmax -->
+  <text x="150" y="24" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12" font-weight="600">With √dₖ scaling</text>
+  <!-- Bar chart -->
+  <rect x="50" y="60" width="40" height="100" rx="3" fill="var(--fig-fill-2)" opacity="0.7"/>
+  <rect x="100" y="80" width="40" height="80" rx="3" fill="var(--fig-fill-2)" opacity="0.7"/>
+  <rect x="150" y="100" width="40" height="60" rx="3" fill="var(--fig-fill-2)" opacity="0.7"/>
+  <rect x="200" y="110" width="40" height="50" rx="3" fill="var(--fig-fill-2)" opacity="0.7"/>
+  <text x="70" y="55" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="10">.31</text>
+  <text x="120" y="75" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="10">.26</text>
+  <text x="170" y="95" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="10">.23</text>
+  <text x="220" y="105" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="10">.20</text>
+  <line x1="40" y1="160" x2="250" y2="160" stroke="var(--fig-text-light)" stroke-width="0.6"/>
+  <text x="150" y="185" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">Gradients flow to all positions</text>
+  <text x="150" y="200" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">Softmax in non-saturated regime</text>
+
+  <!-- Right: collapsed softmax -->
+  <text x="450" y="24" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12" font-weight="600">Without √dₖ scaling</text>
+  <rect x="350" y="40" width="40" height="120" rx="3" fill="var(--fig-fill-1)" opacity="0.7"/>
+  <rect x="400" y="155" width="40" height="5" rx="2" fill="var(--fig-fill-1)" opacity="0.3"/>
+  <rect x="450" y="156" width="40" height="4" rx="2" fill="var(--fig-fill-1)" opacity="0.3"/>
+  <rect x="500" y="157" width="40" height="3" rx="2" fill="var(--fig-fill-1)" opacity="0.3"/>
+  <text x="370" y="35" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="10">.97</text>
+  <text x="420" y="152" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="10">.01</text>
+  <text x="470" y="152" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="10">.01</text>
+  <text x="520" y="152" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="10">.01</text>
+  <line x1="340" y1="160" x2="550" y2="160" stroke="var(--fig-text-light)" stroke-width="0.6"/>
+  <text x="450" y="185" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">Gradients vanish for all positions</text>
+  <text x="450" y="200" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">Softmax saturated → near one-hot</text>
+</svg>
+<div class="figure-caption">Left: with √dₖ scaling, attention is distributed and gradients flow to all positions. Right: without scaling, softmax saturates into a near one-hot distribution — gradients vanish everywhere.</div>
+</div>
+
+<!-- ═══════════════════ SECTION 4 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="mask"><span class="section-num">04 — Enforcing Causality</span>Gradient Through the Causal Mask</h2>
+
+<p>In autoregressive models, the causal mask sets scores at future positions to $-\infty$ before softmax. After softmax, those positions become exactly 0. The gradient consequence is direct: <strong>zero attention weight means zero gradient</strong>.</p>
+
+<p>When $A_{ij} = 0$ (position $i$ doesn't attend to future position $j$), the softmax Jacobian gives $\frac{\partial A_{ij}}{\partial S_{ik}} = 0$ for all $k$. No gradient flows from position $i$'s output back through position $j$'s key or value. This means:</p>
+
+<div class="math-block highlight">$$\text{Token } j \text{ receives zero gradient from any token } i < j$$</div>
+
+<p>Causality is enforced in <em>both</em> directions — the forward pass can't see the future, and the backward pass can't send learning signals to the future either. A token's parameters are only updated based on how well they predicted the tokens that came <em>after</em> it, not based on tokens that came before it in the sequence.</p>
+
+<div class="callout intuition">
+  <div class="callout-label">Intuition</div>
+  Think of the causal mask as a one-way mirror for gradients. Token 5 can attend to tokens 1-4 (and receives gradient based on how useful that attention was). But tokens 1-4 cannot attend to token 5, and token 5's key/value gradients come only from tokens 6, 7, 8, ... that attend to it. Each token learns to be a useful key/value for future tokens, and a good query for past tokens.
+</div>
+
+<!-- ═══════════════════ SECTION 5 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="attn-dropout"><span class="section-num">05 — Random Severing</span>Gradient Through Attention Dropout</h2>
+
+<p>Transformers apply dropout in two distinct places, each with different gradient implications:</p>
+
+<p><strong>Attention dropout</strong> is applied to the attention weights $A$ (after softmax, before multiplying by $V$). During training, random attention connections are severed — some $A_{ij}$ are set to zero. The gradient for those connections is zero: no learning signal flows between the positions that were disconnected. The surviving connections are scaled by $\frac{1}{1-p}$ (inverted dropout), and their gradients are scaled identically.</p>
+
+<p><strong>Sublayer dropout</strong> is applied to the output of each sublayer (attention output, FFN output) before the residual addition. This drops random features in the representation, forcing the model to distribute information across multiple dimensions rather than relying on a few.</p>
+
+<div class="callout warning">
+  <div class="callout-label">Why attention dropout prevents collapse</div>
+  If attention dropout randomly zeros out the dominant attention weight during some training steps, the gradient for other positions is no longer zero in those steps. This breaks the rich-get-richer dynamic of attention collapse — the dominant position can't always collect gradient, giving other positions a chance to learn. This is distinct from the co-adaptation argument for standard dropout: attention dropout specifically prevents over-reliance on a single attention pattern.
+</div>
+
+<!-- ═══════════════════ SECTION 6 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="prenorm"><span class="section-num">06 — Architecture Matters</span>Pre-Norm vs Post-Norm Gradient Analysis</h2>
+
+<p>The placement of LayerNorm relative to the residual connection has a significant impact on gradient flow.</p>
+
+<h3>Post-norm (original transformer)</h3>
+
+<div class="math-block">$$y = \text{LayerNorm}(x + f(x))$$</div>
+
+<p>The gradient must pass through LayerNorm on the residual path:</p>
+
+<div class="math-block">$$\frac{\partial y}{\partial x} = \frac{\partial \text{LN}}{\partial (x + f(x))} \cdot \left(I + \frac{\partial f}{\partial x}\right)$$</div>
+
+<p>LayerNorm's Jacobian is not the identity — it re-centers and re-scales the gradient. While this prevents explosion, it also dampens the clean gradient highway that residuals provide. Over many layers, this dampening accumulates.</p>
+
+<h3>Pre-norm (GPT-2+, most modern models)</h3>
+
+<div class="math-block">$$y = x + f(\text{LayerNorm}(x))$$</div>
+
+<p>The gradient through the residual path:</p>
+
+<div class="math-block">$$\frac{\partial y}{\partial x} = I + \frac{\partial f}{\partial \text{LN}} \cdot \frac{\partial \text{LN}}{\partial x}$$</div>
+
+<p>The identity $I$ is <strong>completely clean</strong> — no LayerNorm on the skip path. LayerNorm only appears inside the sub-layer branch. The gradient highway is unobstructed.</p>
+
+<!-- Pre-norm vs Post-norm figure -->
+<div class="figure">
+<svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="280" fill="var(--fig-bg)" rx="8"/>
+  
+  <!-- Post-norm -->
+  <text x="150" y="24" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12" font-weight="600">Post-norm</text>
+  
+  <rect x="60" y="50" width="80" height="28" rx="4" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="100" y="68" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="11">SubLayer</text>
+  <circle cx="200" cy="64" r="12" fill="none" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="200" y="68" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12">+</text>
+  <rect x="230" y="50" width="80" height="28" rx="4" fill="var(--fig-fill-1)" opacity="0.2" stroke="var(--fig-fill-1)" stroke-width="1.2"/>
+  <text x="270" y="68" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="11">LayerNorm</text>
+  
+  <line x1="20" y1="64" x2="58" y2="64" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="140" y1="64" x2="186" y2="64" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="212" y1="64" x2="228" y2="64" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  <!-- Skip connection -->
+  <path d="M20,64 L20,110 L200,110 L200,78" fill="none" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  
+  <!-- Gradient label -->
+  <text x="150" y="145" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="11">Gradient: ∂LN/∂(x+f) · (I + ∂f/∂x)</text>
+  <text x="150" y="163" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">LayerNorm on the residual path — dampens signal</text>
+  
+  <!-- Pre-norm -->
+  <text x="450" y="24" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12" font-weight="600">Pre-norm</text>
+  
+  <rect x="370" y="50" width="80" height="28" rx="4" fill="var(--fig-fill-3)" opacity="0.2" stroke="var(--fig-fill-3)" stroke-width="1.2"/>
+  <text x="410" y="68" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11">LayerNorm</text>
+  <rect x="470" y="50" width="80" height="28" rx="4" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="510" y="68" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="11">SubLayer</text>
+  <circle cx="580" cy="64" r="12" fill="none" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="580" y="68" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12">+</text>
+  
+  <line x1="330" y1="64" x2="368" y2="64" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="450" y1="64" x2="468" y2="64" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="550" y1="64" x2="566" y2="64" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  <!-- Clean skip connection -->
+  <path d="M330,64 L330,110 L580,110 L580,78" fill="none" stroke="var(--fig-fill-3)" stroke-width="2.5" marker-end="url(#arr-green)"/>
+  <text x="455" y="106" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="10" font-weight="500">clean gradient highway</text>
+  
+  <text x="450" y="145" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11">Gradient: I + ∂f/∂LN · ∂LN/∂x</text>
+  <text x="450" y="163" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">Identity on residual path — clean signal</text>
+
+  <!-- Summary -->
+  <rect x="100" y="190" width="400" height="70" rx="6" fill="var(--bg-math)" stroke="var(--border-light)" stroke-width="1"/>
+  <text x="300" y="212" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="12" font-weight="600">Why this matters for deep networks</text>
+  <text x="300" y="232" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="11">Post-norm: after 96 layers, gradient passes through 96 LayerNorms on the skip path</text>
+  <text x="300" y="248" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="11">Pre-norm: after 96 layers, skip gradient is untouched — just 96 additions</text>
+</svg>
+<div class="figure-caption">Post-norm places LayerNorm on the residual path, dampening the gradient highway. Pre-norm keeps the skip connection clean. The difference compounds over many layers.</div>
+</div>
+
+<!-- ═══════════════════ SECTION 7 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="embedding"><span class="section-num">07 — Sparse Updates</span>Gradient Through the Embedding Layer</h2>
+
+<p>The embedding layer is a lookup table: given token ID $t$, return row $t$ of the embedding matrix $E \in \mathbb{R}^{V \times d}$. This is <em>not</em> a matrix multiplication — it's row selection.</p>
+
+<h3>How the gradient works</h3>
+
+<p>The gradient $\frac{\partial \mathcal{L}}{\partial E}$ is a sparse matrix. Only the rows corresponding to tokens that appeared in the current batch receive non-zero gradients. If token "the" appears at positions 3, 7, and 15 in the batch, its gradient is the <strong>sum</strong> of upstream gradients from all three positions:</p>
+
+<div class="math-block">$$\frac{\partial \mathcal{L}}{\partial E[\text{"the"}]} = \sum_{i \in \{3, 7, 15\}} \frac{\partial \mathcal{L}}{\partial x_i}$$</div>
+
+<p>All other rows of $E$ receive zero gradient — they're not updated this step.</p>
+
+<h3>Consequence: frequency-dependent learning</h3>
+
+<p>Common tokens ("the", "is", "of") get updated on nearly every batch. Rare tokens ("quintessential", "ephemeral") might go hundreds of batches without an update. This creates a severe imbalance in effective learning rates — common tokens get optimized heavily while rare tokens barely move.</p>
+
+<div class="callout intuition">
+  <div class="callout-label">Intuition</div>
+  This is exactly why Adam is essential for transformer training. Adam's per-parameter adaptive learning rate compensates for different update frequencies. A rare token that gets updated infrequently accumulates a small second moment $v$, so when it finally does get a gradient, $\frac{m}{\sqrt{v} + \epsilon}$ produces a larger effective step. SGD has no such mechanism — rare tokens would be permanently under-trained.
+</div>
+
+<!-- ═══════════════════ SECTION 8 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="positional"><span class="section-num">08 — Position Signals</span>Gradient Through Positional Encoding</h2>
+
+<p>The gradient behavior depends on which positional encoding scheme is used:</p>
+
+<h3>Sinusoidal (fixed)</h3>
+
+<p>The positional encoding $PE$ is a constant matrix added to the input: $x = E[\text{token}] + PE[\text{pos}]$. Since $PE$ is not a parameter, there's no gradient to compute for it. The gradient passes straight through the addition unchanged: $\frac{\partial \mathcal{L}}{\partial E[\text{token}]} = \frac{\partial \mathcal{L}}{\partial x}$.</p>
+
+<h3>Learned (BERT, GPT-2)</h3>
+
+<p>The positional embedding is a learnable parameter matrix $P \in \mathbb{R}^{L \times d}$. Its gradient works exactly like the token embedding — row selection with sparse updates. Position 0's embedding gets updated every time a sequence of length $\geq 1$ is processed. Position 511 only gets updated when sequences are exactly 512 tokens long. This creates the same frequency imbalance as token embeddings.</p>
+
+<h3>RoPE (LLaMA, GPT-NeoX)</h3>
+
+<p>RoPE applies a position-dependent rotation to Q and K. The rotation matrix $R_m$ at position $m$ is orthogonal, meaning $R_m^{-1} = R_m^T$. The gradient through a rotation is:</p>
+
+<div class="math-block">$$\frac{\partial \mathcal{L}}{\partial q} = R_m^T \cdot \frac{\partial \mathcal{L}}{\partial (R_m q)}$$</div>
+
+<p>Since rotation preserves vector norms ($\|R_m q\| = \|q\|$), the gradient magnitude is also preserved: $\left\|\frac{\partial \mathcal{L}}{\partial q}\right\| = \left\|\frac{\partial \mathcal{L}}{\partial (R_m q)}\right\|$. No scaling up or down. This is a nicer property than sinusoidal addition, where the gradient can be distorted by the interaction between the added positional signal and the token representation.</p>
+
+<div class="callout key-result">
+  <div class="callout-label">Key result</div>
+  RoPE is gradient-neutral: it preserves both the forward magnitude (norm-preserving rotation) and the backward magnitude (orthogonal inverse). Sinusoidal PE adds a constant that doesn't interact with the gradient. Learned PE has the sparse-update frequency problem. From a gradient flow perspective, RoPE is the cleanest.
+</div>
+
+<!-- ═══════════════════ SECTION 9 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="weight-tying"><span class="section-num">09 — One Matrix, Two Gradients</span>Gradient Through Weight Tying</h2>
+
+<p>In most modern transformers, the token embedding matrix $E$ and the output projection matrix are the <strong>same parameter</strong> (with the output projection using $E^T$). The forward pass uses $E$ in two places:</p>
+
+<p>At the bottom: $\text{embed}(t) = E[t]$ (row lookup).</p>
+<p>At the top: $\text{logits} = h \cdot E^T$ (matrix multiply to produce vocabulary-sized output).</p>
+
+<p>During backprop, the gradient for $E$ comes from <strong>both paths</strong>. By the multi-path chain rule:</p>
+
+<div class="math-block">$$\frac{\partial \mathcal{L}}{\partial E} = \underbrace{\frac{\partial \mathcal{L}}{\partial E}\bigg|_{\text{from embedding}}}_{\text{sparse: only active tokens}} + \underbrace{\frac{\partial \mathcal{L}}{\partial E}\bigg|_{\text{from output projection}}}_{\text{dense: full matrix update}}$$</div>
+
+<p>The embedding gradient is sparse (only rows for tokens in the batch). The output projection gradient is dense (the full matrix is used in the matmul). These get summed. This means even tokens that didn't appear in the batch receive gradient through the output projection path — they're being updated based on how their logit influenced the loss.</p>
+
+<div class="callout intuition">
+  <div class="callout-label">Intuition</div>
+  Weight tying forces the embedding to be simultaneously good at two tasks: representing tokens (embedding) and predicting tokens (output projection). The gradient from the output projection says "this is what the final hidden states need to distinguish between tokens." The gradient from the embedding says "this is what the input representations need to look like." The shared matrix has to satisfy both constraints — which acts as a form of regularization.
+</div>
+
+<!-- ═══════════════════ SECTION 10 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="label-smoothing"><span class="section-num">10 — Softening the Target</span>Gradient at the Output: Label Smoothing</h2>
+
+<p>Standard cross-entropy uses hard one-hot targets: the correct token gets probability 1, all others get 0. The gradient at the output logits is $\hat{y} - y$, which drives the correct logit toward $+\infty$ and all others toward $-\infty$.</p>
+
+<p>Label smoothing replaces the hard target with a soft one:</p>
+
+<div class="math-block">$$y_{\text{smooth}}(i) = \begin{cases} 1 - \epsilon & \text{if } i = \text{correct} \\ \frac{\epsilon}{V - 1} & \text{otherwise} \end{cases}$$</div>
+
+<p>where $\epsilon$ is typically 0.1 and $V$ is the vocabulary size. The gradient is still $\hat{y} - y_{\text{smooth}}$, but now the target for wrong classes is $\frac{\epsilon}{V-1}$ instead of 0. This means the gradient doesn't try to push wrong-class logits all the way to $-\infty$ — just "low enough."</p>
+
+<h3>Why this helps training</h3>
+
+<p>Without smoothing, the model becomes overconfident — it outputs near-1 probabilities for the correct token. This pushes the logits into the saturated regime of softmax, where gradients are small. With smoothing, the model is trained to output at most $(1 - \epsilon)$ probability, keeping logits in a well-conditioned regime where gradients remain healthy.</p>
+
+<!-- ═══════════════════ SECTION 11 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="moe"><span class="section-num">11 — Sparse Routing</span>Gradient Through MoE Routing</h2>
+
+<p>In a Mixture of Experts layer, each token is routed to the top-$k$ experts selected by a gating network. This introduces two gradient challenges that don't exist in standard transformers.</p>
+
+<h3>Challenge 1: Non-differentiable top-k</h3>
+
+<p>The router computes scores $g(x) = \text{softmax}(W_g \cdot x)$ and selects the top-$k$ experts. The selection step (argmax / top-k) is <strong>non-differentiable</strong> — you can't backprop through "pick the two largest elements." The gradient only flows through the selected experts' scores and outputs:</p>
+
+<div class="math-block">$$\text{output} = \sum_{i \in \text{top-}k} g_i(x) \cdot E_i(x)$$</div>
+
+<p>The gradient flows through $g_i$ (the router probability for selected experts) and through $E_i(x)$ (the expert outputs). Experts that were <em>not</em> selected receive <strong>zero gradient</strong> — their parameters are not updated, and the router's gradient for them is zero because they weren't in the computation graph.</p>
+
+<h3>Challenge 2: Dead experts</h3>
+
+<p>If the router learns to never select expert $j$, expert $j$ never gets gradient, so it never improves, so the router never selects it — a vicious cycle. This is the exact same problem as dead ReLU neurons: once a neuron's output is always zero, its gradient is always zero, and it can never recover.</p>
+
+<h3>The load-balancing loss</h3>
+
+<p>The auxiliary loss $\mathcal{L}_{\text{balance}} = \alpha \cdot N \sum_{i=1}^{N} f_i \cdot P_i$ penalizes uneven expert utilization. The key gradient insight: the loss differentiates through $P_i$ (the average router probability, which depends on the softmax output), but <strong>not</strong> through $f_i$ (the fraction of tokens routed, which depends on the non-differentiable top-k).</p>
+
+<p>This means the load-balancing gradient can only adjust the router's <em>preferences</em> (softmax probabilities), not the routing <em>decisions</em> (top-k selection) directly. The gradient signal says "increase the probability of underused experts" — and over many steps, this eventually shifts the top-k decisions because a previously-low probability expert gets high enough probability to enter the top-k.</p>
+
+<!-- MoE gradient flow figure -->
+<div class="figure">
+<svg viewBox="0 0 600 260" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="260" fill="var(--fig-bg)" rx="8"/>
+  
+  <!-- Token -->
+  <rect x="30" y="100" width="60" height="30" rx="4" fill="var(--fig-fill-2)" opacity="0.2" stroke="var(--fig-fill-2)" stroke-width="1.2"/>
+  <text x="60" y="120" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="11">token x</text>
+  
+  <!-- Router -->
+  <rect x="140" y="100" width="70" height="30" rx="4" fill="var(--fig-fill-4)" opacity="0.2" stroke="var(--fig-fill-4)" stroke-width="1.2"/>
+  <text x="175" y="120" text-anchor="middle" fill="var(--fig-fill-4)" font-family="DM Sans, sans-serif" font-size="11">Router</text>
+  
+  <line x1="90" y1="115" x2="138" y2="115" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  
+  <!-- Experts -->
+  <rect x="270" y="30" width="60" height="28" rx="4" fill="var(--fig-fill-3)" opacity="0.3" stroke="var(--fig-fill-3)" stroke-width="1.2"/>
+  <text x="300" y="48" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11">E₁ ✓</text>
+  <rect x="270" y="75" width="60" height="28" rx="4" fill="var(--fig-fill-3)" opacity="0.3" stroke="var(--fig-fill-3)" stroke-width="1.2"/>
+  <text x="300" y="93" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11">E₂ ✓</text>
+  <rect x="270" y="125" width="60" height="28" rx="4" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.6" stroke-dasharray="3,3"/>
+  <text x="300" y="143" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="11">E₃ ✗</text>
+  <rect x="270" y="170" width="60" height="28" rx="4" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.6" stroke-dasharray="3,3"/>
+  <text x="300" y="188" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="11">E₄ ✗</text>
+  
+  <!-- Connections to selected experts -->
+  <line x1="210" y1="108" x2="268" y2="48" stroke="var(--fig-fill-3)" stroke-width="1.5" marker-end="url(#arr-green)"/>
+  <line x1="210" y1="115" x2="268" y2="89" stroke="var(--fig-fill-3)" stroke-width="1.5" marker-end="url(#arr-green)"/>
+  <!-- No connection to unselected -->
+  
+  <!-- Output -->
+  <rect x="390" y="55" width="60" height="28" rx="4" fill="var(--fig-fill-2)" opacity="0.2" stroke="var(--fig-fill-2)" stroke-width="1.2"/>
+  <text x="420" y="73" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="10">g₁·E₁+g₂·E₂</text>
+  <line x1="330" y1="44" x2="388" y2="63" stroke="var(--fig-fill-3)" stroke-width="1" marker-end="url(#arr-green)"/>
+  <line x1="330" y1="89" x2="388" y2="73" stroke="var(--fig-fill-3)" stroke-width="1" marker-end="url(#arr-green)"/>
+  
+  <!-- Gradient annotations -->
+  <text x="300" y="220" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">Selected experts: gradient flows ✓</text>
+  <text x="300" y="238" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="11">Unselected experts: zero gradient ✗</text>
+  <text x="300" y="254" text-anchor="middle" fill="var(--fig-fill-4)" font-family="DM Sans, sans-serif" font-size="10">Load-balancing loss nudges router probabilities for unselected experts</text>
+</svg>
+<div class="figure-caption">Gradient only flows through selected experts (solid arrows). Unselected experts (dashed) get zero gradient. The load-balancing loss separately pushes the router to distribute tokens more evenly.</div>
+</div>
+
+<!-- ═══════════════════ SECTION 12 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="dynamics"><span class="section-num">12 — The Big Picture</span>Training Dynamics: Warmup, Accumulation, and Why Gradients Grow</h2>
+
+<h3>The counterintuitive problem: gradients grow, not vanish</h3>
+
+<p>Classical deep networks suffer from vanishing gradients. Transformers with residual connections have the <em>opposite</em> problem: each residual layer adds $\frac{\partial f}{\partial x}$ to the gradient. In a 96-layer network, the gradient at the input is a sum of contributions from all layers — its magnitude can <strong>grow</strong> rather than shrink.</p>
+
+<p>This is why <strong>learning rate warmup</strong> is essential for transformers. During early training, the model weights are random and the gradients are large and noisy. Starting with a small learning rate and gradually increasing it (typically over 1-5% of training) allows the model to settle into a region of the loss landscape where gradient norms are predictable. Without warmup, the first few steps take enormous steps in random directions, destabilizing training permanently.</p>
+
+<div class="callout warning">
+  <div class="callout-label">Connection to your optimizer blog</div>
+  Adam's bias correction also plays a role here. In early training, the second moment $v$ is initialized to zero and hasn't yet estimated the gradient magnitude. Without bias correction, the effective learning rate is too large in the first few steps. Warmup sidesteps this by keeping the actual learning rate small while $v$ accumulates meaningful statistics. This is the warmup-vs-bias-correction insight you studied earlier.
+</div>
+
+<h3>Gradient accumulation</h3>
+
+<p>Transformers need large effective batch sizes (thousands of sequences) for stable training, but GPU memory limits the batch that fits in one forward/backward pass. Gradient accumulation runs $K$ mini-batches, sums their gradients, then does one optimizer step — mathematically identical to a batch $K$ times larger.</p>
+
+<p>The gradient subtlety: LayerNorm and dropout behave per micro-batch, not per accumulated batch. LayerNorm computes statistics over each micro-batch independently — the normalized activations and their gradients are slightly different than they'd be with a true large batch. This is fine for LayerNorm (since it normalizes per-token, batch size doesn't matter). But it <em>would</em> be a problem for BatchNorm (statistics depend on batch size) — yet another reason transformers use LayerNorm.</p>
+
+<!-- ═══════════════════ SECTION 13 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="full-picture"><span class="section-num">13 — Reference</span>The Full Picture</h2>
+
+<p>Here is the complete gradient flow through a single pre-norm transformer decoder block, annotated at every stage:</p>
+
+<!-- Full gradient flow diagram -->
+<div class="figure">
+<svg viewBox="0 0 620 520" xmlns="http://www.w3.org/2000/svg">
+  <rect width="620" height="520" fill="var(--fig-bg)" rx="8"/>
+  
+  <!-- Title -->
+  <text x="310" y="24" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="13" font-weight="600">Gradient flow through a pre-norm decoder block (backward direction)</text>
+  
+  <!-- Loss at top -->
+  <rect x="245" y="40" width="130" height="28" rx="14" fill="var(--fig-fill-1)" opacity="0.15" stroke="var(--fig-fill-1)" stroke-width="1.2"/>
+  <text x="310" y="58" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">∂L / ∂output</text>
+  
+  <!-- Split into residual + sublayer -->
+  <line x1="310" y1="68" x2="310" y2="85" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  
+  <!-- FFN residual block -->
+  <rect x="100" y="88" width="420" height="90" rx="6" fill="var(--bg-math)" stroke="var(--border-light)" stroke-width="1"/>
+  <text x="120" y="106" fill="var(--accent)" font-family="DM Sans, sans-serif" font-size="10" font-weight="600">FFN RESIDUAL BLOCK</text>
+  
+  <!-- Skip path -->
+  <line x1="150" y1="120" x2="150" y2="165" stroke="var(--fig-fill-3)" stroke-width="3"/>
+  <text x="140" y="148" text-anchor="end" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="10" font-weight="500">× I</text>
+  
+  <!-- FFN path -->
+  <rect x="230" y="115" width="80" height="24" rx="4" fill="var(--fig-fill-2)" opacity="0.15" stroke="var(--fig-fill-2)" stroke-width="0.8"/>
+  <text x="270" y="131" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="10">FFN backward</text>
+  <rect x="340" y="115" width="80" height="24" rx="4" fill="var(--fig-fill-4)" opacity="0.15" stroke="var(--fig-fill-4)" stroke-width="0.8"/>
+  <text x="380" y="131" text-anchor="middle" fill="var(--fig-fill-4)" font-family="DM Sans, sans-serif" font-size="10">LN₂ backward</text>
+  <text x="450" y="131" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="9">∂f/∂LN · ∂LN/∂x</text>
+  
+  <!-- Sum -->
+  <circle cx="310" cy="190" r="10" fill="none" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="310" y="194" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="11">Σ</text>
+  <text x="340" y="194" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="9">sum of skip + sublayer</text>
+  
+  <line x1="310" y1="200" x2="310" y2="220" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  
+  <!-- Attention residual block -->
+  <rect x="100" y="224" width="420" height="140" rx="6" fill="var(--bg-math)" stroke="var(--border-light)" stroke-width="1"/>
+  <text x="120" y="242" fill="var(--accent)" font-family="DM Sans, sans-serif" font-size="10" font-weight="600">ATTENTION RESIDUAL BLOCK</text>
+  
+  <!-- Skip path -->
+  <line x1="150" y1="256" x2="150" y2="350" stroke="var(--fig-fill-3)" stroke-width="3"/>
+  <text x="140" y="310" text-anchor="end" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="10" font-weight="500">× I</text>
+  
+  <!-- Attention path -->
+  <rect x="200" y="256" width="70" height="24" rx="4" fill="var(--fig-fill-1)" opacity="0.15" stroke="var(--fig-fill-1)" stroke-width="0.8"/>
+  <text x="235" y="272" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="9">dO → dA, dV</text>
+  
+  <rect x="290" y="256" width="70" height="24" rx="4" fill="var(--fig-fill-1)" opacity="0.15" stroke="var(--fig-fill-1)" stroke-width="0.8"/>
+  <text x="325" y="272" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="9">softmax bwd</text>
+  
+  <rect x="380" y="256" width="70" height="24" rx="4" fill="var(--fig-fill-1)" opacity="0.15" stroke="var(--fig-fill-1)" stroke-width="0.8"/>
+  <text x="415" y="272" text-anchor="middle" fill="var(--fig-fill-1)" font-family="DM Sans, sans-serif" font-size="9">÷√dₖ → dQ,dK</text>
+  
+  <!-- Dropout -->
+  <rect x="200" y="296" width="90" height="20" rx="3" fill="var(--fig-fill-muted)" stroke="var(--fig-stroke)" stroke-width="0.6"/>
+  <text x="245" y="310" text-anchor="middle" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="9">attn dropout × mask/(1-p)</text>
+  
+  <!-- W_Q, W_K, W_V, W_O -->
+  <rect x="200" y="326" width="120" height="20" rx="3" fill="var(--fig-fill-2)" opacity="0.15" stroke="var(--fig-fill-2)" stroke-width="0.8"/>
+  <text x="260" y="340" text-anchor="middle" fill="var(--fig-fill-2)" font-family="DM Sans, sans-serif" font-size="9">W_Q, W_K, W_V, W_O projections</text>
+  
+  <!-- LN1 -->
+  <rect x="350" y="326" width="80" height="20" rx="3" fill="var(--fig-fill-4)" opacity="0.15" stroke="var(--fig-fill-4)" stroke-width="0.8"/>
+  <text x="390" y="340" text-anchor="middle" fill="var(--fig-fill-4)" font-family="DM Sans, sans-serif" font-size="9">LN₁ backward</text>
+  
+  <!-- Sum -->
+  <circle cx="310" cy="376" r="10" fill="none" stroke="var(--fig-stroke)" stroke-width="0.8"/>
+  <text x="310" y="380" text-anchor="middle" fill="var(--fig-text)" font-family="DM Sans, sans-serif" font-size="11">Σ</text>
+  
+  <line x1="310" y1="386" x2="310" y2="406" stroke="var(--fig-text-light)" stroke-width="1" marker-end="url(#arr)"/>
+  
+  <!-- Output -->
+  <rect x="230" y="410" width="160" height="28" rx="14" fill="var(--fig-fill-3)" opacity="0.15" stroke="var(--fig-fill-3)" stroke-width="1.2"/>
+  <text x="310" y="428" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">∂L / ∂input → next block</text>
+  
+  <!-- Legend -->
+  <line x1="130" y1="460" x2="160" y2="460" stroke="var(--fig-fill-3)" stroke-width="3"/>
+  <text x="170" y="464" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">Skip path (gradient ≥ 1)</text>
+  <rect x="320" y="452" width="14" height="14" rx="2" fill="var(--fig-fill-1)" opacity="0.15" stroke="var(--fig-fill-1)" stroke-width="0.8"/>
+  <text x="340" y="464" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">Attention components</text>
+  <rect x="320" y="472" width="14" height="14" rx="2" fill="var(--fig-fill-4)" opacity="0.15" stroke="var(--fig-fill-4)" stroke-width="0.8"/>
+  <text x="340" y="484" fill="var(--fig-text-light)" font-family="DM Sans, sans-serif" font-size="10">LayerNorm (re-normalizes gradient)</text>
+  
+  <!-- Two green skip paths are the highways -->
+  <text x="310" y="505" text-anchor="middle" fill="var(--fig-fill-3)" font-family="DM Sans, sans-serif" font-size="11" font-weight="500">Two gradient highways per block — one through each residual connection</text>
+</svg>
+<div class="figure-caption">Complete backward pass through a pre-norm decoder block. Green lines are the residual gradient highways (always ≥ I). All sublayer gradients are summed at the residual junctions. Each block has two highways — one bypassing attention, one bypassing FFN.</div>
+</div>
+
+<!-- ═══════════════════ SECTION 14 ═══════════════════ -->
+<div class="section-divider"></div>
+<h2 id="questions"><span class="section-num">14 — Interview Prep</span>Interview Questions</h2>
+
+<div class="interview-q">
+  <div class="q-label">Question 1</div>
+  <div class="q-text">Why can transformers be much deeper than RNNs?</div>
+  <div class="q-answer">Residual connections provide a gradient highway: the gradient at each layer is $I + \frac{\partial f}{\partial x}$, meaning it's always at least 1 in magnitude. RNNs multiply gradients through time steps with no skip connections — each step the gradient is multiplied by the recurrent weight matrix, which causes exponential decay (vanishing) or growth (exploding). A 96-layer transformer's gradient includes a direct path from the loss to the input that bypasses all sub-layers entirely.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 2</div>
+  <div class="q-text">Pre-norm vs post-norm — which is better for deep networks and why?</div>
+  <div class="q-answer">Pre-norm. In post-norm, LayerNorm sits on the residual path: $\text{LN}(x + f(x))$. The gradient must pass through LayerNorm's Jacobian on the skip connection, which re-centers and re-scales — dampening the clean gradient highway. In pre-norm, the residual path is pure addition: $x + f(\text{LN}(x))$. The identity gradient flows unobstructed. Over 96 layers, post-norm's dampening compounds. This is why GPT-2 switched from post-norm to pre-norm and all modern LLMs use pre-norm.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 3</div>
+  <div class="q-text">What is attention collapse and how does it affect gradients?</div>
+  <div class="q-answer">Attention collapse is when the attention distribution becomes nearly one-hot — one position gets ~100% of the attention weight. The softmax Jacobian at a one-hot distribution is near-zero for all elements: $A_i(1-A_i) \approx 0$ for the dominant position and $A_j \approx 0$ for all others. This means gradients vanish for all positions — neither the dominant nor the non-dominant positions receive useful gradient signal. Multi-head attention mitigates this (different heads can have different dominant positions), and attention dropout randomly disrupts the collapse during training.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 4</div>
+  <div class="q-text">Why does the √dₖ scaling matter for gradient flow?</div>
+  <div class="q-answer">Without scaling, the dot product $q \cdot k$ has variance $d_k$. For $d_k = 64$, the scores have standard deviation 8, which pushes softmax into saturation — the output is nearly one-hot. The softmax gradient in the saturated regime is near zero (same mechanism as sigmoid vanishing gradients). Scaling by $\sqrt{d_k}$ brings the score variance back to 1, keeping softmax in its non-saturated regime where gradients are $O(1)$.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 5</div>
+  <div class="q-text">How does weight tying affect the gradient for the embedding matrix?</div>
+  <div class="q-answer">With weight tying, the embedding matrix $E$ receives gradient from two paths: (1) the embedding lookup at the bottom (sparse — only rows for tokens in the batch are updated) and (2) the output projection at the top (dense — the full matrix participates in the matmul). These gradients are summed by the multi-path chain rule. This means even tokens not in the batch receive gradient through the output path. The shared matrix must simultaneously be good at representing tokens and predicting them — this dual objective acts as regularization.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 6</div>
+  <div class="q-text">Why is Adam important for transformer training? What happens with SGD?</div>
+  <div class="q-answer">The embedding layer creates severe gradient sparsity: common tokens get updated every batch, rare tokens go hundreds of batches without updates. Adam's per-parameter adaptive learning rate compensates — rare tokens accumulate a small second moment $v$, so their effective step size $m/(\sqrt{v}+\epsilon)$ is larger when they finally do get a gradient. SGD has no such mechanism: all parameters share the same learning rate, so rare tokens are permanently under-trained. Additionally, Adam's momentum helps smooth the noisy gradients that arise from the stochastic nature of which tokens appear in each batch.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 7</div>
+  <div class="q-text">How do gradients flow through the causal mask?</div>
+  <div class="q-answer">The causal mask sets future positions' attention scores to $-\infty$ before softmax, giving them weight 0. The gradient for zero-weight positions is exactly zero — no learning signal flows from position $i$ to any future position $j > i$. This enforces causality in both directions: the forward pass can't see the future, and the backward pass can't send gradient to the future. Each token's key/value parameters are only updated based on how useful they were to tokens that came after it.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 8</div>
+  <div class="q-text">Why is learning rate warmup critical for transformers?</div>
+  <div class="q-answer">Transformers with residual connections can have <em>growing</em> gradients (not vanishing), because each residual adds to the gradient magnitude. In early training with random weights, these gradients are large and noisy. Without warmup, the first optimizer steps take enormous strides in random directions, destabilizing training permanently. Warmup starts with a small learning rate, gradually increasing it over 1-5% of training, allowing Adam's second moment $v$ to estimate gradient variance and the model to settle into a well-conditioned region of the loss landscape.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 9</div>
+  <div class="q-text">What's the gradient problem with MoE routing and how does the load-balancing loss help?</div>
+  <div class="q-answer">The top-k expert selection is non-differentiable — you can't backprop through argmax. Unselected experts get zero gradient, creating a dead-expert problem (same as dead ReLU neurons). The load-balancing loss $\mathcal{L}_{\text{balance}} = \alpha N \sum f_i P_i$ differentiates through $P_i$ (router softmax probabilities) but not $f_i$ (routing fractions from top-k). It pushes the router to increase probabilities for underused experts. Over many steps, this gradually shifts which experts enter the top-k, reviving dead experts.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 10</div>
+  <div class="q-text">How does RoPE affect gradient flow compared to sinusoidal or learned positional encoding?</div>
+  <div class="q-answer">RoPE applies an orthogonal rotation to Q and K. Since rotation matrices are orthogonal ($R^{-1} = R^T$), the gradient magnitude is perfectly preserved: $\|dq\| = \|d(Rq)\|$. No scaling up or down. Sinusoidal PE adds a constant — the gradient passes through unchanged but the addition can create interference between positional and semantic gradients in early layers. Learned PE has sparse-update frequency problems (position 0 is updated every step, position 511 rarely). From a gradient perspective, RoPE is the cleanest — gradient-neutral by construction.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 11</div>
+  <div class="q-text">Why does label smoothing help transformer training?</div>
+  <div class="q-answer">Without label smoothing, the cross-entropy gradient drives the correct-class logit toward $+\infty$ and all others toward $-\infty$. This pushes softmax into saturation, where its gradient is near zero — the model stops learning even though it's overconfident. Label smoothing uses soft targets (e.g., 0.9 for the correct class, 0.1/(V-1) for others), which keeps the logits in a moderate range where softmax gradients remain healthy. The model converges to a well-calibrated distribution rather than an overconfident one.</div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Question 12</div>
+  <div class="q-text">Why do transformers use LayerNorm instead of BatchNorm?</div>
+  <div class="q-answer">Three gradient-related reasons: (1) LayerNorm normalizes per-token across features, so each token's gradient is independent of other tokens in the batch — BatchNorm couples all samples' gradients, which is problematic with variable sequence lengths. (2) LayerNorm works identically with batch size 1, which matters for inference and for gradient accumulation (micro-batches have different sizes than the effective batch). (3) LayerNorm has no train/inference discrepancy — BatchNorm uses running statistics at inference, meaning the gradient paths during training don't match the computation at inference.</div>
+</div>
+
+</article>
+
+<footer class="article-footer">
+  <p>Part 8 of the Transformer Interview Prep Series</p>
+</footer>
+
+</div>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    document.getElementById('theme-icon').textContent = next === 'dark' ? '☀' : '☽';
+    localStorage.setItem('theme', next);
+  }
+  const saved = localStorage.getItem('theme') ||
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.getElementById('theme-icon').textContent = '☀';
+  }
+  document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "$", right: "$", display: false}
+      ],
+      throwOnError: false
+    });
+  });
+</script>
+</body>
+</html>
