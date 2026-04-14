@@ -6,246 +6,37 @@
     <title>ML Deep Dives</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg: #0a0a0a;
-            --text: #f5f5f5;
-            --text-muted: #a0a0a0;
-            --accent: #3b82f6;
-            --accent-hover: #60a5fa;
-            --card-bg: #1a1a1a;
-            --border: #2a2a2a;
-        }
-
-        body {
-            font-family: 'Source Sans 3', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 80px 40px;
-            flex: 1;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 80px;
-        }
-
-        h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 4rem;
-            font-weight: 900;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .tagline {
-            font-size: 1.3rem;
-            color: var(--text-muted);
-            font-weight: 300;
-        }
-
-        .series-header {
-            margin: 60px 0 30px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .series-header h2 {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.8rem;
-            color: var(--text);
-            margin-bottom: 6px;
-        }
-
-        .series-header p {
-            color: var(--text-muted);
-            font-size: 1rem;
-            font-weight: 300;
-        }
-
-        .blog-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            gap: 40px;
-            margin-bottom: 60px;
-        }
-
-        .blog-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 40px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .blog-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.3s ease;
-        }
-
-        .blog-card:hover::before {
-            transform: scaleX(1);
-        }
-
-        .blog-card:hover {
-            border-color: var(--accent);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.2);
-        }
-
-        .blog-icon {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-        }
-
-        .blog-card h3 {
-            font-family: 'Playfair Display', serif;
-            font-size: 2rem;
-            margin-bottom: 15px;
-            color: var(--text);
-        }
-
-        .blog-card p {
-            color: var(--text-muted);
-            margin-bottom: 25px;
-            font-size: 1.05rem;
-            line-height: 1.7;
-        }
-
-        .blog-meta {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 25px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .blog-meta span {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 12px 28px;
-            background: var(--accent);
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-
-        .btn:hover {
-            background: var(--accent-hover);
-            transform: translateX(5px);
-        }
-
-        .blog-card .new-badge {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: linear-gradient(135deg, #f59e0b, #f97316);
-            color: #000;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            padding: 4px 10px;
-            border-radius: 4px;
-        }
-
-        .blog-card .series-badge {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: linear-gradient(135deg, #7c3aed, #a78bfa);
-            color: #fff;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            padding: 4px 10px;
-            border-radius: 4px;
-        }
-
-        .coming-soon {
-            border: 1px dashed var(--border);
-            background: transparent;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 280px;
-        }
-
-        .coming-soon:hover {
-            border-color: var(--border);
-            transform: none;
-            box-shadow: none;
-        }
-
-        .coming-soon::before {
-            display: none;
-        }
-
-        .coming-soon h3 {
-            color: var(--text-muted);
-            font-size: 1.5rem;
-        }
-
-        .coming-soon p {
-            color: var(--text-muted);
-            opacity: 0.6;
-        }
-
-        footer {
-            text-align: center;
-            padding: 40px;
-            border-top: 1px solid var(--border);
-            color: var(--text-muted);
-            margin-top: auto;
-        }
-
-        @media (max-width: 768px) {
-            h1 { font-size: 2.5rem; }
-            .blog-grid {
-                grid-template-columns: 1fr;
-            }
-            .container {
-                padding: 60px 20px;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --bg: #0a0a0a; --text: #f5f5f5; --text-muted: #a0a0a0; --accent: #3b82f6; --accent-hover: #60a5fa; --card-bg: #1a1a1a; --border: #2a2a2a; }
+        body { font-family: 'Source Sans 3', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 80px 40px; flex: 1; }
+        header { text-align: center; margin-bottom: 80px; }
+        h1 { font-family: 'Playfair Display', serif; font-size: 4rem; font-weight: 900; margin-bottom: 20px; background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .tagline { font-size: 1.3rem; color: var(--text-muted); font-weight: 300; }
+        .series-header { margin: 60px 0 30px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+        .series-header h2 { font-family: 'Playfair Display', serif; font-size: 1.8rem; color: var(--text); margin-bottom: 6px; }
+        .series-header p { color: var(--text-muted); font-size: 1rem; font-weight: 300; }
+        .blog-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 40px; margin-bottom: 60px; }
+        .blog-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 40px; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .blog-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-hover)); transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; }
+        .blog-card:hover::before { transform: scaleX(1); }
+        .blog-card:hover { border-color: var(--accent); transform: translateY(-5px); box-shadow: 0 10px 40px rgba(59, 130, 246, 0.2); }
+        .blog-icon { font-size: 2.5rem; margin-bottom: 20px; }
+        .blog-card h3 { font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 15px; color: var(--text); }
+        .blog-card p { color: var(--text-muted); margin-bottom: 25px; font-size: 1.05rem; line-height: 1.7; }
+        .blog-meta { display: flex; gap: 20px; margin-bottom: 25px; font-size: 0.9rem; color: var(--text-muted); }
+        .blog-meta span { display: flex; align-items: center; gap: 6px; }
+        .btn { display: inline-block; padding: 12px 28px; background: var(--accent); color: white; text-decoration: none; border-radius: 6px; font-weight: 600; transition: all 0.3s ease; font-size: 1rem; }
+        .btn:hover { background: var(--accent-hover); transform: translateX(5px); }
+        .blog-card .new-badge { position: absolute; top: 16px; right: 16px; background: linear-gradient(135deg, #f59e0b, #f97316); color: #000; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; }
+        .blog-card .series-badge { position: absolute; top: 16px; right: 16px; background: linear-gradient(135deg, #7c3aed, #a78bfa); color: #fff; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; }
+        .coming-soon { border: 1px dashed var(--border); background: transparent; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 280px; }
+        .coming-soon:hover { border-color: var(--border); transform: none; box-shadow: none; }
+        .coming-soon::before { display: none; }
+        .coming-soon h3 { color: var(--text-muted); font-size: 1.5rem; }
+        .coming-soon p { color: var(--text-muted); opacity: 0.6; }
+        footer { text-align: center; padding: 40px; border-top: 1px solid var(--border); color: var(--text-muted); margin-top: auto; }
+        @media (max-width: 768px) { h1 { font-size: 2.5rem; } .blog-grid { grid-template-columns: 1fr; } .container { padding: 60px 20px; } }
     </style>
 </head>
 <body>
@@ -258,12 +49,12 @@
         <!-- TRANSFORMER SERIES -->
         <div class="series-header">
             <h2>🔥 Transformer Interview Prep Series</h2>
-            <p>A 7-part deep dive covering everything you need to know about Transformers for Applied Scientist interviews</p>
+            <p>An 8-part deep dive covering everything you need to know about Transformers for Applied Scientist interviews</p>
         </div>
 
         <div class="blog-grid">
             <div class="blog-card">
-                <span class="series-badge">Part 1 of 7</span>
+                <span class="series-badge">Part 1 of 8</span>
                 <div class="blog-icon">⚡</div>
                 <h3>The Attention Revolution</h3>
                 <div class="blog-meta">
@@ -278,7 +69,7 @@
             </div>
 
             <div class="blog-card">
-                <span class="series-badge">Part 2 of 7</span>
+                <span class="series-badge">Part 2 of 8</span>
                 <div class="blog-icon">🏗️</div>
                 <h3>Transformer Architecture End-to-End</h3>
                 <div class="blog-meta">
@@ -317,7 +108,7 @@
             </div>
 
             <div class="blog-card">
-                <span class="series-badge">Part 7 of 7</span>
+                <span class="series-badge">Part 7 of 8</span>
                 <div class="blog-icon">🚀</div>
                 <h3>Modern Transformer Extensions</h3>
                 <div class="blog-meta">
@@ -329,6 +120,21 @@
                     Flash Attention (IO-aware tiling, online softmax), KV-Cache (PagedAttention, quantization), MQA/GQA, Mixture of Experts (routing, gating collapse, load-balancing loss), RoPE (rotation math, NTK interpolation, YaRN), ALiBi, sliding window attention, speculative decoding, Medusa, and Mamba/SSMs. 8 diagrams, 9 paper references.
                 </p>
                 <a href="modern_transformer_extensions.html" class="btn">Read Article →</a>
+            </div>
+
+            <div class="blog-card">
+                <span class="new-badge">New</span>
+                <div class="blog-icon">🔄</div>
+                <h3>Gradient Flow Through the Transformer</h3>
+                <div class="blog-meta">
+                    <span>📚 Backprop &amp; Training</span>
+                    <span>⏱️ 30 min</span>
+                    <span>❓ 12 Questions</span>
+                </div>
+                <p>
+                    How backpropagation actually works in modern LLMs. Gradient through residual connections, LayerNorm, attention (softmax Jacobian, √dₖ, attention collapse), causal mask, dropout, pre-norm vs post-norm, embeddings, RoPE gradient preservation, weight tying, label smoothing, MoE routing (load-balancing loss, dead experts), and training dynamics (warmup, gradient accumulation). 5 SVG diagrams.
+                </p>
+                <a href="gradient-flow-through-transformer.html" class="btn">Read Article →</a>
             </div>
         </div>
 
