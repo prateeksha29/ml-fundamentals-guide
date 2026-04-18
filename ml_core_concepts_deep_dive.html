@@ -341,7 +341,7 @@
 <header class="article-header">
   <span class="tag">Interview Prep — Part 1</span>
   <h1>ML Core Concepts: A Deep Dive</h1>
-  <p class="subtitle">Linear regression, logistic regression, bias-variance tradeoff, regularization, gradient descent, overfitting, cross-validation, and feature scaling — from first principles to tough interview questions.</p>
+  <p class="subtitle">Linear regression, logistic regression, bias-variance tradeoff, regularization, gradient descent, overfitting, cross-validation, feature scaling, and evaluation metrics — from first principles to tough interview questions.</p>
 </header>
 
 <!-- TOC -->
@@ -356,6 +356,7 @@
     <li><a href="#overfitting">Overfitting &amp; Underfitting</a></li>
     <li><a href="#cross-validation">Cross-Validation</a></li>
     <li><a href="#feature-scaling">Feature Scaling &amp; Normalization</a></li>
+    <li><a href="#evaluation-metrics">Evaluation Metrics</a></li>
   </ol>
 </nav>
 
@@ -402,6 +403,18 @@
 <h3>R² and Adjusted R²</h3>
 
 <p>R² measures the proportion of variance explained: R² = 1 − (SS_res / SS_tot). It always increases (or stays flat) when you add features, even useless ones. Adjusted R² penalizes for additional features: it can decrease if a new feature doesn't improve the model enough to justify the added complexity. In interviews, always mention adjusted R² when discussing feature selection.</p>
+
+<h3>The Probabilistic View: MLE → MAP → Regularization</h3>
+
+<p>There's a clean thread connecting linear regression, maximum likelihood, and regularization — and interviewers love it when you can walk through it.</p>
+
+<p><strong>Step 1: MLE.</strong> If you assume the target y = w<sup>T</sup>x + ε where ε ~ N(0, σ²), then each observation has likelihood P(y_i | x_i, w) ∝ exp(−(y_i − w<sup>T</sup>x_i)² / 2σ²). Taking the log-likelihood across all data and negating gives you... MSE. So minimizing MSE is exactly maximum likelihood estimation under a Gaussian noise assumption. This is why MSE is the "natural" loss for regression — it's not arbitrary.</p>
+
+<p><strong>Step 2: MAP with Gaussian prior → Ridge.</strong> Now add a prior on the weights: w ~ N(0, τ²I). By Bayes' theorem, the posterior is proportional to likelihood × prior. Taking the negative log gives: MSE + (σ²/τ²)·||w||². That second term is L2 regularization, with λ = σ²/τ². So Ridge regression is just MAP estimation with a Gaussian prior on weights — you're saying "I believe weights are probably small."</p>
+
+<p><strong>Step 3: MAP with Laplace prior → Lasso.</strong> Replace the Gaussian prior with a Laplace prior: w ~ Laplace(0, b). The negative log-posterior becomes MSE + (σ²/b)·||w||₁ — that's L1 regularization. The Laplace distribution's sharp peak at zero is exactly why L1 produces sparse solutions.</p>
+
+<p>This chain (MLE → MAP → regularization) shows that regularization isn't a hack — it's principled Bayesian inference. Being able to walk through this in 60 seconds is a strong interview signal.</p>
 
 <div class="interview-q">
   <div class="q-label">Interview Question</div>
@@ -486,6 +499,17 @@
 <h3>Multiclass Extension: Softmax Regression</h3>
 
 <p>For K classes, replace sigmoid with softmax: P(y=k) = exp(z_k) / Σ_j exp(z_j), and use categorical cross-entropy as the loss. Each class gets its own weight vector. This is sometimes called multinomial logistic regression.</p>
+
+<p>Softmax is the natural generalization of sigmoid — for K=2, softmax reduces to exactly sigmoid (you can verify this algebraically). The categorical cross-entropy loss is: L = −Σ_k y_k · log(P(y=k)), where y is a one-hot vector. And just like binary cross-entropy, the gradient has the same elegant form: ∂L/∂z_k = P(y=k) − y_k = ŷ_k − y_k. This is the exponential family at work again.</p>
+
+<p>A practical detail: softmax outputs are overparameterized — you have K weight vectors but only K−1 degrees of freedom (probabilities must sum to 1). Some implementations fix one class's weights to zero. In deep learning, the overparameterization doesn't cause problems and the redundancy is ignored.</p>
+
+<div class="callout warning">
+  <div class="callout-title">Softmax Temperature</div>
+  In practice, you'll see P(y=k) = exp(z_k / T) / Σ_j exp(z_j / T) where T is a "temperature" parameter. T=1 is standard softmax. T→0 makes the distribution sharper (approaches argmax). T→∞ makes it uniform. Temperature scaling is used in knowledge distillation (train a small model on soft targets from a large model) and for calibrating neural network confidence. This comes up frequently in LLM-related interviews.
+</div>
+
+<p><strong>One-vs-Rest (OvR)</strong> is an alternative to softmax: train K independent binary classifiers, each separating one class from the rest, and pick the class with highest confidence. OvR is simpler and works well with logistic regression and SVMs, but doesn't guarantee calibrated probabilities across classes (the K models aren't trained to be mutually exclusive). Softmax is preferred when you need a proper probability distribution over classes.</p>
 
 <h3>No Closed-Form Solution</h3>
 
@@ -735,6 +759,12 @@
 
 <p><strong>AdamW</strong> fixes Adam's interaction with weight decay (as discussed in the regularization section). This is the standard for training transformers.</p>
 
+<h3>Beyond First-Order: Second-Order Methods</h3>
+
+<p>All the optimizers above use only the gradient (first derivative). <strong>Newton's method</strong> also uses the Hessian (second derivative matrix) to account for the curvature of the loss landscape: w ← w − H⁻¹∇L. By "pre-conditioning" the gradient with curvature information, Newton's method can converge in far fewer iterations — it takes the optimal step size in every direction simultaneously. The catch: computing and inverting the Hessian is O(d³), which is prohibitive for large models.</p>
+
+<p><strong>L-BFGS</strong> approximates the inverse Hessian from recent gradient history, avoiding the O(d³) cost. It's sklearn's default optimizer for logistic regression and works well for "medium-sized" problems (thousands of parameters). For deep learning (millions+ parameters), even L-BFGS is too expensive — that's why first-order methods (SGD, Adam) dominate. But knowing this hierarchy (SGD → Adam → L-BFGS → Newton's) and the tradeoff (more curvature info = fewer iterations but costlier per iteration) is a clean interview answer.</p>
+
 <div class="callout tip">
   <div class="callout-title">Interview Pro Tip</div>
   If asked "which optimizer would you use?", a strong answer is: "AdamW with warmup + cosine decay for transformers and most deep learning. SGD + momentum with step decay for CNNs/computer vision where it's been shown to find flatter minima. Adam for fast prototyping. Always tune the learning rate — it matters more than the optimizer choice."
@@ -939,6 +969,14 @@
   </div>
 </div>
 
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">You ran 5-fold CV and got scores of [0.92, 0.91, 0.93, 0.72, 0.90]. What do you do?</div>
+  <div class="answer">
+    <p>Don't just average and report 0.876 — that fold 4 score of 0.72 is a red flag. Investigate it before trusting the aggregate. Possible causes: (1) <strong>Distribution shift</strong> — fold 4 might contain a cluster of data that's different from the rest (e.g., a specific user segment, a time period with different behavior). Check the data composition. (2) <strong>Label quality issues</strong> — that fold might have noisier or incorrect labels. (3) <strong>Small dataset effects</strong> — if the dataset is small, one fold can be unlucky. Try repeated K-fold to see if the variance persists. (4) <strong>Data leakage in other folds</strong> — maybe folds 1–3 and 5 are artificially inflated, and fold 4 is the honest one. High variance across folds is a diagnostic signal worth investigating, not just noise to average over.</p>
+  </div>
+</div>
+
 
 <hr class="section-divider" />
 
@@ -976,6 +1014,11 @@
 
 <p><strong>The normal equation</strong> for linear regression solves directly without iterative optimization, so feature scales don't affect convergence or the final solution.</p>
 
+<div class="callout tip">
+  <div class="callout-title">Sparse Data: Don't Center</div>
+  For sparse feature matrices (e.g., bag-of-words, user-item interactions at Pinterest), centering (subtracting the mean) converts a sparse matrix to dense — a 99% sparse matrix suddenly requires 100× the memory. Use <strong>MaxAbs scaling</strong> (divide by max absolute value) which preserves sparsity, or don't scale at all if using tree-based models. This matters at Pinterest scale where user-item matrices can have billions of entries.
+</div>
+
 <div class="callout gotcha">
   <div class="callout-title">Fit on Train, Transform on Test</div>
   Always compute scaling parameters (mean, std, min, max) from the training set only, then apply those same parameters to the validation and test sets. If you fit the scaler on the full dataset before splitting, statistics from test data leak into your training preprocessing. This is one of the most common and subtle forms of data leakage. Use <code>sklearn.pipeline.Pipeline</code> to enforce this automatically.
@@ -1010,6 +1053,113 @@
   <div class="question">Do you scale one-hot encoded categorical features?</div>
   <div class="answer">
     <p>Generally <strong>no</strong> — one-hot features are already binary (0 or 1), so they're on a natural scale. Standardizing them would break their interpretability and produce non-intuitive values. However, there's a subtlety with regularization: if your continuous features are standardized (mean 0, std 1) but one-hot features are 0/1, the regularizer may still treat them unevenly depending on class frequency. A rare category (0.01 mean) has different variance than a common one (0.5 mean). Some practitioners standardize one-hot features for this reason, but it's not common practice. For <strong>ordinal</strong> encoded features (e.g., education level: 1, 2, 3, 4, 5), scaling may be appropriate if the model is distance-based or gradient-based, since the range depends on the number of categories.</p>
+  </div>
+</div>
+
+
+<hr class="section-divider" />
+
+
+<!-- ============================================================ -->
+<!-- 9. EVALUATION METRICS -->
+<!-- ============================================================ -->
+<h2 id="evaluation-metrics">9. Evaluation Metrics</h2>
+
+<p>Pinterest's interview guide explicitly lists "how you decide to evaluate a model" as a topic. Choosing the right metric is often more important than choosing the right algorithm — a model optimized for the wrong metric can be actively harmful in production.</p>
+
+<h3>Classification Metrics</h3>
+
+<p><strong>Accuracy</strong> = (correct predictions) / (total predictions). Simple and intuitive, but misleading for imbalanced data. A spam detector that predicts "not spam" for every email achieves 99% accuracy if only 1% of emails are spam — while catching zero spam. Always ask about class distribution before using accuracy.</p>
+
+<p><strong>Precision</strong> = TP / (TP + FP) — "of everything I flagged as positive, how many actually were?" High precision means few false alarms. Optimize for precision when false positives are costly: spam filtering (don't send real emails to junk), content moderation (don't wrongly remove legitimate pins).</p>
+
+<p><strong>Recall</strong> = TP / (TP + FN) — "of all actual positives, how many did I catch?" High recall means few missed cases. Optimize for recall when false negatives are costly: fraud detection (don't miss real fraud), disease screening (don't miss sick patients).</p>
+
+<p><strong>F1 Score</strong> = 2 · (precision · recall) / (precision + recall) — the harmonic mean of precision and recall. It's a single number that balances both, but it assumes they're equally important. When they're not, use <strong>Fβ</strong>: β > 1 weighs recall more, β < 1 weighs precision more.</p>
+
+<div class="callout warning">
+  <div class="callout-title">The Precision-Recall Tradeoff</div>
+  You can always increase recall by lowering your classification threshold (predict positive more liberally), but this comes at the cost of precision (more false positives). Conversely, raising the threshold increases precision but hurts recall. The optimal threshold depends entirely on the business cost of false positives vs false negatives — and this is almost never 0.5. Always tune the threshold on a validation set using the metric that matches your business objective.
+</div>
+
+<h3>AUC-ROC vs AUC-PR</h3>
+
+<p><strong>ROC curve</strong> plots True Positive Rate (recall) vs False Positive Rate at all thresholds. AUC-ROC summarizes this as a single number — 0.5 is random, 1.0 is perfect. It's threshold-independent, making it useful for comparing models. But ROC curves can be misleadingly optimistic on imbalanced data because FPR stays low even with many false positives when negatives vastly outnumber positives.</p>
+
+<p><strong>PR curve</strong> (Precision-Recall curve) plots precision vs recall at all thresholds. AUC-PR (or Average Precision, AP) is more informative for imbalanced datasets because it focuses on the positive class. When your positive class is rare (fraud, relevant pins among billions of candidates), AUC-PR exposes model weaknesses that AUC-ROC hides.</p>
+
+<p><strong>Rule of thumb:</strong> use AUC-ROC when classes are roughly balanced; use AUC-PR when the positive class is rare or when you care primarily about the positive class.</p>
+
+<h3>Log Loss (Cross-Entropy)</h3>
+
+<p>Log loss evaluates the <em>quality of probability estimates</em>, not just the final classification. A model that predicts P=0.99 for a true positive is rewarded more than one that predicts P=0.51, even though both classify correctly. This makes log loss the right metric when downstream decisions depend on calibrated probabilities — ranking candidates, setting bid prices, estimating uncertainty.</p>
+
+<div class="callout gotcha">
+  <div class="callout-title">Log Loss Punishes Confident Mistakes Severely</div>
+  If your model predicts P=0.001 for an actual positive, the log loss for that example is −log(0.001) ≈ 6.9 — enormous. A single confidently wrong prediction can dominate the entire loss. This means log loss rewards well-calibrated models and punishes overconfidence harshly. If you're using log loss, make sure your model's probabilities are calibrated, not just discriminative.
+</div>
+
+<h3>Ranking Metrics (Essential for Pinterest)</h3>
+
+<p>Pinterest's core product is a ranked feed — the order in which pins appear matters more than binary classification. Ranking metrics evaluate whether the right items appear at the top.</p>
+
+<p><strong>NDCG (Normalized Discounted Cumulative Gain)</strong> measures ranking quality with position-weighted relevance. Items at the top of the ranking contribute more to the score than items further down (via logarithmic discounting). NDCG@K evaluates only the top K positions. It handles graded relevance (not just relevant/irrelevant — a pin can be "somewhat relevant" vs "highly relevant"). NDCG is the standard metric for recommendation systems and search ranking.</p>
+
+<p><strong>MRR (Mean Reciprocal Rank)</strong> = average of 1/rank of the first relevant result. If the first relevant item appears at position 3, the reciprocal rank is 1/3. MRR is simple and interpretable — it answers "how far down does the user have to scroll to find something relevant?" Use MRR when there's typically one correct answer (search), less so when many items are relevant (recommendations).</p>
+
+<p><strong>MAP (Mean Average Precision)</strong> computes precision at each position where a relevant item appears, then averages. It rewards models that not only find relevant items but rank them near the top. MAP is used heavily in information retrieval and is a standard metric for Pinterest-style recommendation evaluation.</p>
+
+<p><strong>Hit Rate@K</strong> = fraction of users for whom at least one relevant item appears in the top K. Simple and business-intuitive: "what % of users see something they engage with?" Often used alongside NDCG for a complete picture.</p>
+
+<h3>Regression Metrics</h3>
+
+<p><strong>MSE / RMSE</strong> — discussed in <a href="#linear-regression">Section 1</a>. RMSE has the advantage of being in the same units as the target, making it more interpretable. Both are sensitive to outliers.</p>
+
+<p><strong>MAE</strong> — robust to outliers, predicts the median. See <a href="#linear-regression">Section 1</a> for the MSE vs MAE tradeoff.</p>
+
+<p><strong>MAPE</strong> (Mean Absolute Percentage Error) = average of |actual − predicted| / |actual|. Useful when you want relative error — a $10 miss on a $100 item is worse than a $10 miss on a $10,000 item. The problem: it's undefined when actual = 0, and it's asymmetric (overestimates and underestimates are penalized differently).</p>
+
+<h3>Offline vs Online Metrics</h3>
+
+<p>A critical concept for production ML at companies like Pinterest: <strong>offline metrics</strong> (what you measure during development — AUC, NDCG on held-out data) often don't correlate perfectly with <strong>online metrics</strong> (what matters in production — click-through rate, engagement time, saves, revenue). A model that improves offline NDCG by 5% might move online engagement by 0.5%, 0%, or even negatively. This is why A/B testing is essential — offline metrics are necessary for development iteration speed, but online metrics are the ground truth. Always design your offline evaluation to approximate the online setting as closely as possible (use temporal splits, realistic candidate generation, etc.).</p>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">You're building a content recommendation model for a Pinterest-like feed. Which metrics do you use to evaluate it?</div>
+  <div class="answer">
+    <p><strong>Offline:</strong> NDCG@K (measures ranking quality with position discounting — does the model put the most engaging pins at the top?), Hit Rate@K (do users see at least one relevant pin?), and AUC-PR for any binary engagement prediction sub-tasks. Use temporal splits for evaluation to avoid leakage. <strong>Online:</strong> engagement rate (saves, closeup clicks, outbound clicks), session length, user retention, and long-term metrics like weekly active users. The key insight: optimize for engagement quality, not just clicks — clickbait pins get clicks but hurt long-term retention. Also monitor diversity and novelty — a model that only shows pins similar to what the user already liked creates a filter bubble.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">When would you use AUC-PR instead of AUC-ROC?</div>
+  <div class="answer">
+    <p>When the positive class is rare — and in most real-world ML applications, it is. Consider a model detecting policy-violating content on Pinterest: maybe 0.1% of pins violate policy. AUC-ROC can look great (0.98) because the FPR denominator (all negatives) is huge — even many false positives barely move FPR. But AUC-PR would reveal that precision is actually poor — of the pins you flag, only 20% actually violate policy, creating a huge burden for human reviewers. As a rule: if you'd be confused or misled by the FPR axis being compressed, use AUC-PR instead.</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">How do you choose between optimizing for precision vs recall?</div>
+  <div class="answer">
+    <p>Ask: "what's the cost of a false positive vs a false negative?" This frames it as a business decision, not a technical one. In <strong>content moderation</strong>, false positives (removing a legitimate pin) frustrate creators, while false negatives (missing a policy violation) harm users and the platform's reputation. The right tradeoff depends on severity — for child safety, recall must be near-100% even at the cost of many false positives. For borderline "low quality" content, you might tolerate more misses to avoid annoying legitimate creators. Always quantify the costs if possible: if a false positive costs $X in lost engagement and a false negative costs $Y in trust/brand damage, optimize the F-score with β = √(Y/X).</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Your model has great AUC-ROC but poor calibration. Does it matter?</div>
+  <div class="answer">
+    <p>It depends on how you use the predictions. If you only need a <strong>ranking</strong> (sort items by predicted score), calibration doesn't matter — AUC measures ranking quality, and monotonic transformations of scores don't change the ranking. But if you use predicted probabilities as actual probabilities — for setting bid prices in an ad auction, for combining predictions from multiple models, for threshold-based decisions, or for communicating confidence to users — then calibration is critical. A model that outputs P=0.8 should be correct ~80% of the time. Fixes: Platt scaling (fit a logistic regression on validation set outputs), isotonic regression (non-parametric calibration), or temperature scaling (single parameter, popular for neural nets). Always check with a reliability diagram (calibration plot).</p>
+  </div>
+</div>
+
+<div class="interview-q">
+  <div class="q-label">Interview Question</div>
+  <div class="question">Explain NDCG. Why is it better than precision@K for recommendations?</div>
+  <div class="answer">
+    <p>Precision@K treats all positions equally — it just counts what fraction of the top K items are relevant. NDCG weights positions logarithmically: a relevant item at position 1 contributes more than one at position 5. This matches user behavior — users pay more attention to the top of a feed. NDCG also handles <strong>graded relevance</strong>: a pin the user saves (highly relevant) contributes more than one they briefly view (somewhat relevant), while precision@K treats both as equally "relevant." The normalization in NDCG (dividing by the ideal DCG) bounds the score in [0, 1] and accounts for queries with different numbers of relevant items. For a ranking system like Pinterest's feed, where both the order and degree of relevance matter, NDCG is the standard offline metric.</p>
   </div>
 </div>
 
