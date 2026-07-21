@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree-Based Models & Ensembles: The Complete Interview Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-code: #f1f3f5;
+            --text: #1a1a2e;
+            --text-secondary: #495057;
+            --text-muted: #868e96;
+            --accent: #4263eb;
+            --accent-light: #edf2ff;
+            --border: #dee2e6;
+            --border-light: #e9ecef;
+            --green: #2b8a3e;
+            --green-light: #ebfbee;
+            --orange: #e67700;
+            --orange-light: #fff9db;
+            --red: #c92a2a;
+            --red-light: #fff5f5;
+            --purple: #7048e8;
+            --purple-light: #f3f0ff;
+            --teal: #0c8599;
+            --teal-light: #e6fcf5;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --radius: 8px;
+        }
+
+        .dark {
+            --bg: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-code: #1c2128;
+            --text: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent: #6d8cff;
+            --accent-light: #1c2541;
+            --border: #30363d;
+            --border-light: #21262d;
+            --green: #3fb950;
+            --green-light: #0d2818;
+            --orange: #d29922;
+            --orange-light: #2a2000;
+            --red: #f85149;
+            --red-light: #2d1214;
+            --purple: #a78bfa;
+            --purple-light: #1e1635;
+            --teal: #2dd4bf;
+            --teal-light: #0d2d2a;
+            --shadow: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 16px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 6px 14px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+        }
+        .theme-toggle:hover { box-shadow: var(--shadow-md); }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        .breadcrumb {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 32px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 2.4em;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .meta {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+        }
+
+        .toc {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            margin-bottom: 48px;
+        }
+        .toc h3 {
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+        .toc ol {
+            list-style: none;
+            counter-reset: toc;
+        }
+        .toc li {
+            counter-increment: toc;
+            margin-bottom: 8px;
+        }
+        .toc li a {
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.95em;
+            transition: color 0.2s;
+        }
+        .toc li a:hover { color: var(--accent); }
+        .toc li a::before {
+            content: counter(toc) ". ";
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        h2 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 1.7em;
+            font-weight: 700;
+            margin-top: 56px;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-light);
+            letter-spacing: -0.01em;
+        }
+        h2 .section-num {
+            color: var(--text-muted);
+            font-size: 0.55em;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            vertical-align: super;
+            margin-right: 8px;
+        }
+
+        h3 {
+            font-size: 1.15em;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+        }
+
+        p { margin-bottom: 16px; }
+
+        .tags {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tag {
+            font-size: 0.72em;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .tag-green { background: var(--green-light); color: var(--green); }
+        .tag-purple { background: var(--purple-light); color: var(--purple); }
+        .tag-orange { background: var(--orange-light); color: var(--orange); }
+        .tag-teal { background: var(--teal-light); color: var(--teal); }
+        .tag-accent { background: var(--accent-light); color: var(--accent); }
+
+        .formula-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.05em;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88em;
+            background: var(--bg-code);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin: 20px 0;
+            overflow-x: auto;
+            line-height: 1.5;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.85em;
+        }
+
+        .callout {
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            margin: 24px 0;
+            border-left: 4px solid;
+        }
+        .callout-title {
+            font-weight: 600;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .callout-info { background: var(--accent-light); border-color: var(--accent); }
+        .callout-info .callout-title { color: var(--accent); }
+        .callout-warning { background: var(--orange-light); border-color: var(--orange); }
+        .callout-warning .callout-title { color: var(--orange); }
+        .callout-tip { background: var(--green-light); border-color: var(--green); }
+        .callout-tip .callout-title { color: var(--green); }
+        .callout-danger { background: var(--red-light); border-color: var(--red); }
+        .callout-danger .callout-title { color: var(--red); }
+
+        .interview-q {
+            background: var(--purple-light);
+            border: 1px solid var(--purple);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin: 28px 0;
+        }
+        .interview-q-label {
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--purple);
+            margin-bottom: 8px;
+        }
+        .interview-q-question {
+            font-weight: 600;
+            font-size: 1.05em;
+            margin-bottom: 12px;
+        }
+        .interview-q-answer {
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .svg-diagram {
+            width: 100%;
+            margin: 24px 0;
+            display: flex;
+            justify-content: center;
+        }
+        .svg-diagram svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+            font-size: 0.9em;
+        }
+        .comparison-table th {
+            background: var(--bg-secondary);
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+        .comparison-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .comparison-table tr:hover td {
+            background: var(--bg-secondary);
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--border-light);
+            margin: 48px 0;
+        }
+
+        strong { font-weight: 600; }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            font-size: 0.85em;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-light);
+            margin-top: 60px;
+        }
+
+        @media (max-width: 640px) {
+            h1 { font-size: 1.8em; }
+            h2 { font-size: 1.4em; }
+            .container { padding: 24px 16px 60px; }
+            .comparison-table { font-size: 0.8em; }
+            .comparison-table th, .comparison-table td { padding: 8px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="document.body.classList.toggle('dark'); this.textContent = document.body.classList.contains('dark') ? '☀️ Light' : '🌙';">🌙</button>
+
+    <div class="container">
+        <div class="breadcrumb">ML Interview Prep — ML Fundamentals</div>
+
+        <h1>Tree-Based Models & Ensembles</h1>
+        <p class="subtitle">Decision trees, random forests, gradient boosting, XGBoost, LightGBM, and CatBoost — from first principles to tough interview questions. Every split criterion, every algorithm, every hyperparameter, with SVG diagrams and implementations.</p>
+        <p class="meta">Pratiksha Agrawal · 2025 &nbsp;·&nbsp; ⏱️ ~40 min &nbsp;·&nbsp; ❓ ~30 Questions</p>
+
+        <nav class="toc">
+            <h3>Contents</h3>
+            <ol>
+                <li><a href="#decision-trees">Decision Trees</a></li>
+                <li><a href="#splitting-criteria">Splitting Criteria: Gini, Entropy, MSE</a></li>
+                <li><a href="#tree-pruning">Tree Pruning & Regularization</a></li>
+                <li><a href="#bagging">Bagging & Bootstrap Aggregating</a></li>
+                <li><a href="#random-forests">Random Forests</a></li>
+                <li><a href="#gradient-boosting">Gradient Boosting Machines</a></li>
+                <li><a href="#xgboost">XGBoost: The Engine Under the Hood</a></li>
+                <li><a href="#lightgbm">LightGBM: Speed at Scale</a></li>
+                <li><a href="#catboost">CatBoost: Ordered Boosting</a></li>
+                <li><a href="#feature-importance">Feature Importance Methods</a></li>
+                <li><a href="#comparison">Side-by-Side Comparison</a></li>
+                <li><a href="#interview">Interview Questions</a></li>
+            </ol>
+        </nav>
+
+        <!-- ====== SECTION 1: DECISION TREES ====== -->
+        <h2 id="decision-trees"><span class="section-num">01</span>Decision Trees</h2>
+        <div class="tags">
+            <span class="tag tag-green">foundational</span>
+            <span class="tag tag-orange">interpretable</span>
+            <span class="tag tag-teal">classification & regression</span>
+        </div>
+
+        <p>A decision tree recursively partitions the feature space by asking binary questions about individual features. At each internal node, the tree selects the feature and threshold that best separates the data according to some impurity criterion. At each leaf, the tree outputs a prediction — the majority class (classification) or the mean target value (regression).</p>
+
+        <p>The algorithm is beautifully simple: at every node, scan all features, try all possible split thresholds, evaluate the quality of each split, pick the best one, and recurse on the two resulting subsets. Stop when a stopping criterion is met (max depth, min samples, pure node).</p>
+
+        <div class="svg-diagram">
+            <svg viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+                <!-- Root -->
+                <rect x="250" y="10" width="200" height="50" rx="8" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="2"/>
+                <text x="350" y="40" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text, #1a1a2e)">Age ≤ 30?</text>
+
+                <!-- Level 1 Left -->
+                <line x1="300" y1="60" x2="175" y2="120" stroke="var(--border, #dee2e6)" stroke-width="2"/>
+                <text x="225" y="85" font-size="11" fill="var(--green, #2b8a3e)" font-weight="600">Yes</text>
+                <rect x="75" y="120" width="200" height="50" rx="8" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="2"/>
+                <text x="175" y="150" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text, #1a1a2e)">Income ≤ 50K?</text>
+
+                <!-- Level 1 Right -->
+                <line x1="400" y1="60" x2="525" y2="120" stroke="var(--border, #dee2e6)" stroke-width="2"/>
+                <text x="475" y="85" font-size="11" fill="var(--red, #c92a2a)" font-weight="600">No</text>
+                <rect x="425" y="120" width="200" height="50" rx="8" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="2"/>
+                <text x="525" y="150" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text, #1a1a2e)">Credit Score ≤ 700?</text>
+
+                <!-- Level 2 leaves -->
+                <line x1="125" y1="170" x2="75" y2="240" stroke="var(--border, #dee2e6)" stroke-width="2"/>
+                <text x="88" y="205" font-size="11" fill="var(--green, #2b8a3e)" font-weight="600">Yes</text>
+                <rect x="15" y="240" width="120" height="45" rx="22" fill="var(--red-light, #fff5f5)" stroke="var(--red, #c92a2a)" stroke-width="2"/>
+                <text x="75" y="267" text-anchor="middle" font-size="12" font-weight="600" fill="var(--red, #c92a2a)">Deny ✗</text>
+
+                <line x1="225" y1="170" x2="275" y2="240" stroke="var(--border, #dee2e6)" stroke-width="2"/>
+                <text x="262" y="205" font-size="11" fill="var(--red, #c92a2a)" font-weight="600">No</text>
+                <rect x="215" y="240" width="120" height="45" rx="22" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="2"/>
+                <text x="275" y="267" text-anchor="middle" font-size="12" font-weight="600" fill="var(--green, #2b8a3e)">Approve ✓</text>
+
+                <line x1="475" y1="170" x2="425" y2="240" stroke="var(--border, #dee2e6)" stroke-width="2"/>
+                <text x="438" y="205" font-size="11" fill="var(--green, #2b8a3e)" font-weight="600">Yes</text>
+                <rect x="365" y="240" width="120" height="45" rx="22" fill="var(--orange-light, #fff9db)" stroke="var(--orange, #e67700)" stroke-width="2"/>
+                <text x="425" y="267" text-anchor="middle" font-size="12" font-weight="600" fill="var(--orange, #e67700)">Review ⚠</text>
+
+                <line x1="575" y1="170" x2="625" y2="240" stroke="var(--border, #dee2e6)" stroke-width="2"/>
+                <text x="612" y="205" font-size="11" fill="var(--red, #c92a2a)" font-weight="600">No</text>
+                <rect x="565" y="240" width="120" height="45" rx="22" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="2"/>
+                <text x="625" y="267" text-anchor="middle" font-size="12" font-weight="600" fill="var(--green, #2b8a3e)">Approve ✓</text>
+
+                <!-- Labels -->
+                <text x="350" y="330" text-anchor="middle" font-size="12" fill="var(--text-muted, #868e96)">A decision tree for loan approval. Each internal node tests a feature;</text>
+                <text x="350" y="348" text-anchor="middle" font-size="12" fill="var(--text-muted, #868e96)">each leaf is a prediction. The path from root to leaf is the "decision rule."</text>
+
+                <!-- Annotations -->
+                <rect x="20" y="370" width="14" height="14" rx="3" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="1.5"/>
+                <text x="40" y="382" font-size="11" fill="var(--text-muted, #868e96)">Decision node</text>
+                <rect x="160" y="370" width="14" height="14" rx="7" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1.5"/>
+                <text x="180" y="382" font-size="11" fill="var(--text-muted, #868e96)">Leaf (prediction)</text>
+            </svg>
+        </div>
+
+        <h3>Key Properties</h3>
+        <p><strong>No feature scaling required.</strong> Trees split on thresholds, so only the rank ordering of feature values matters. Scaling a feature from [0, 1000] to [0, 1] doesn't change the optimal split point. This is one of the biggest practical advantages over linear and distance-based models.</p>
+
+        <p><strong>Handles mixed feature types natively.</strong> Numerical features use threshold splits (x ≤ t), categorical features use subset splits (x ∈ {A, B}). No one-hot encoding needed — though sklearn's implementation currently requires it.</p>
+
+        <p><strong>Captures non-linear relationships and interactions automatically.</strong> A sequence of splits like "Age ≤ 30 AND Income > 50K" captures a feature interaction without explicit engineering. Linear models need you to create the interaction term manually.</p>
+
+        <p><strong>Highly interpretable.</strong> You can trace any prediction from root to leaf and explain exactly why the model made that decision. This makes decision trees valuable in regulated domains (finance, healthcare) where model explainability is legally required.</p>
+
+        <div class="callout callout-warning">
+            <div class="callout-title">The Fatal Flaw: High Variance</div>
+            <p>A single decision tree grown to full depth is a high-variance model. Small changes in training data can produce a completely different tree structure — a different root split cascades into a totally different set of subsequent decisions. This instability is why no one uses a single deep decision tree in production. Every modern tree-based method exists to fix this problem: Random Forests average many trees (reducing variance), and gradient boosting builds shallow trees sequentially (reducing bias while controlling variance).</p>
+        </div>
+
+        <h3>The CART Algorithm</h3>
+        <p>The standard algorithm for building decision trees is CART (Classification and Regression Trees), introduced by Breiman et al. in 1984. CART always produces binary splits and uses Gini impurity for classification or MSE for regression. The algorithm is greedy — at each node, it picks the locally optimal split without considering the global tree structure. This greedy approach doesn't guarantee the globally optimal tree (which is NP-hard to find), but it works well in practice.</p>
+
+        <pre><code># Pseudocode: CART tree building
+def build_tree(X, y, depth=0):
+    # Stopping conditions
+    if depth >= max_depth or len(y) < min_samples_split or is_pure(y):
+        return Leaf(prediction=aggregate(y))  # mean (regression) or mode (classification)
+
+    best_feature, best_threshold = None, None
+    best_score = float('inf')
+
+    for feature in all_features:
+        for threshold in unique_values(X[:, feature]):
+            left_mask = X[:, feature] <= threshold
+            right_mask = ~left_mask
+            score = weighted_impurity(y[left_mask], y[right_mask])
+            if score < best_score:
+                best_score = score
+                best_feature = feature
+                best_threshold = threshold
+
+    left_child = build_tree(X[left_mask], y[left_mask], depth + 1)
+    right_child = build_tree(X[right_mask], y[right_mask], depth + 1)
+    return Node(feature=best_feature, threshold=best_threshold,
+                left=left_child, right=right_child)</code></pre>
+
+        <hr>
+
+        <!-- ====== SECTION 2: SPLITTING CRITERIA ====== -->
+        <h2 id="splitting-criteria"><span class="section-num">02</span>Splitting Criteria: Gini, Entropy, MSE</h2>
+        <div class="tags">
+            <span class="tag tag-green">foundational</span>
+            <span class="tag tag-purple">the math</span>
+        </div>
+
+        <p>The splitting criterion determines how the tree evaluates candidate splits. At each node, we want to find the split that produces the "purest" child nodes — where each child ideally contains examples from a single class (classification) or with similar target values (regression).</p>
+
+        <h3>Gini Impurity (Classification)</h3>
+        <div class="formula-block">
+            $$\text{Gini}(S) = 1 - \sum_{k=1}^{K} p_k^2$$
+        </div>
+        <p>where p_k is the proportion of class k in set S. Gini measures the probability that a randomly chosen element would be misclassified if randomly labeled according to the class distribution. For a pure node (all one class), Gini = 0. For maximum impurity (uniform distribution over K classes), Gini = 1 − 1/K.</p>
+
+        <p>For binary classification: Gini = 2p(1−p), which peaks at 0.5 when p = 0.5.</p>
+
+        <h3>Entropy / Information Gain (Classification)</h3>
+        <div class="formula-block">
+            $$H(S) = -\sum_{k=1}^{K} p_k \log_2 p_k$$
+        </div>
+        <p>Entropy comes from information theory — it measures the uncertainty or "surprise" in the distribution. A pure node has entropy 0; maximum entropy for K classes is log₂(K). Information gain is the reduction in entropy after a split: IG = H(parent) − Σ (|child_i|/|parent|) · H(child_i).</p>
+
+        <h3>Gini vs Entropy: Does It Matter?</h3>
+        <p>In practice, <strong>almost never</strong>. Both produce very similar trees and nearly identical performance. Gini is sklearn's default because it's slightly faster (no logarithm computation). Entropy tends to produce slightly more balanced trees because the log function penalizes impurity more at the extremes. The difference is marginal enough that you should spend tuning budget elsewhere. But know this for interviews — interviewers love asking it, and the right answer is "they're practically equivalent, but here's the mathematical difference."</p>
+
+        <div class="svg-diagram">
+            <svg viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+                <!-- Axes -->
+                <line x1="80" y1="250" x2="620" y2="250" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="80" y1="250" x2="80" y2="30" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+
+                <!-- Y-axis labels -->
+                <text x="70" y="255" text-anchor="end" font-size="11" fill="var(--text-muted, #868e96)">0</text>
+                <text x="70" y="145" text-anchor="end" font-size="11" fill="var(--text-muted, #868e96)">0.5</text>
+                <text x="70" y="35" text-anchor="end" font-size="11" fill="var(--text-muted, #868e96)">1.0</text>
+
+                <!-- X-axis labels -->
+                <text x="80" y="272" text-anchor="middle" font-size="11" fill="var(--text-muted, #868e96)">0</text>
+                <text x="350" y="272" text-anchor="middle" font-size="11" fill="var(--text-muted, #868e96)">0.5</text>
+                <text x="620" y="272" text-anchor="middle" font-size="11" fill="var(--text-muted, #868e96)">1.0</text>
+                <text x="350" y="295" text-anchor="middle" font-size="12" fill="var(--text-secondary, #495057)">p (proportion of class 1)</text>
+
+                <!-- Gini curve: 2p(1-p), scaled -->
+                <path d="M80,250 Q200,60 350,30 Q500,60 620,250" fill="none" stroke="var(--accent, #4263eb)" stroke-width="2.5"/>
+                <!-- Entropy curve: -p*log(p) - (1-p)*log(1-p), scaled -->
+                <path d="M80,250 Q200,45 350,30 Q500,45 620,250" fill="none" stroke="var(--orange, #e67700)" stroke-width="2.5" stroke-dasharray="8,4"/>
+                <!-- Misclassification error: min(p, 1-p), scaled -->
+                <path d="M80,250 L350,30 L620,250" fill="none" stroke="var(--green, #2b8a3e)" stroke-width="2" stroke-dasharray="4,4"/>
+
+                <!-- Peak annotations -->
+                <circle cx="350" cy="30" r="4" fill="var(--accent, #4263eb)"/>
+                <text x="364" y="28" font-size="11" fill="var(--accent, #4263eb)" font-weight="500">Gini max = 0.5</text>
+
+                <!-- Legend -->
+                <line x1="100" y1="310" x2="130" y2="310" stroke="var(--accent, #4263eb)" stroke-width="2.5"/>
+                <text x="135" y="314" font-size="11" fill="var(--text, #1a1a2e)">Gini = 2p(1−p)</text>
+
+                <line x1="280" y1="310" x2="310" y2="310" stroke="var(--orange, #e67700)" stroke-width="2.5" stroke-dasharray="8,4"/>
+                <text x="315" y="314" font-size="11" fill="var(--text, #1a1a2e)">Entropy (scaled)</text>
+
+                <line x1="455" y1="310" x2="485" y2="310" stroke="var(--green, #2b8a3e)" stroke-width="2" stroke-dasharray="4,4"/>
+                <text x="490" y="314" font-size="11" fill="var(--text, #1a1a2e)">Misclassification</text>
+            </svg>
+        </div>
+
+        <h3>MSE for Regression Trees</h3>
+        <div class="formula-block">
+            $$\text{Split quality} = \frac{|S_L|}{|S|} \text{MSE}(S_L) + \frac{|S_R|}{|S|} \text{MSE}(S_R)$$
+        </div>
+        <p>For regression, we minimize the weighted mean squared error of the children. At each leaf, the prediction is the mean of the target values in that leaf. This is equivalent to fitting a piecewise constant function — the tree approximates the true function as a series of flat steps. Each split adds one more "step."</p>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Complexity of Finding the Best Split</div>
+            <p>For each node, CART evaluates all features × all thresholds. For N examples and d features, this is O(N·d·log(N)) per node (with sorted features). Building a full tree is O(N²·d·log(N)) in the worst case. This is fast enough for moderate datasets, but becomes a bottleneck at scale — which is exactly what histogram-based methods (LightGBM, XGBoost's <code>tree_method='hist'</code>) address.</p>
+        </div>
+
+        <hr>
+
+        <!-- ====== SECTION 3: PRUNING ====== -->
+        <h2 id="tree-pruning"><span class="section-num">03</span>Tree Pruning & Regularization</h2>
+        <div class="tags">
+            <span class="tag tag-green">foundational</span>
+            <span class="tag tag-orange">overfitting control</span>
+        </div>
+
+        <p>An unpruned decision tree grown to full depth will achieve zero training error by creating a leaf for every training example. This memorizes the data perfectly but generalizes terribly. Pruning controls tree complexity to prevent overfitting.</p>
+
+        <h3>Pre-Pruning (Early Stopping)</h3>
+        <p>Stop growing the tree before it fully memorizes the data. Common constraints: <code>max_depth</code> (limit tree height), <code>min_samples_split</code> (minimum examples required to split a node), <code>min_samples_leaf</code> (minimum examples required in each leaf), <code>max_leaf_nodes</code> (limit total leaves), and <code>min_impurity_decrease</code> (only split if the impurity improvement exceeds a threshold). Pre-pruning is fast and simple, but it's greedy — it might stop a split that looks bad locally but would lead to great splits downstream.</p>
+
+        <h3>Post-Pruning (Cost-Complexity Pruning)</h3>
+        <p>Grow the full tree, then remove branches that don't improve generalization. CART uses <strong>minimal cost-complexity pruning</strong>: for a subtree T_t rooted at node t, the tree is replaced with a leaf if the cost-complexity criterion favors simplicity:</p>
+
+        <div class="formula-block">
+            $$R_\alpha(T) = R(T) + \alpha \cdot |T|$$
+        </div>
+
+        <p>where R(T) is the total misclassification cost (or MSE), |T| is the number of leaves, and α is the complexity parameter — the penalty per leaf. Higher α produces simpler trees. You find the optimal α via cross-validation: grow a full tree, generate the sequence of subtrees for increasing α values, and pick the α that minimizes validation error. This is sklearn's <code>ccp_alpha</code> parameter.</p>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">Interview Pro Tip</div>
+            <p>If asked "how do you regularize a decision tree?", the strong answer lists both families and connects them to bias-variance: pre-pruning constraints control variance by limiting complexity upfront; post-pruning starts with low bias (full tree) and trades off bias for reduced variance. In practice, pre-pruning via <code>max_depth</code> and <code>min_samples_leaf</code> is far more common because it's simpler and faster, especially in ensemble methods where individual tree regularization is less critical.</p>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">What are the advantages and disadvantages of decision trees?</div>
+            <div class="interview-q-answer">
+                <strong>Advantages:</strong> highly interpretable (you can explain any prediction), handle non-linear relationships and feature interactions automatically, require no feature scaling or normalization, handle mixed data types and missing values (in some implementations), fast to train and predict, and can be visualized easily.<br><br>
+                <strong>Disadvantages:</strong> high variance — small data changes produce very different trees (instability). They tend to overfit unless carefully pruned. They create axis-aligned decision boundaries (can't capture diagonal patterns efficiently — you need many splits to approximate a diagonal line). They're biased toward features with many levels (more possible splits = more chances to find a "good" one by luck). And they have no concept of distance — all examples in a leaf get the same prediction, even if some are near the boundary. The variance problem is so severe that single trees are almost never used in production — ensembles (Random Forests, gradient boosting) exist to fix it.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">How does a decision tree handle missing values?</div>
+            <div class="interview-q-answer">
+                It depends on the implementation. <strong>Sklearn</strong> does not handle missing values natively — you must impute before fitting. <strong>XGBoost</strong> and <strong>LightGBM</strong> handle them elegantly: during training, when a feature value is missing, the algorithm tries sending missing-value examples to both the left and right child, and picks the direction that gives a better split. This "learned default direction" is stored and used at prediction time. This is actually one of the biggest practical advantages of XGBoost/LightGBM — they turn missing values into useful signal rather than noise. <strong>CART</strong> (Breiman's original) used surrogate splits: find another feature that mimics the primary split, and use it when the primary feature is missing.
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- ====== SECTION 4: BAGGING ====== -->
+        <h2 id="bagging"><span class="section-num">04</span>Bagging & Bootstrap Aggregating</h2>
+        <div class="tags">
+            <span class="tag tag-purple">ensemble</span>
+            <span class="tag tag-accent">variance reduction</span>
+        </div>
+
+        <p>Bagging (Bootstrap AGGregating), introduced by Breiman in 1996, is the key idea that makes tree-based ensembles work. The insight: if you have a high-variance model (like a deep decision tree), you can reduce variance by training many copies on different random subsets of the data and averaging their predictions.</p>
+
+        <h3>How It Works</h3>
+        <p>1. Draw B <strong>bootstrap samples</strong> from the training data: each sample is the same size as the original dataset, drawn with replacement. On average, each bootstrap sample contains ~63.2% of the original examples (the rest are duplicates), and ~36.8% are left out.</p>
+
+        <p>2. Train an independent decision tree (usually deep, unpruned) on each bootstrap sample.</p>
+
+        <p>3. Aggregate predictions: for classification, take the majority vote; for regression, take the average.</p>
+
+        <div class="svg-diagram">
+            <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+                <!-- Original data -->
+                <rect x="260" y="10" width="180" height="40" rx="6" fill="var(--bg-secondary, #f8f9fa)" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <text x="350" y="35" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text, #1a1a2e)">Training Data (N samples)</text>
+
+                <!-- Bootstrap arrows -->
+                <line x1="260" y1="50" x2="100" y2="90" stroke="var(--text-muted, #868e96)" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <line x1="350" y1="50" x2="350" y2="90" stroke="var(--text-muted, #868e96)" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <line x1="440" y1="50" x2="600" y2="90" stroke="var(--text-muted, #868e96)" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+                <text x="170" y="75" font-size="10" fill="var(--text-muted, #868e96)">sample w/ replacement</text>
+
+                <!-- Bootstrap samples -->
+                <rect x="30" y="90" width="140" height="35" rx="6" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="1.5"/>
+                <text x="100" y="112" text-anchor="middle" font-size="11" fill="var(--accent, #4263eb)">Bootstrap 1</text>
+
+                <rect x="280" y="90" width="140" height="35" rx="6" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="1.5"/>
+                <text x="350" y="112" text-anchor="middle" font-size="11" fill="var(--accent, #4263eb)">Bootstrap 2</text>
+
+                <rect x="530" y="90" width="140" height="35" rx="6" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="1.5"/>
+                <text x="600" y="112" text-anchor="middle" font-size="11" fill="var(--accent, #4263eb)">Bootstrap B</text>
+
+                <text x="440" y="112" text-anchor="middle" font-size="16" fill="var(--text-muted, #868e96)">· · ·</text>
+
+                <!-- Trees -->
+                <line x1="100" y1="125" x2="100" y2="150" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="350" y1="125" x2="350" y2="150" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="600" y1="125" x2="600" y2="150" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+
+                <!-- Tree icons -->
+                <polygon points="100,150 70,200 130,200" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1.5"/>
+                <rect x="95" y="200" width="10" height="15" fill="var(--green, #2b8a3e)" rx="1"/>
+                <text x="100" y="235" text-anchor="middle" font-size="11" font-weight="500" fill="var(--text, #1a1a2e)">Tree 1</text>
+
+                <polygon points="350,150 320,200 380,200" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1.5"/>
+                <rect x="345" y="200" width="10" height="15" fill="var(--green, #2b8a3e)" rx="1"/>
+                <text x="350" y="235" text-anchor="middle" font-size="11" font-weight="500" fill="var(--text, #1a1a2e)">Tree 2</text>
+
+                <polygon points="600,150 570,200 630,200" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1.5"/>
+                <rect x="595" y="200" width="10" height="15" fill="var(--green, #2b8a3e)" rx="1"/>
+                <text x="600" y="235" text-anchor="middle" font-size="11" font-weight="500" fill="var(--text, #1a1a2e)">Tree B</text>
+
+                <!-- Aggregation -->
+                <line x1="100" y1="240" x2="350" y2="270" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="350" y1="240" x2="350" y2="270" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="600" y1="240" x2="350" y2="270" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+
+                <rect x="270" y="270" width="160" height="30" rx="15" fill="var(--purple-light, #f3f0ff)" stroke="var(--purple, #7048e8)" stroke-width="2"/>
+                <text x="350" y="290" text-anchor="middle" font-size="12" font-weight="600" fill="var(--purple, #7048e8)">Average / Vote</text>
+            </svg>
+        </div>
+
+        <h3>Why Averaging Reduces Variance</h3>
+        <p>If you have B independent estimators, each with variance σ², the variance of their average is σ²/B. That's the power of averaging — variance drops as 1/B. But here's the catch: bootstrap trees aren't truly independent because they're trained on overlapping data. If the trees have pairwise correlation ρ, the variance of the ensemble is:</p>
+
+        <div class="formula-block">
+            $$\text{Var}_{\text{ensemble}} = \rho \cdot \sigma^2 + \frac{1 - \rho}{B} \cdot \sigma^2$$
+        </div>
+
+        <p>The first term (ρσ²) doesn't decrease with more trees — it's the irreducible correlation. The second term vanishes as B grows. So the key to making bagging work is <strong>reducing ρ</strong> — making the trees as different from each other as possible. This is exactly what Random Forests do.</p>
+
+        <h3>Out-of-Bag (OOB) Estimation</h3>
+        <p>Since each bootstrap sample leaves out ~36.8% of examples, you get a free validation set for each tree. The OOB estimate: for each training example, aggregate predictions only from trees that did <em>not</em> include that example in their bootstrap sample. This gives an unbiased estimate of test error without needing a separate validation set — remarkably useful, and practically equivalent to leave-one-out cross-validation.</p>
+
+        <hr>
+
+        <!-- ====== SECTION 5: RANDOM FORESTS ====== -->
+        <h2 id="random-forests"><span class="section-num">05</span>Random Forests</h2>
+        <div class="tags">
+            <span class="tag tag-purple">ensemble</span>
+            <span class="tag tag-green">industry workhorse</span>
+            <span class="tag tag-teal">Breiman 2001</span>
+        </div>
+
+        <p>Random Forests (Breiman, 2001) extend bagging with one crucial addition: at each split, instead of considering all features, randomly sample a subset of m features and pick the best split from that subset. This <strong>feature randomization</strong> is the key innovation — it decorrelates the trees, reducing ρ in the variance formula above, which is exactly what makes the ensemble more powerful than plain bagging.</p>
+
+        <h3>Why Feature Randomization Works</h3>
+        <p>Without feature randomization, if one feature is highly predictive, every bagged tree will split on it at the root, and all trees will be correlated — defeating the purpose of averaging. By forcing each split to consider only a random subset, weaker features get a chance to be the local best split, leading to structurally diverse trees. More diversity → lower correlation → lower ensemble variance.</p>
+
+        <h3>Hyperparameters That Matter</h3>
+        <p><strong>max_features (m)</strong> — the number of features to consider at each split. This is the most important Random Forest hyperparameter. Defaults: m = √d for classification, m = d/3 for regression (where d is total features). Lower m → more randomness → lower correlation → lower variance, but each individual tree is weaker (higher bias). Higher m → trees are more accurate individually but more correlated. The default works well in most cases — tune with OOB error or cross-validation.</p>
+
+        <p><strong>n_estimators (B)</strong> — number of trees. More trees is always better (or at least not worse) — the ensemble's performance improves monotonically with B and plateaus. There's no overfitting from adding more trees (unlike boosting). The only cost is computation. Start with 500, increase until OOB error stabilizes.</p>
+
+        <p><strong>max_depth</strong> — depth of each tree. The default is unlimited (grow until pure leaves or min_samples constraints). Deep trees have low bias and high variance — which is exactly what bagging averages out. Making trees shallower increases bias, which bagging can't fix.</p>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Random Forests Can't Overfit by Adding More Trees</div>
+            <p>This is a common interview question and a key distinction from boosting. With more trees, the ensemble's variance keeps decreasing (or staying flat), while bias stays constant. The OOB error will plateau at some point but never increase. This is because each new tree is an independent estimator — averaging in one more can only help or be neutral. In contrast, gradient boosting <em>can</em> overfit with too many rounds because each new tree is fit to the current residuals, and eventually you start fitting noise.</p>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">Random Forest vs a single deep decision tree — what changes and why?</div>
+            <div class="interview-q-answer">
+                A single deep tree has low bias but very high variance — it memorizes training data and is unstable. Random Forest keeps the low bias (each tree is still deep and expressive) but dramatically reduces variance through two mechanisms: bootstrap sampling (data randomization) and feature subsampling (feature randomization). The result: the ensemble is far more stable and generalizes much better. The cost is interpretability — you can't trace a single decision path anymore — and computation (training and storing hundreds of trees). A rough analogy: a single expert gives one potentially wrong answer; a committee of diverse experts, each seeing slightly different information, gives a much more reliable collective answer.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">When would you choose Random Forest over gradient boosting (XGBoost/LightGBM)?</div>
+            <div class="interview-q-answer">
+                <strong>Choose Random Forest when:</strong> (1) You need a strong baseline with minimal tuning — Random Forests work well out of the box with almost no hyperparameter tuning, while gradient boosting has many sensitive hyperparameters (learning rate, depth, regularization). (2) You want a model that's robust to noise and outliers. (3) You want parallelism — all trees train independently, so you can easily distribute across cores. (4) You want OOB error as a free validation metric.<br><br>
+                <strong>Choose gradient boosting when:</strong> (1) You're squeezing out every last bit of performance on a Kaggle competition or high-stakes production system. (2) You have compute and time for hyperparameter tuning. (3) Your data has complex patterns that benefit from boosting's sequential error correction.<br><br>
+                In practice: Random Forest for prototyping and when tuning time is limited; gradient boosting for production systems where you'll invest in tuning. On most tabular datasets, well-tuned gradient boosting slightly outperforms Random Forest, but the gap is often small relative to feature engineering differences.
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- ====== SECTION 6: GRADIENT BOOSTING ====== -->
+        <h2 id="gradient-boosting"><span class="section-num">06</span>Gradient Boosting Machines</h2>
+        <div class="tags">
+            <span class="tag tag-purple">ensemble</span>
+            <span class="tag tag-accent">bias reduction</span>
+            <span class="tag tag-teal">Friedman 2001</span>
+        </div>
+
+        <p>Gradient boosting is arguably the most important algorithm in applied machine learning for tabular data. While bagging reduces variance by averaging independent models, boosting reduces <strong>bias</strong> by training models sequentially, where each new model corrects the errors of the ensemble so far.</p>
+
+        <h3>The Core Idea: Additive Modeling</h3>
+        <p>Build the model as a sum of weak learners (shallow trees):</p>
+
+        <div class="formula-block">
+            $$F_M(x) = F_0 + \sum_{m=1}^{M} \eta \cdot h_m(x)$$
+        </div>
+
+        <p>where F₀ is the initial prediction (typically the mean of y for regression, or the log-odds for classification), h_m is the m-th tree, and η is the learning rate (shrinkage). Each tree h_m is fit to the <strong>negative gradient</strong> of the loss function evaluated at the current ensemble's predictions — which for MSE loss reduces to the residuals.</p>
+
+        <h3>Gradient Boosting = Gradient Descent in Function Space</h3>
+        <p>This is the key insight that interviewers love. In regular gradient descent, you update parameters: w ← w − η·∇L. In gradient boosting, you update the <em>function</em>: F ← F − η·∇L. The "gradient" is computed at each training example: for MSE, ∂L/∂F(xᵢ) = F(xᵢ) − yᵢ, so the negative gradient is yᵢ − F(xᵢ) = the residual. Each new tree approximates this negative gradient, effectively taking a step in function space that reduces the loss.</p>
+
+        <p>For other loss functions (log loss, Huber, quantile), the negative gradient isn't the residual — it's the <em>pseudo-residual</em>. This generality is what makes gradient boosting applicable to any differentiable loss function.</p>
+
+        <div class="svg-diagram">
+            <svg viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+                <!-- Title -->
+                <text x="350" y="25" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text, #1a1a2e)">Gradient Boosting: Sequential Error Correction</text>
+
+                <!-- Round 0 -->
+                <rect x="30" y="50" width="190" height="90" rx="6" fill="var(--bg-secondary, #f8f9fa)" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <text x="125" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent, #4263eb)">Round 0: Initialize</text>
+                <text x="125" y="92" text-anchor="middle" font-size="12" fill="var(--text, #1a1a2e)">F₀ = mean(y) = 25.0</text>
+                <text x="125" y="112" text-anchor="middle" font-size="11" fill="var(--text-muted, #868e96)">residuals = y − 25.0</text>
+                <text x="125" y="130" text-anchor="middle" font-size="11" fill="var(--red, #c92a2a)">[−5, +10, −3, +8, ...]</text>
+
+                <!-- Arrow -->
+                <path d="M225,95 L255,95" stroke="var(--text-muted, #868e96)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+                <!-- Round 1 -->
+                <rect x="260" y="50" width="190" height="90" rx="6" fill="var(--bg-secondary, #f8f9fa)" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <text x="355" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent, #4263eb)">Round 1: Fit tree to residuals</text>
+                <text x="355" y="92" text-anchor="middle" font-size="12" fill="var(--text, #1a1a2e)">h₁(x) ≈ residuals</text>
+                <text x="355" y="112" text-anchor="middle" font-size="11" fill="var(--text, #1a1a2e)">F₁ = F₀ + η·h₁</text>
+                <text x="355" y="130" text-anchor="middle" font-size="11" fill="var(--text-muted, #868e96)">new residuals smaller</text>
+
+                <!-- Arrow -->
+                <path d="M455,95 L485,95" stroke="var(--text-muted, #868e96)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+                <!-- Round 2 -->
+                <rect x="490" y="50" width="190" height="90" rx="6" fill="var(--bg-secondary, #f8f9fa)" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <text x="585" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent, #4263eb)">Round 2: Fit next tree</text>
+                <text x="585" y="92" text-anchor="middle" font-size="12" fill="var(--text, #1a1a2e)">h₂(x) ≈ new residuals</text>
+                <text x="585" y="112" text-anchor="middle" font-size="11" fill="var(--text, #1a1a2e)">F₂ = F₁ + η·h₂</text>
+                <text x="585" y="130" text-anchor="middle" font-size="11" fill="var(--text-muted, #868e96)">residuals even smaller</text>
+
+                <!-- Visual: error bars shrinking -->
+                <text x="125" y="175" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text-secondary, #495057)">Residuals shrink with each round:</text>
+
+                <!-- Bar chart showing residuals decreasing -->
+                <rect x="80" y="195" width="80" height="60" rx="3" fill="var(--red, #c92a2a)" opacity="0.3"/>
+                <rect x="80" y="215" width="80" height="40" rx="3" fill="var(--red, #c92a2a)" opacity="0.15"/>
+                <text x="120" y="270" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">Round 0</text>
+
+                <rect x="200" y="215" width="80" height="40" rx="3" fill="var(--orange, #e67700)" opacity="0.3"/>
+                <rect x="200" y="230" width="80" height="25" rx="3" fill="var(--orange, #e67700)" opacity="0.15"/>
+                <text x="240" y="270" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">Round 1</text>
+
+                <rect x="320" y="230" width="80" height="25" rx="3" fill="var(--orange, #e67700)" opacity="0.2"/>
+                <rect x="320" y="240" width="80" height="15" rx="3" fill="var(--orange, #e67700)" opacity="0.1"/>
+                <text x="360" y="270" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">Round 5</text>
+
+                <rect x="440" y="240" width="80" height="15" rx="3" fill="var(--green, #2b8a3e)" opacity="0.2"/>
+                <rect x="440" y="247" width="80" height="8" rx="3" fill="var(--green, #2b8a3e)" opacity="0.1"/>
+                <text x="480" y="270" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">Round 50</text>
+
+                <rect x="560" y="247" width="80" height="8" rx="3" fill="var(--green, #2b8a3e)" opacity="0.15"/>
+                <rect x="560" y="250" width="80" height="5" rx="2" fill="var(--green, #2b8a3e)" opacity="0.1"/>
+                <text x="600" y="270" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">Round 200</text>
+
+                <!-- Caption -->
+                <text x="350" y="310" text-anchor="middle" font-size="11" fill="var(--text-muted, #868e96)">Each round fits a tree to the current residuals, shrinking the total error.</text>
+                <text x="350" y="328" text-anchor="middle" font-size="11" fill="var(--text-muted, #868e96)">The learning rate η controls how much each tree contributes — smaller η = more rounds needed,</text>
+                <text x="350" y="346" text-anchor="middle" font-size="11" fill="var(--text-muted, #868e96)">but better generalization (more regularization).</text>
+
+                <!-- Arrow marker definition -->
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted, #868e96)"/>
+                    </marker>
+                </defs>
+            </svg>
+        </div>
+
+        <h3>The Learning Rate (Shrinkage)</h3>
+        <p>The learning rate η (typically 0.01–0.3) scales each tree's contribution: F_m = F_{m−1} + η·h_m. Smaller η means each tree contributes less, requiring more rounds to converge — but the ensemble generalizes much better. This is one of the most consistent findings in machine learning: <strong>lower learning rate + more trees = better generalization</strong>, at the cost of more computation. It's analogous to taking small, careful steps in gradient descent rather than large, erratic ones.</p>
+
+        <h3>Stochastic Gradient Boosting</h3>
+        <p>Friedman (2002) introduced two forms of randomization to gradient boosting, borrowed from Random Forests: <strong>row subsampling</strong> (subsample, typically 0.5–0.8) — each tree is trained on a random fraction of the data, and <strong>column subsampling</strong> (colsample_bytree, typically 0.5–0.8) — each tree considers a random subset of features. Both reduce correlation between trees and act as regularization, often improving generalization. This "stochastic" variant is what modern implementations (XGBoost, LightGBM) use by default.</p>
+
+        <pre><code># Gradient Boosting from scratch (MSE loss)
+import numpy as np
+from sklearn.tree import DecisionTreeRegressor
+
+class GradientBoostingRegressor:
+    def __init__(self, n_estimators=100, learning_rate=0.1, max_depth=3):
+        self.n_estimators = n_estimators
+        self.lr = learning_rate
+        self.max_depth = max_depth
+        self.trees = []
+        self.F0 = None
+
+    def fit(self, X, y):
+        self.F0 = np.mean(y)                    # Step 0: initialize with mean
+        F = np.full(len(y), self.F0)
+
+        for m in range(self.n_estimators):
+            residuals = y - F                    # Negative gradient of MSE
+            tree = DecisionTreeRegressor(max_depth=self.max_depth)
+            tree.fit(X, residuals)               # Fit tree to residuals
+            self.trees.append(tree)
+            F += self.lr * tree.predict(X)       # Update ensemble
+
+    def predict(self, X):
+        F = np.full(X.shape[0], self.F0)
+        for tree in self.trees:
+            F += self.lr * tree.predict(X)
+        return F</code></pre>
+
+        <div class="callout callout-danger">
+            <div class="callout-title">Gradient Boosting CAN Overfit (Unlike Random Forests)</div>
+            <p>Each new boosting round fits the current residuals, which include noise in the training data. With too many rounds, the model starts fitting noise — test error increases while training error continues to decrease. This is why <strong>early stopping</strong> is essential: monitor validation loss and stop when it starts rising. XGBoost and LightGBM both support <code>early_stopping_rounds</code> — always use it. In contrast, Random Forests can't overfit by adding more trees because each tree is independent.</p>
+        </div>
+
+        <hr>
+
+        <!-- ====== SECTION 7: XGBOOST ====== -->
+        <h2 id="xgboost"><span class="section-num">07</span>XGBoost: The Engine Under the Hood</h2>
+        <div class="tags">
+            <span class="tag tag-accent">production standard</span>
+            <span class="tag tag-purple">Kaggle champion</span>
+            <span class="tag tag-teal">Chen & Guestrin 2016</span>
+        </div>
+
+        <p>XGBoost (eXtreme Gradient Boosting), by Chen and Guestrin (2016), turned gradient boosting from a good algorithm into a dominant system. It's not just an implementation of gradient boosting — it introduces a regularized objective, an exact and approximate split-finding algorithm, and system-level optimizations that make it fast enough for production at scale. For years it was the most winning algorithm in Kaggle competitions, and it remains the default choice for tabular data at many companies.</p>
+
+        <h3>The Regularized Objective</h3>
+        <p>XGBoost adds explicit regularization to the objective function. At round m, the tree h_m is found by minimizing:</p>
+
+        <div class="formula-block">
+            $$\mathcal{L}^{(m)} = \sum_{i=1}^{N} l\big(y_i, F_{m-1}(x_i) + h_m(x_i)\big) + \Omega(h_m)$$
+        </div>
+        <div class="formula-block">
+            $$\Omega(h) = \gamma T + \frac{1}{2}\lambda \sum_{j=1}^{T} w_j^2$$
+        </div>
+
+        <p>where T is the number of leaves and w_j is the weight (prediction value) of leaf j. The first term (γT) penalizes the number of leaves — it's a complexity cost that encourages simpler trees. The second term (λ||w||²) is L2 regularization on leaf weights, shrinking predictions toward zero. Standard gradient boosting has no such regularization — the only control is tree depth and learning rate. XGBoost's explicit regularization is a major reason it generalizes better.</p>
+
+        <h3>Second-Order Approximation</h3>
+        <p>XGBoost takes a second-order Taylor expansion of the loss function around the current prediction:</p>
+
+        <div class="formula-block">
+            $$\mathcal{L}^{(m)} \approx \sum_{i=1}^{N} \Big[ g_i \cdot h_m(x_i) + \frac{1}{2} h_i \cdot h_m(x_i)^2 \Big] + \Omega(h_m)$$
+        </div>
+
+        <p>where g_i = ∂l/∂F(xᵢ) is the first-order gradient and h_i = ∂²l/∂F(xᵢ)² is the second-order gradient (Hessian). Using second-order information gives XGBoost better convergence than standard gradient boosting (which uses only first-order gradients) — it's the difference between gradient descent and Newton's method.</p>
+
+        <h3>Optimal Leaf Weights and Split Gain</h3>
+        <p>With the second-order approximation, XGBoost derives closed-form solutions for the optimal leaf weight and the gain from a split:</p>
+
+        <div class="formula-block">
+            $$w_j^* = -\frac{\sum_{i \in I_j} g_i}{\sum_{i \in I_j} h_i + \lambda}$$
+        </div>
+
+        <div class="formula-block">
+            $$\text{Gain} = \frac{1}{2}\left[\frac{(\sum_{i \in I_L} g_i)^2}{\sum_{i \in I_L} h_i + \lambda} + \frac{(\sum_{i \in I_R} g_i)^2}{\sum_{i \in I_R} h_i + \lambda} - \frac{(\sum_{i \in I} g_i)^2}{\sum_{i \in I} h_i + \lambda}\right] - \gamma$$
+        </div>
+
+        <p>The gain formula is elegant: it's (left score) + (right score) − (parent score) − γ. If the gain is negative, the split isn't worth making — this is how γ performs built-in pruning. No need for post-pruning or separate regularization strategies.</p>
+
+        <h3>System-Level Optimizations</h3>
+        <p><strong>Column block structure:</strong> XGBoost pre-sorts features and stores them in compressed column (CSC) format, allowing efficient parallel split finding across features.</p>
+
+        <p><strong>Cache-aware access:</strong> for the exact greedy algorithm, XGBoost uses prefetching to efficiently access gradient statistics, minimizing cache misses.</p>
+
+        <p><strong>Out-of-core computation:</strong> XGBoost can train on data larger than memory by using block compression and sharding across disk.</p>
+
+        <p><strong>Sparsity-aware split finding:</strong> XGBoost handles sparse data (missing values, zeros from one-hot encoding) natively by learning a default direction for missing values at each split, as described in Section 3.</p>
+
+        <h3>Key Hyperparameters</h3>
+        <pre><code># XGBoost hyperparameter template
+params = {
+    'learning_rate': 0.1,       # η — start here, lower for final model
+    'max_depth': 6,             # tree depth — 3-8 typical
+    'n_estimators': 1000,       # boosting rounds — use early stopping
+    'subsample': 0.8,           # row subsampling per tree
+    'colsample_bytree': 0.8,    # feature subsampling per tree
+    'reg_lambda': 1.0,          # L2 regularization on leaf weights (λ)
+    'reg_alpha': 0.0,           # L1 regularization on leaf weights
+    'gamma': 0.0,               # minimum gain to split (γ)
+    'min_child_weight': 1,      # minimum sum of hessian in a leaf
+    'tree_method': 'hist',      # histogram-based (fast) vs 'exact'
+}</code></pre>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">XGBoost Tuning Order</div>
+            <p>A practical tuning sequence: (1) Fix <code>learning_rate=0.1</code> and find the right <code>n_estimators</code> using early stopping. (2) Tune <code>max_depth</code> and <code>min_child_weight</code> together. (3) Tune <code>subsample</code> and <code>colsample_bytree</code>. (4) Tune regularization: <code>gamma</code>, <code>reg_lambda</code>, <code>reg_alpha</code>. (5) Finally, lower the learning rate (e.g., to 0.01) and proportionally increase <code>n_estimators</code>. Always use early stopping.</p>
+        </div>
+
+        <hr>
+
+        <!-- ====== SECTION 8: LIGHTGBM ====== -->
+        <h2 id="lightgbm"><span class="section-num">08</span>LightGBM: Speed at Scale</h2>
+        <div class="tags">
+            <span class="tag tag-accent">production standard</span>
+            <span class="tag tag-orange">speed & memory</span>
+            <span class="tag tag-teal">Ke et al. 2017</span>
+        </div>
+
+        <p>LightGBM (Light Gradient Boosting Machine), developed by Microsoft Research (Ke et al., 2017), focuses on training speed and memory efficiency. On large datasets, LightGBM is typically 10-20× faster than XGBoost's exact method while achieving comparable or better accuracy. It introduces two key algorithmic innovations: Gradient-based One-Side Sampling (GOSS) and Exclusive Feature Bundling (EFB), alongside a fundamentally different tree growth strategy.</p>
+
+        <h3>Histogram-Based Split Finding</h3>
+        <p>Instead of evaluating every unique feature value as a candidate split (XGBoost's exact method), LightGBM buckets continuous features into discrete bins (histograms, typically 255 bins). Splits are evaluated only at bin boundaries. This reduces the split-finding complexity from O(N·d) to O(bins·d), a massive speedup for large N. XGBoost later adopted this as <code>tree_method='hist'</code>.</p>
+
+        <div class="svg-diagram">
+            <svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+                <!-- Exact method -->
+                <text x="170" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text, #1a1a2e)">Exact Split Finding</text>
+                <text x="170" y="38" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">Evaluate every unique value</text>
+
+                <!-- Data points -->
+                <line x1="30" y1="70" x2="310" y2="70" stroke="var(--border, #dee2e6)" stroke-width="1"/>
+                <circle cx="35" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="42" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="55" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="63" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="80" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="95" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="110" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="128" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="145" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="165" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="180" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="200" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="220" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="240" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="260" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="280" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+                <circle cx="300" cy="70" r="3" fill="var(--accent, #4263eb)"/>
+
+                <!-- Split candidates (many) -->
+                <line x1="42" y1="55" x2="42" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="55" y1="55" x2="55" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="80" y1="55" x2="80" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="95" y1="55" x2="95" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="110" y1="55" x2="110" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="128" y1="55" x2="128" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="145" y1="55" x2="145" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="165" y1="55" x2="165" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="180" y1="55" x2="180" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="200" y1="55" x2="200" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="220" y1="55" x2="220" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="240" y1="55" x2="240" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="260" y1="55" x2="260" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <line x1="280" y1="55" x2="280" y2="85" stroke="var(--red, #c92a2a)" stroke-width="0.8" opacity="0.5"/>
+                <text x="170" y="105" text-anchor="middle" font-size="10" fill="var(--red, #c92a2a)">O(N) split candidates per feature</text>
+
+                <!-- Histogram method -->
+                <text x="530" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text, #1a1a2e)">Histogram-Based</text>
+                <text x="530" y="38" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">Bin values, evaluate at boundaries</text>
+
+                <!-- Histogram bars -->
+                <rect x="380" y="48" width="50" height="30" rx="2" fill="var(--accent, #4263eb)" opacity="0.25"/>
+                <rect x="435" y="38" width="50" height="40" rx="2" fill="var(--accent, #4263eb)" opacity="0.35"/>
+                <rect x="490" y="55" width="50" height="23" rx="2" fill="var(--accent, #4263eb)" opacity="0.25"/>
+                <rect x="545" y="30" width="50" height="48" rx="2" fill="var(--accent, #4263eb)" opacity="0.4"/>
+                <rect x="600" y="52" width="50" height="26" rx="2" fill="var(--accent, #4263eb)" opacity="0.25"/>
+
+                <!-- Bin boundaries -->
+                <line x1="380" y1="78" x2="380" y2="92" stroke="var(--green, #2b8a3e)" stroke-width="2"/>
+                <line x1="435" y1="78" x2="435" y2="92" stroke="var(--green, #2b8a3e)" stroke-width="2"/>
+                <line x1="490" y1="78" x2="490" y2="92" stroke="var(--green, #2b8a3e)" stroke-width="2"/>
+                <line x1="545" y1="78" x2="545" y2="92" stroke="var(--green, #2b8a3e)" stroke-width="2"/>
+                <line x1="600" y1="78" x2="600" y2="92" stroke="var(--green, #2b8a3e)" stroke-width="2"/>
+                <line x1="650" y1="78" x2="650" y2="92" stroke="var(--green, #2b8a3e)" stroke-width="2"/>
+                <text x="530" y="108" text-anchor="middle" font-size="10" fill="var(--green, #2b8a3e)">O(bins) split candidates — 255 typical</text>
+
+                <!-- Comparison -->
+                <rect x="120" y="140" width="460" height="55" rx="6" fill="var(--bg-secondary, #f8f9fa)" stroke="var(--border-light, #e9ecef)" stroke-width="1"/>
+                <text x="350" y="162" text-anchor="middle" font-size="12" font-weight="500" fill="var(--text, #1a1a2e)">Histogram binning: O(N·d) → O(bins·d)</text>
+                <text x="350" y="182" text-anchor="middle" font-size="11" fill="var(--text-muted, #868e96)">10-20× speedup with negligible accuracy loss</text>
+            </svg>
+        </div>
+
+        <h3>Leaf-Wise vs Level-Wise Growth</h3>
+        <p>This is the most important structural difference between LightGBM and XGBoost. XGBoost grows trees <strong>level-wise</strong> (breadth-first): all nodes at depth d are split before moving to depth d+1. LightGBM grows <strong>leaf-wise</strong> (best-first): at each step, it finds the leaf with the highest gain across the entire tree and splits that one leaf, regardless of depth. Leaf-wise growth produces trees with lower loss for the same number of leaves, because it always targets the most impactful split. The risk: it can produce very deep, unbalanced trees that overfit — which is why <code>num_leaves</code> (not <code>max_depth</code>) is the primary regularization knob in LightGBM.</p>
+
+        <div class="svg-diagram">
+            <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+                <!-- Level-wise -->
+                <text x="175" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text, #1a1a2e)">Level-Wise (XGBoost)</text>
+                <text x="175" y="38" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">All nodes at same depth split together</text>
+
+                <!-- Tree level-wise -->
+                <rect x="140" y="55" width="70" height="25" rx="4" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="1.5"/>
+                <line x1="155" y1="80" x2="115" y2="100" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="195" y1="80" x2="235" y2="100" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <rect x="80" y="100" width="70" height="25" rx="4" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="1.5"/>
+                <rect x="200" y="100" width="70" height="25" rx="4" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="1.5"/>
+                <line x1="95" y1="125" x2="65" y2="145" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="135" y1="125" x2="145" y2="145" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="215" y1="125" x2="195" y2="145" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="255" y1="125" x2="275" y2="145" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <rect x="40" y="145" width="50" height="22" rx="11" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1"/>
+                <rect x="120" y="145" width="50" height="22" rx="11" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1"/>
+                <rect x="170" y="145" width="50" height="22" rx="11" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1"/>
+                <rect x="250" y="145" width="50" height="22" rx="11" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1"/>
+
+                <!-- Labels -->
+                <text x="175" y="195" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">Balanced tree, depth-controlled</text>
+
+                <!-- Leaf-wise -->
+                <text x="525" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text, #1a1a2e)">Leaf-Wise (LightGBM)</text>
+                <text x="525" y="38" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">Split the leaf with highest gain</text>
+
+                <!-- Tree leaf-wise (unbalanced) -->
+                <rect x="490" y="55" width="70" height="25" rx="4" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="1.5"/>
+                <line x1="505" y1="80" x2="455" y2="100" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="545" y1="80" x2="595" y2="100" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <rect x="420" y="100" width="70" height="25" rx="4" fill="var(--accent-light, #edf2ff)" stroke="var(--accent, #4263eb)" stroke-width="1.5"/>
+                <rect x="570" y="100" width="50" height="22" rx="11" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1"/>
+                <line x1="435" y1="125" x2="395" y2="145" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="475" y1="125" x2="485" y2="145" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <rect x="370" y="145" width="50" height="22" rx="11" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1"/>
+                <rect x="460" y="145" width="70" height="25" rx="4" fill="var(--orange-light, #fff9db)" stroke="var(--orange, #e67700)" stroke-width="2"/>
+                <text x="495" y="162" text-anchor="middle" font-size="9" fill="var(--orange, #e67700)" font-weight="600">best gain</text>
+                <line x1="475" y1="170" x2="445" y2="190" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <line x1="515" y1="170" x2="535" y2="190" stroke="var(--border, #dee2e6)" stroke-width="1.5"/>
+                <rect x="420" y="190" width="50" height="22" rx="11" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1"/>
+                <rect x="510" y="190" width="50" height="22" rx="11" fill="var(--green-light, #ebfbee)" stroke="var(--green, #2b8a3e)" stroke-width="1"/>
+
+                <text x="525" y="235" text-anchor="middle" font-size="10" fill="var(--text-muted, #868e96)">Deeper on one side, num_leaves-controlled</text>
+            </svg>
+        </div>
+
+        <h3>GOSS: Gradient-based One-Side Sampling</h3>
+        <p>In gradient boosting, examples with large gradients contribute more to the split gain computation — they're the ones the model is currently getting wrong. GOSS keeps all high-gradient examples but randomly samples from low-gradient ones, then upweights the sampled low-gradient examples to maintain the original distribution. This reduces the effective dataset size for split finding while preserving accuracy — a clever approximation that gives a 2-5× speedup with minimal loss.</p>
+
+        <h3>EFB: Exclusive Feature Bundling</h3>
+        <p>In sparse, high-dimensional data, many features are mutually exclusive (rarely nonzero simultaneously — common with one-hot encoding). EFB identifies these features and bundles them into single composite features, reducing the effective feature count. This is a form of automatic feature compression that's particularly valuable for datasets with many categorical features.</p>
+
+        <div class="callout callout-info">
+            <div class="callout-title">LightGBM's num_leaves vs XGBoost's max_depth</div>
+            <p>Because of leaf-wise growth, LightGBM's primary complexity control is <code>num_leaves</code>, not <code>max_depth</code>. A rough conversion: <code>num_leaves ≈ 2^(max_depth)</code>. So XGBoost's <code>max_depth=6</code> ≈ LightGBM's <code>num_leaves=63</code>. But leaf-wise trees are typically unbalanced, so a 31-leaf LightGBM tree might have effective depth > 6 on one branch while being shallow on another. Start with <code>num_leaves=31</code> and tune up. Setting it too high is the most common cause of LightGBM overfitting.</p>
+        </div>
+
+        <hr>
+
+        <!-- ====== SECTION 9: CATBOOST ====== -->
+        <h2 id="catboost"><span class="section-num">09</span>CatBoost: Ordered Boosting</h2>
+        <div class="tags">
+            <span class="tag tag-accent">categoricals</span>
+            <span class="tag tag-teal">Yandex 2018</span>
+        </div>
+
+        <p>CatBoost (Categorical Boosting), developed by Yandex (Prokhorenkova et al., 2018), addresses two subtle issues with standard gradient boosting: <strong>target leakage in categorical encoding</strong> and <strong>prediction shift from biased gradient estimates</strong>.</p>
+
+        <h3>The Target Leakage Problem</h3>
+        <p>The standard way to handle categorical features in gradient boosting is target encoding: replace each category with the mean target value for that category. But if you compute these means on the full training set and then train on the same set, you've leaked the target into the features. CatBoost solves this with <strong>ordered target encoding</strong>: for each example, the target statistic is computed using only examples that appear before it in a random permutation of the data. This eliminates target leakage without requiring a separate encoding set.</p>
+
+        <h3>Ordered Boosting</h3>
+        <p>Standard gradient boosting has a subtler bias: the gradients used to train tree m are computed from the predictions of trees 1 through m−1, which were trained on the <em>same</em> data. This means the gradient estimates are biased — the model's residuals on its own training data are optimistically small. CatBoost's ordered boosting maintains multiple models trained on different prefixes of the data permutation, using one model's predictions to compute gradients for examples it hasn't seen. This eliminates prediction shift and often improves generalization, especially on small datasets.</p>
+
+        <h3>Oblivious Trees</h3>
+        <p>CatBoost uses <strong>oblivious (symmetric) decision trees</strong> by default: at each level, the same split condition is used for all nodes. This produces balanced trees with 2^d leaves for depth d. Oblivious trees are faster to evaluate (the split at each level is a simple comparison), enable SIMD-friendly prediction, and act as regularization (the constraint reduces model capacity). They're less expressive than asymmetric trees but work well in the boosting context where many trees compensate.</p>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">When to Use CatBoost</div>
+            <p>CatBoost shines when your data has many categorical features with high cardinality (e.g., user IDs, product categories, city names) — its ordered target encoding handles these without manual feature engineering. It also tends to require less hyperparameter tuning than XGBoost/LightGBM. On purely numerical data without categoricals, XGBoost and LightGBM are usually equally good or slightly better. CatBoost's main disadvantage is training speed — it's typically slower than LightGBM on large datasets.</p>
+        </div>
+
+        <hr>
+
+        <!-- ====== SECTION 10: FEATURE IMPORTANCE ====== -->
+        <h2 id="feature-importance"><span class="section-num">10</span>Feature Importance Methods</h2>
+        <div class="tags">
+            <span class="tag tag-green">interpretability</span>
+            <span class="tag tag-orange">critical for interviews</span>
+        </div>
+
+        <p>Tree-based models offer multiple ways to measure feature importance, and understanding the differences between them is essential for interviews.</p>
+
+        <h3>Split-Based (Impurity) Importance</h3>
+        <p>Sum the impurity reduction (Gini gain or information gain) across all splits that use a given feature, weighted by the number of examples reaching each split. This is sklearn's <code>feature_importances_</code>. It's fast to compute (no extra model evaluations) but has a known bias: it favors features with many unique values (high cardinality) and continuous features over categorical ones, because these features have more candidate splits and more chances to show a high gain by chance. <strong>Never use split importance as your sole feature selection criterion.</strong></p>
+
+        <h3>Permutation Importance</h3>
+        <p>Randomly shuffle one feature's values across the dataset and measure how much the model's performance drops. A large drop means the feature is important. This is model-agnostic (works for any model, not just trees), computed on a held-out set (so it's not biased by training data), and doesn't favor high-cardinality features. The downside: it's expensive (requires re-evaluation for each feature) and can give misleading results when features are correlated — permuting one of two correlated features barely hurts performance because the other still carries the signal.</p>
+
+        <h3>SHAP (SHapley Additive exPlanations)</h3>
+        <p>SHAP values provide a theoretically grounded attribution: for each prediction, SHAP assigns each feature a contribution value based on Shapley values from cooperative game theory. For tree-based models, TreeSHAP computes exact Shapley values in polynomial time (O(TLD²) where T = trees, L = leaves, D = depth). SHAP gives both local explanations (why this specific prediction) and global importance (average |SHAP| across examples). It handles feature interactions correctly and doesn't have the cardinality bias of split importance. This is the gold standard for tree-based model interpretation.</p>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">A feature has high split importance but low permutation importance. What's happening?</div>
+            <div class="interview-q-answer">
+                This is a classic gotcha. The feature likely has high cardinality (many unique values), giving it many candidate splits — the tree uses it frequently, inflating split importance. But when you permute it, the model doesn't lose much performance, meaning the feature isn't actually predictive — other features carry the same or better signal. Alternatively, the feature may be correlated with another feature that the model can fall back on when the first is shuffled. The lesson: always validate split importance with permutation importance or SHAP. If they disagree, trust permutation importance or SHAP.
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- ====== SECTION 11: COMPARISON ====== -->
+        <h2 id="comparison"><span class="section-num">11</span>Side-by-Side Comparison</h2>
+
+        <div style="overflow-x: auto;">
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Random Forest</th>
+                    <th>XGBoost</th>
+                    <th>LightGBM</th>
+                    <th>CatBoost</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Ensemble type</strong></td>
+                    <td>Bagging (parallel)</td>
+                    <td>Boosting (sequential)</td>
+                    <td>Boosting (sequential)</td>
+                    <td>Boosting (sequential)</td>
+                </tr>
+                <tr>
+                    <td><strong>Tree growth</strong></td>
+                    <td>Level-wise, full depth</td>
+                    <td>Level-wise (default)</td>
+                    <td>Leaf-wise</td>
+                    <td>Oblivious (symmetric)</td>
+                </tr>
+                <tr>
+                    <td><strong>Bias-variance</strong></td>
+                    <td>Reduces variance</td>
+                    <td>Reduces bias</td>
+                    <td>Reduces bias</td>
+                    <td>Reduces bias</td>
+                </tr>
+                <tr>
+                    <td><strong>Overfitting risk</strong></td>
+                    <td>Low (more trees OK)</td>
+                    <td>Medium (needs early stop)</td>
+                    <td>Higher (leaf-wise)</td>
+                    <td>Lower (ordered boosting)</td>
+                </tr>
+                <tr>
+                    <td><strong>Speed (large data)</strong></td>
+                    <td>Moderate</td>
+                    <td>Moderate</td>
+                    <td>Fastest</td>
+                    <td>Slowest</td>
+                </tr>
+                <tr>
+                    <td><strong>Categoricals</strong></td>
+                    <td>Needs encoding</td>
+                    <td>Needs encoding</td>
+                    <td>Native (limited)</td>
+                    <td>Best native support</td>
+                </tr>
+                <tr>
+                    <td><strong>Missing values</strong></td>
+                    <td>Needs imputation</td>
+                    <td>Native (learned direction)</td>
+                    <td>Native (learned direction)</td>
+                    <td>Native</td>
+                </tr>
+                <tr>
+                    <td><strong>Tuning effort</strong></td>
+                    <td>Low (works OOB)</td>
+                    <td>High</td>
+                    <td>High</td>
+                    <td>Low-Medium</td>
+                </tr>
+                <tr>
+                    <td><strong>GPU support</strong></td>
+                    <td>No (sklearn)</td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td><strong>Key knob</strong></td>
+                    <td>max_features</td>
+                    <td>max_depth + η</td>
+                    <td>num_leaves + η</td>
+                    <td>depth + iterations</td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+
+        <h3>The Timeline of Dominance</h3>
+        <p><strong>2001–2010:</strong> Random Forests were the default for tabular data. Breiman's paper changed how practitioners thought about ensemble methods.</p>
+        <p><strong>2014–2018:</strong> XGBoost era. After Chen and Guestrin's KDD paper, XGBoost dominated Kaggle and became the go-to for industry ML pipelines. "Have you tried XGBoost?" became a meme in the ML community.</p>
+        <p><strong>2017–present:</strong> LightGBM increasingly replaced XGBoost for large-scale applications due to its speed advantage. CatBoost carved out a niche for categorical-heavy datasets. All three boosting libraries now offer similar features (histogram binning, GPU support, native missing value handling), and the performance differences are usually within noise on well-tuned models.</p>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">The Honest Answer for Interviews</div>
+            <p>"For tabular data, I default to LightGBM or XGBoost with early stopping. LightGBM for large datasets where training speed matters, XGBoost when I want a well-documented, battle-tested library. CatBoost if I have many categorical features. Random Forest for a fast baseline or when I don't have time to tune. In practice, the difference between well-tuned XGBoost, LightGBM, and CatBoost is usually within 0.1-0.5% AUC — feature engineering and proper validation matter far more than the library choice."</p>
+        </div>
+
+        <hr>
+
+        <!-- ====== SECTION 12: INTERVIEW QUESTIONS ====== -->
+        <h2 id="interview"><span class="section-num">12</span>Interview Questions</h2>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">Explain the difference between bagging and boosting.</div>
+            <div class="interview-q-answer">
+                <strong>Bagging</strong> trains multiple models <em>independently</em> on random subsets of data and averages their predictions. It primarily reduces variance. Each model is full-strength (low bias, high variance), and averaging stabilizes them. Example: Random Forest.
+                <br><br>
+                <strong>Boosting</strong> trains models <em>sequentially</em>, where each new model focuses on the errors of the ensemble so far. It primarily reduces bias. Each model is intentionally weak (shallow tree), and the ensemble builds strength gradually. Example: XGBoost.
+                <br><br>
+                Key operational difference: bagging is embarrassingly parallel (all trees train independently), boosting is inherently sequential (each tree depends on previous ones). Bagging can't overfit by adding more models; boosting can (needs early stopping).
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">Why are trees used as the base learner in most ensemble methods?</div>
+            <div class="interview-q-answer">
+                Trees have unique properties that make them ideal for ensembles: (1) <strong>High variance</strong> (when deep) — bagging works best with high-variance models. (2) <strong>Controllable complexity</strong> — you can make them arbitrarily weak (depth 1 = stump) for boosting or arbitrarily strong (full depth) for bagging. (3) <strong>No feature scaling</strong> needed. (4) <strong>Handle mixed types</strong> naturally. (5) <strong>Non-parametric</strong> — no assumptions about data distribution. (6) <strong>Fast to train</strong> individually. (7) <strong>Naturally capture feature interactions</strong>. You could technically use any model as a base learner (boosted linear models exist), but trees hit a uniquely good balance of flexibility, speed, and compatibility with ensemble methods.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">How does XGBoost handle missing values?</div>
+            <div class="interview-q-answer">
+                At each split, XGBoost learns a <strong>default direction</strong> for missing values. During training, for each candidate split on feature f, it tries two options: send all missing-value examples left, or send them all right. It picks whichever direction gives a better gain. This learned direction is stored in the tree and used at prediction time. The clever part: missing values become <em>informative</em>. If missingness correlates with the target (e.g., high-income users skip the income field), the model can learn this pattern. This is often better than any imputation strategy because it's optimized end-to-end as part of the split-finding process.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">What is the learning rate in gradient boosting and why should it be small?</div>
+            <div class="interview-q-answer">
+                The learning rate (η, also called shrinkage) scales each tree's contribution: F_m = F_{m-1} + η·h_m, typically 0.01–0.3. A small η means each tree corrects only a small fraction of the current error, requiring more trees to converge. Why is this better? <strong>Regularization through slow learning.</strong> With a large η, each tree has a big impact — and if it fits noise in the residuals, that noise gets baked in permanently. With a small η, no single tree can do much damage, and the ensemble takes many careful steps to the solution. Empirically, smaller η + more trees consistently outperforms larger η + fewer trees, at the cost of more compute. It's exactly the same intuition as using a small learning rate in gradient descent — aggressive updates overshoot, cautious updates generalize better.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">What's the difference between XGBoost's max_depth and LightGBM's num_leaves?</div>
+            <div class="interview-q-answer">
+                This reflects their different tree growth strategies. XGBoost grows trees <strong>level-wise</strong> (all nodes at depth d split before moving to d+1), so <code>max_depth</code> directly controls complexity — depth 6 means exactly 6 levels, up to 2⁶ = 64 leaves. LightGBM grows <strong>leaf-wise</strong> (always split the highest-gain leaf), so depth varies — one branch might be depth 10 while another is depth 2. Controlling by <code>num_leaves</code> is more natural: it directly bounds the number of regions the tree creates. Rough conversion: <code>num_leaves ≈ 2^max_depth</code>, but LightGBM's trees are typically more efficient because they put splits where they matter most, not uniformly across all branches.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">How do tree-based models compare to deep learning for tabular data?</div>
+            <div class="interview-q-answer">
+                On tabular data, well-tuned gradient boosting (XGBoost/LightGBM) still <strong>matches or beats deep learning</strong> in most benchmarks. A 2022 NeurIPS paper by Grinsztajn et al. tested extensively and found tree-based models are superior on medium-sized tabular datasets, especially with irregular, heterogeneous features. Deep learning does better when: (1) the data has natural spatial/sequential structure that trees can't exploit, (2) the dataset is very large (millions+ examples), (3) the task benefits from learned embeddings (e.g., high-cardinality categoricals), or (4) you want to jointly train on tabular + unstructured data (images, text). For pure tabular ML at most companies, gradient boosting remains the default, with recent models like TabNet and FT-Transformer narrowing but not closing the gap.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">You're building a production ML system for fraud detection. Walk through your model selection process.</div>
+            <div class="interview-q-answer">
+                Fraud detection has specific constraints that guide the choice: (1) <strong>Class imbalance</strong> (0.01-0.1% fraud rate) — use <code>scale_pos_weight</code> in XGBoost/LightGBM, AUC-PR as the metric, and threshold tuning on precision-recall. (2) <strong>Speed</strong> — if real-time scoring is needed, tree ensembles are fast at inference (~1ms for 500 trees). (3) <strong>Interpretability</strong> — regulatory requirements may require explaining why a transaction was flagged; SHAP values on tree models handle this.
+                <br><br>
+                The pipeline: start with a LightGBM/XGBoost model with engineered features (transaction velocity, amount deviation, merchant risk scores). Use temporal cross-validation (never train on future data). Tune with early stopping and monitor PR-AUC. Feature importance via SHAP to ensure the model isn't relying on artifacts. Deploy with a high-recall threshold initially (catch more fraud, accept more false positives), then tune the threshold based on the ops team's capacity to review alerts. Monitor for distribution shift — fraud patterns evolve, so the model needs regular retraining.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">Why can't decision trees extrapolate?</div>
+            <div class="interview-q-answer">
+                Decision trees (and their ensembles) predict by partitioning feature space into rectangular regions and assigning a constant prediction (mean or mode) to each region. For values outside the training range, the prediction is simply the value assigned to the nearest partition — it can never exceed the range of training targets. If your training target ranges from [10, 100], the model can never predict 110 or 5, no matter what the features say. Linear models <em>can</em> extrapolate because their functional form extends naturally. This matters in time-series forecasting (predicting values that grow beyond historical range) and any scenario where the test distribution extends beyond training. For such tasks, you either need feature engineering that captures the trend, or you combine trees with models that can extrapolate.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">What is a decision stump and where is it used?</div>
+            <div class="interview-q-answer">
+                A decision stump is a tree with just one split (depth = 1, two leaves). It's the simplest possible tree — it partitions the feature space into two halves based on a single feature threshold. Stumps are weak learners by design: they barely do better than random. They're the original base learner for <strong>AdaBoost</strong> (Adaptive Boosting), where many stumps are combined with weighted voting. In modern gradient boosting, stumps are rarely used — depth 3-8 trees are more efficient. But stumps are great for teaching: they illustrate how boosting turns weak learners into a strong one, and AdaBoost with stumps is one of the most elegant algorithms in ML.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">How would you diagnose whether your gradient boosting model is overfitting?</div>
+            <div class="interview-q-answer">
+                The clearest signal is a growing gap between training and validation loss over boosting rounds. Plot both curves: if training loss keeps decreasing while validation loss starts increasing (or plateaus and then rises), you're overfitting. Fixes, in order of priority: (1) <strong>Early stopping</strong> — always use it; stop training when validation loss hasn't improved for N rounds. (2) <strong>Lower the learning rate</strong> and let early stopping find the right number of rounds. (3) <strong>Reduce tree complexity</strong>: lower <code>max_depth</code> (XGBoost) or <code>num_leaves</code> (LightGBM). (4) <strong>Increase regularization</strong>: raise <code>lambda</code>, <code>gamma</code>, or <code>min_child_weight</code>. (5) <strong>Increase subsampling</strong>: lower <code>subsample</code> and <code>colsample_bytree</code> to inject more randomness. (6) <strong>Get more data</strong> — if all else fails, more data is the most reliable fix for overfitting.
+            </div>
+        </div>
+
+        <div class="interview-q">
+            <div class="interview-q-label">Interview Question</div>
+            <div class="interview-q-question">Explain how gradient boosting works for classification (not just regression).</div>
+            <div class="interview-q-answer">
+                For binary classification, gradient boosting works in log-odds space. Initialize with F₀ = log(p/(1−p)) where p is the overall positive rate. The loss function is log loss (binary cross-entropy). At each round, compute the negative gradient: for log loss, this is yᵢ − σ(F(xᵢ)) — the difference between the true label and the predicted probability. Fit a regression tree to these pseudo-residuals. The tree's leaf values are adjusted using Newton's step: w_j = Σgᵢ / Σhᵢ, where g and h are the first and second derivatives. Update: F ← F + η·h_m. To get final probabilities, pass the ensemble output through sigmoid: P(y=1) = σ(F_M(x)). For multiclass, you train K separate tree sequences (one per class) and use softmax over their outputs. XGBoost and LightGBM handle this transparently when you set <code>objective='binary:logistic'</code> or <code>objective='multi:softmax'</code>.
+            </div>
+        </div>
+
+        <div class="footer">
+            Part of the <a href="https://prateeksha29.github.io/ml-fundamentals-guide/">ML Deep Dives</a> series · Next up: SVMs & Kernel Methods
+        </div>
+    </div>
+
+    <script>
+        // Auto-render KaTeX
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false}
+                ],
+                throwOnError: false
+            });
+        });
+
+        // Detect system preference for dark mode
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.body.classList.add('dark');
+            document.querySelector('.theme-toggle').textContent = '☀️ Light';
+        }
+    </script>
+</body>
+</html>
