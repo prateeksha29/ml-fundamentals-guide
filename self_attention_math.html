@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog 3: Self-Attention — The Math</title>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['$$', '$$']],
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --accent: #4361ee;
+    --accent-light: #eef0ff;
+    --border: #e0e0e0;
+    --callout-bg: #f8f9fa;
+    --warning-bg: #fff8e1;
+    --warning-border: #ffc107;
+    --code-bg: #f5f5f5;
+    --success: #2e7d32;
+    --danger: #c62828;
+    --paper-bg: #fafafa;
+    --paper-border: #e0e0e0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0f1a;
+      --text: #e0e0e0;
+      --text-secondary: #aaa;
+      --accent: #7b8cff;
+      --accent-light: #1a1a3e;
+      --border: #2a2a3e;
+      --callout-bg: #161625;
+      --warning-bg: #2a2518;
+      --warning-border: #b8860b;
+      --code-bg: #1a1a2e;
+      --success: #66bb6a;
+      --danger: #ef5350;
+      --paper-bg: #161625;
+      --paper-border: #2a2a3e;
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    font-size: 17px;
+  }
+
+  .series-tag {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.8rem;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 {
+    font-size: 2.4rem;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+  }
+
+  .subtitle {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .meta {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 2.5rem;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  p { margin-bottom: 1rem; }
+
+  .separator {
+    text-align: center;
+    margin: 2.5rem 0;
+    color: var(--text-secondary);
+    letter-spacing: 8px;
+  }
+
+  /* Math boxes */
+  .math-box {
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .math-box-title {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+
+  /* Callout boxes */
+  .callout {
+    background: var(--callout-bg);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+  }
+
+  .callout-title {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .callout.warning {
+    background: var(--warning-bg);
+    border-left-color: var(--warning-border);
+  }
+
+  .callout.insight {
+    border-left-color: var(--success);
+  }
+
+  /* Worked example boxes */
+  .worked-example {
+    background: var(--callout-bg);
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+  }
+
+  .worked-example-title {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .step-label {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Matrix display */
+  .matrix-grid {
+    display: inline-block;
+    margin: 0.75rem 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+  }
+
+  .matrix-row {
+    display: flex;
+    gap: 0;
+  }
+
+  .matrix-cell {
+    width: 65px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    font-family: 'Courier New', monospace;
+  }
+
+  .matrix-cell.header {
+    background: var(--accent-light);
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--accent);
+  }
+
+  .matrix-cell.highlight {
+    background: #e8f5e9;
+    font-weight: 700;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .matrix-cell.highlight { background: #1b3a1e; }
+  }
+
+  .matrix-label {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+
+  /* SVG diagrams */
+  .diagram-container {
+    margin: 2rem 0;
+    text-align: center;
+  }
+
+  .diagram-container svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .diagram-caption {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.75rem;
+    line-height: 1.5;
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Paper reference */
+  .paper-ref {
+    background: var(--paper-bg);
+    border: 1px solid var(--paper-border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .paper-ref-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .paper-ref-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  .paper-ref-authors {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  /* Interview questions */
+  .question-block {
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .question-header {
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    background: var(--callout-bg);
+    user-select: none;
+  }
+
+  .question-header:hover { background: var(--accent-light); }
+
+  .question-tag {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+
+  .question-text {
+    font-weight: 600;
+    font-size: 0.95rem;
+    flex: 1;
+  }
+
+  .question-toggle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+
+  .question-answer {
+    padding: 0 1.25rem;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+
+  .question-block.open .question-answer {
+    max-height: 2000px;
+    padding: 1rem 1.25rem;
+  }
+
+  .question-block.open .question-toggle {
+    transform: rotate(45deg);
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+
+  th {
+    background: var(--accent-light);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  strong { font-weight: 700; }
+
+  code {
+    font-family: 'Courier New', monospace;
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+
+  .color-red { color: var(--danger); }
+  .color-green { color: var(--success); }
+
+  @media (max-width: 600px) {
+    body { padding: 1rem; font-size: 16px; }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.3rem; }
+    .matrix-cell { width: 50px; height: 30px; font-size: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="series-tag">Transformer Interview Prep · Part 3 of 8</div>
+
+<h1>Self-Attention: The Math</h1>
+
+<p class="subtitle">Scaled dot-product attention traced step-by-step with real numbers, the √d<sub>k</sub> derivation from first principles, softmax temperature, numerical stability, complexity analysis, and the design decisions interviewers probe hardest</p>
+
+<div class="meta">Pratiksha · 2026 · 40 min read · ❓ 16 Questions</div>
+
+<!-- ============================== SECTION 1 ============================== -->
+
+<h2>1. Scaled Dot-Product Attention — The Complete Formula</h2>
+
+<p>Blog 2 introduced the attention formula and traced dimensionality. This blog goes deeper: we'll push actual numbers through every operation, derive the scaling factor from variance analysis, and connect it all to softmax temperature — the unifying concept behind attention sharpness.</p>
+
+<div class="math-box">
+  <div class="math-box-title">Scaled Dot-Product Attention</div>
+  $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$
+
+  <p style="margin-top: 0.75rem; margin-bottom: 0; font-size: 0.95rem;">Given input \(X \in \mathbb{R}^{n \times d_{\text{model}}}\), one attention head computes:</p>
+  $$Q = XW_Q, \quad K = XW_K, \quad V = XW_V$$
+  <p style="margin-bottom: 0; font-size: 0.95rem;">where \(W_Q, W_K \in \mathbb{R}^{d_{\text{model}} \times d_k}\), \(W_V \in \mathbb{R}^{d_{\text{model}} \times d_v}\), with \(d_k = d_v = d_{\text{model}} / h\).</p>
+</div>
+
+<p>There are five sequential operations inside this formula. Each one has a specific purpose, and understanding the math behind each is what separates a surface-level answer from a strong interview response:</p>
+
+<table>
+  <thead>
+    <tr><th>Operation</th><th>What it computes</th><th>Shape</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>\(Q = XW_Q\)</td><td>Project input into "what am I looking for?" space</td><td>\(n \times d_k\)</td></tr>
+    <tr><td>\(K = XW_K\)</td><td>Project input into "what do I contain?" space</td><td>\(n \times d_k\)</td></tr>
+    <tr><td>\(S = QK^\top\)</td><td>Raw compatibility scores between all pairs</td><td>\(n \times n\)</td></tr>
+    <tr><td>\(S' = S / \sqrt{d_k}\)</td><td>Scale scores to unit variance</td><td>\(n \times n\)</td></tr>
+    <tr><td>\(A = \text{softmax}(S')\)</td><td>Normalize to probability distribution per row</td><td>\(n \times n\)</td></tr>
+    <tr><td>\(O = AV\)</td><td>Weighted sum of value vectors</td><td>\(n \times d_v\)</td></tr>
+  </tbody>
+</table>
+
+<p>Let's trace every one of these with actual numbers.</p>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 2 ============================== -->
+
+<h2>2. Worked Example: 3 Tokens, d<sub>k</sub> = 4</h2>
+
+<p>We'll use a tiny example — 3 tokens with \(d_k = 4\) — small enough to compute by hand, large enough to show every phenomenon. In a real Transformer with \(d_{\text{model}} = 512\) and \(h = 8\) heads, each head has \(d_k = 64\). The math is identical, just bigger matrices.</p>
+
+<p>Suppose after the linear projections \(W_Q, W_K, W_V\), we have:</p>
+
+<div class="worked-example">
+  <div class="worked-example-title">🧮 Worked Example — Full Attention Computation</div>
+
+  <div class="step-label">Given: Q, K, V matrices (3 tokens × 4 dims)</div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 2rem; margin: 1rem 0;">
+    <div>
+      <div class="matrix-label">Q (queries)</div>
+      <div class="matrix-grid">
+        <div class="matrix-row">
+          <div class="matrix-cell header"></div>
+          <div class="matrix-cell header">d₁</div>
+          <div class="matrix-cell header">d₂</div>
+          <div class="matrix-cell header">d₃</div>
+          <div class="matrix-cell header">d₄</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-cell header">t₁</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">0.0</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">0.0</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-cell header">t₂</div>
+          <div class="matrix-cell">0.0</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">0.0</div>
+          <div class="matrix-cell">1.0</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-cell header">t₃</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">0.0</div>
+          <div class="matrix-cell">0.0</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="matrix-label">K (keys)</div>
+      <div class="matrix-grid">
+        <div class="matrix-row">
+          <div class="matrix-cell header"></div>
+          <div class="matrix-cell header">d₁</div>
+          <div class="matrix-cell header">d₂</div>
+          <div class="matrix-cell header">d₃</div>
+          <div class="matrix-cell header">d₄</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-cell header">t₁</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">0.0</div>
+          <div class="matrix-cell">0.0</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-cell header">t₂</div>
+          <div class="matrix-cell">0.0</div>
+          <div class="matrix-cell">0.0</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">1.0</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-cell header">t₃</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">0.0</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">0.0</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="matrix-label">V (values)</div>
+      <div class="matrix-grid">
+        <div class="matrix-row">
+          <div class="matrix-cell header"></div>
+          <div class="matrix-cell header">d₁</div>
+          <div class="matrix-cell header">d₂</div>
+          <div class="matrix-cell header">d₃</div>
+          <div class="matrix-cell header">d₄</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-cell header">t₁</div>
+          <div class="matrix-cell">0.5</div>
+          <div class="matrix-cell">1.0</div>
+          <div class="matrix-cell">0.2</div>
+          <div class="matrix-cell">0.8</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-cell header">t₂</div>
+          <div class="matrix-cell">0.3</div>
+          <div class="matrix-cell">0.6</div>
+          <div class="matrix-cell">0.9</div>
+          <div class="matrix-cell">0.1</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-cell header">t₃</div>
+          <div class="matrix-cell">0.7</div>
+          <div class="matrix-cell">0.4</div>
+          <div class="matrix-cell">0.5</div>
+          <div class="matrix-cell">0.3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step-label">Step 1: Raw scores S = QK<sup>⊤</sup></div>
+
+  <p>Each entry \(S_{ij} = q_i \cdot k_j\) — the dot product between query \(i\) and key \(j\):</p>
+
+  <p>\(S_{11} = q_1 \cdot k_1 = (1)(1) + (0)(1) + (1)(0) + (0)(0) = 1\)<br>
+  \(S_{12} = q_1 \cdot k_2 = (1)(0) + (0)(0) + (1)(1) + (0)(1) = 1\)<br>
+  \(S_{13} = q_1 \cdot k_3 = (1)(1) + (0)(0) + (1)(1) + (0)(0) = 2\)</p>
+
+  <p>Computing the full matrix:</p>
+
+  <div>
+    <div class="matrix-label">S = QK<sup>⊤</sup> (3 × 3 raw scores)</div>
+    <div class="matrix-grid">
+      <div class="matrix-row">
+        <div class="matrix-cell header">q\k</div>
+        <div class="matrix-cell header">k₁</div>
+        <div class="matrix-cell header">k₂</div>
+        <div class="matrix-cell header">k₃</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">q₁</div>
+        <div class="matrix-cell">1</div>
+        <div class="matrix-cell">1</div>
+        <div class="matrix-cell highlight">2</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">q₂</div>
+        <div class="matrix-cell">1</div>
+        <div class="matrix-cell highlight">2</div>
+        <div class="matrix-cell">0</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">q₃</div>
+        <div class="matrix-cell highlight">2</div>
+        <div class="matrix-cell">0</div>
+        <div class="matrix-cell">1</div>
+      </div>
+    </div>
+  </div>
+
+  <p>Reading the scores: token 1's query is most compatible with token 3's key (score = 2). Token 2 favors token 2 itself (score = 2). Token 3 favors token 1 (score = 2). The highlighted cells are the maximum per row.</p>
+
+  <!-- STEP 2 -->
+  <div class="step-label">Step 2: Scale by √d<sub>k</sub></div>
+
+  <p>\(\sqrt{d_k} = \sqrt{4} = 2\). Divide every score by 2:</p>
+
+  <div>
+    <div class="matrix-label">S′ = S / √d<sub>k</sub> (scaled scores)</div>
+    <div class="matrix-grid">
+      <div class="matrix-row">
+        <div class="matrix-cell header">q\k</div>
+        <div class="matrix-cell header">k₁</div>
+        <div class="matrix-cell header">k₂</div>
+        <div class="matrix-cell header">k₃</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">q₁</div>
+        <div class="matrix-cell">0.50</div>
+        <div class="matrix-cell">0.50</div>
+        <div class="matrix-cell">1.00</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">q₂</div>
+        <div class="matrix-cell">0.50</div>
+        <div class="matrix-cell">1.00</div>
+        <div class="matrix-cell">0.00</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">q₃</div>
+        <div class="matrix-cell">1.00</div>
+        <div class="matrix-cell">0.00</div>
+        <div class="matrix-cell">0.50</div>
+      </div>
+    </div>
+  </div>
+
+  <p>The scores are now in a moderate range. We'll see in Section 3 why this matters — without scaling, these scores would be in a range that pushes softmax to saturation.</p>
+
+  <!-- STEP 3 -->
+  <div class="step-label">Step 3: Softmax (row-wise)</div>
+
+  <p>For each row, compute \(\text{softmax}(z)_i = \frac{e^{z_i}}{\sum_j e^{z_j}}\).</p>
+
+  <p><strong>Row 1</strong> (token 1's attention distribution): scores = [0.50, 0.50, 1.00]</p>
+  <p>\(e^{0.50} = 1.649, \quad e^{0.50} = 1.649, \quad e^{1.00} = 2.718\)</p>
+  <p>Sum = \(1.649 + 1.649 + 2.718 = 6.016\)</p>
+  <p>Weights = \([\frac{1.649}{6.016},\; \frac{1.649}{6.016},\; \frac{2.718}{6.016}] = [0.274, \; 0.274, \; 0.452]\)</p>
+
+  <p><strong>Row 2</strong>: scores = [0.50, 1.00, 0.00]</p>
+  <p>\(e^{0.50} = 1.649, \quad e^{1.00} = 2.718, \quad e^{0.00} = 1.000\)</p>
+  <p>Sum = \(5.367\). Weights = \([0.307, \; 0.506, \; 0.186]\)</p>
+
+  <p><strong>Row 3</strong>: scores = [1.00, 0.00, 0.50]</p>
+  <p>Sum = \(2.718 + 1.000 + 1.649 = 5.367\). Weights = \([0.506, \; 0.186, \; 0.307]\)</p>
+
+  <div>
+    <div class="matrix-label">A = softmax(S′) — Attention weights</div>
+    <div class="matrix-grid">
+      <div class="matrix-row">
+        <div class="matrix-cell header">q\k</div>
+        <div class="matrix-cell header">k₁</div>
+        <div class="matrix-cell header">k₂</div>
+        <div class="matrix-cell header">k₃</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">q₁</div>
+        <div class="matrix-cell">0.274</div>
+        <div class="matrix-cell">0.274</div>
+        <div class="matrix-cell highlight">0.452</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">q₂</div>
+        <div class="matrix-cell">0.307</div>
+        <div class="matrix-cell highlight">0.506</div>
+        <div class="matrix-cell">0.186</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">q₃</div>
+        <div class="matrix-cell highlight">0.506</div>
+        <div class="matrix-cell">0.186</div>
+        <div class="matrix-cell">0.307</div>
+      </div>
+    </div>
+  </div>
+
+  <p>Each row sums to 1.0. The distribution is <strong>soft</strong> — the highest-scoring key gets more weight, but other keys still contribute. Token 1 attends 45.2% to token 3, but also 27.4% each to tokens 1 and 2. This is a well-behaved, non-saturated distribution.</p>
+
+  <!-- STEP 4 -->
+  <div class="step-label">Step 4: Weighted sum O = AV</div>
+
+  <p>Each output row is a weighted combination of value vectors:</p>
+
+  <p>\(o_1 = 0.274 \cdot v_1 + 0.274 \cdot v_2 + 0.452 \cdot v_3\)</p>
+  <p>\(o_1[d_1] = 0.274(0.5) + 0.274(0.3) + 0.452(0.7) = 0.137 + 0.082 + 0.316 = 0.536\)<br>
+  \(o_1[d_2] = 0.274(1.0) + 0.274(0.6) + 0.452(0.4) = 0.274 + 0.164 + 0.181 = 0.619\)<br>
+  \(o_1[d_3] = 0.274(0.2) + 0.274(0.9) + 0.452(0.5) = 0.055 + 0.247 + 0.226 = 0.527\)<br>
+  \(o_1[d_4] = 0.274(0.8) + 0.274(0.1) + 0.452(0.3) = 0.219 + 0.027 + 0.136 = 0.382\)</p>
+
+  <div>
+    <div class="matrix-label">O = AV — Final output</div>
+    <div class="matrix-grid">
+      <div class="matrix-row">
+        <div class="matrix-cell header"></div>
+        <div class="matrix-cell header">d₁</div>
+        <div class="matrix-cell header">d₂</div>
+        <div class="matrix-cell header">d₃</div>
+        <div class="matrix-cell header">d₄</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">t₁</div>
+        <div class="matrix-cell">0.536</div>
+        <div class="matrix-cell">0.619</div>
+        <div class="matrix-cell">0.527</div>
+        <div class="matrix-cell">0.382</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">t₂</div>
+        <div class="matrix-cell">0.488</div>
+        <div class="matrix-cell">0.784</div>
+        <div class="matrix-cell">0.510</div>
+        <div class="matrix-cell">0.510</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">t₃</div>
+        <div class="matrix-cell">0.524</div>
+        <div class="matrix-cell">0.742</div>
+        <div class="matrix-cell">0.422</div>
+        <div class="matrix-cell">0.516</div>
+      </div>
+    </div>
+  </div>
+
+  <p>Token 1's output is closest to \(v_3\) (highest attention weight 0.452) but is <strong>not identical to it</strong> — it incorporates information from all three tokens. This is the key property: self-attention produces context-dependent representations by blending information from across the sequence.</p>
+</div>
+
+<div class="callout insight">
+  <div class="callout-title">💡 What this output tells us</div>
+  <p>Compare \(o_1 = [0.536, 0.619, 0.527, 0.382]\) to the individual value vectors. It's a blend: closest to \(v_3 = [0.7, 0.4, 0.5, 0.3]\) but pulled toward \(v_1\) and \(v_2\). The attention weights are the "mixing coefficients." Because they come from softmax, they're non-negative and sum to 1 — making the output a <strong>convex combination</strong> of value vectors. The output always lies within the convex hull of the V rows.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 3 ============================== -->
+
+<h2>3. The √d<sub>k</sub> Derivation — Why We Scale</h2>
+
+<p>This is the most important derivation in this blog and one of the most common interview questions on attention. The scaling factor \(1/\sqrt{d_k}\) is not arbitrary — it comes directly from a variance analysis of the dot product.</p>
+
+<h3>3.1 The Problem: Dot Products Grow with Dimension</h3>
+
+<p>Consider two random vectors \(q, k \in \mathbb{R}^{d_k}\) where each component is independently drawn from a distribution with mean 0 and variance 1 (a standard assumption for post-LayerNorm representations).</p>
+
+<p>The dot product is:</p>
+
+$$q \cdot k = \sum_{i=1}^{d_k} q_i \cdot k_i$$
+
+<p>Each term \(q_i \cdot k_i\) is the product of two independent zero-mean, unit-variance random variables.</p>
+
+<div class="math-box">
+  <div class="math-box-title">Derivation: Variance of the Dot Product</div>
+
+  <p><strong>Setup:</strong> Let \(q_i, k_i\) be independent with \(\mathbb{E}[q_i] = \mathbb{E}[k_i] = 0\) and \(\text{Var}(q_i) = \text{Var}(k_i) = 1\).</p>
+
+  <p><strong>Step 1: Mean of each product term.</strong></p>
+  $$\mathbb{E}[q_i k_i] = \mathbb{E}[q_i] \cdot \mathbb{E}[k_i] = 0 \cdot 0 = 0$$
+  <p>(by independence)</p>
+
+  <p><strong>Step 2: Variance of each product term.</strong></p>
+  $$\text{Var}(q_i k_i) = \mathbb{E}[(q_i k_i)^2] - (\mathbb{E}[q_i k_i])^2 = \mathbb{E}[q_i^2]\mathbb{E}[k_i^2] - 0$$
+  $$= \text{Var}(q_i) \cdot \text{Var}(k_i) = 1 \cdot 1 = 1$$
+  <p>(using \(\mathbb{E}[q_i^2] = \text{Var}(q_i) + (\mathbb{E}[q_i])^2 = 1 + 0 = 1\), and independence for the factorization)</p>
+
+  <p><strong>Step 3: Variance of the sum (dot product).</strong></p>
+  $$\text{Var}(q \cdot k) = \text{Var}\!\left(\sum_{i=1}^{d_k} q_i k_i\right) = \sum_{i=1}^{d_k} \text{Var}(q_i k_i) = d_k$$
+  <p>(sum of \(d_k\) independent terms, each with variance 1)</p>
+
+  <p><strong>Result:</strong></p>
+  $$q \cdot k \sim \text{mean } 0, \quad \text{variance } d_k, \quad \text{std dev } \sqrt{d_k}$$
+</div>
+
+<p>This means the dot product scores grow in magnitude as \(d_k\) increases. For \(d_k = 64\) (the original Transformer), scores have standard deviation \(\sqrt{64} = 8\). For \(d_k = 128\), it's about 11.3. The scores are not bounded by some nice constant — they scale with dimension.</p>
+
+<h3>3.2 Why Large Scores Break Softmax</h3>
+
+<p>Softmax converts scores to probabilities: \(\text{softmax}(z)_i = e^{z_i} / \sum_j e^{z_j}\). When the inputs have large magnitude, softmax saturates — one element dominates and the output approaches a one-hot vector.</p>
+
+<div class="worked-example">
+  <div class="worked-example-title">🔢 Numerical demonstration: softmax saturation</div>
+
+  <p>Take scores \(z = [1, 0, -1]\) (moderate range, like our d<sub>k</sub>=4 example) vs. \(z' = [8, 0, -8]\) (what happens with d<sub>k</sub>=64 without scaling):</p>
+
+  <table>
+    <thead>
+      <tr><th>Input scores</th><th>Softmax output</th><th>Max weight</th><th>Entropy</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>[1.0, 0.0, −1.0]</td>
+        <td>[0.665, 0.245, 0.090]</td>
+        <td class="color-green">0.665</td>
+        <td class="color-green">0.937 bits</td>
+      </tr>
+      <tr>
+        <td>[8.0, 0.0, −8.0]</td>
+        <td>[0.9997, 0.0003, ≈ 0]</td>
+        <td class="color-red">0.9997</td>
+        <td class="color-red">0.005 bits</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>With scores of magnitude ~8, softmax produces a near one-hot distribution. The entropy drops from 0.937 bits (healthy, spread-out attention) to 0.005 bits (almost all weight on one token). This has two catastrophic effects:</p>
+</div>
+
+<p><strong>Effect 1 — Information loss:</strong> The output becomes approximately equal to a single value vector rather than a weighted blend. Attention degenerates from "mix information from relevant sources" to "copy one source." The model loses its ability to compose information across positions.</p>
+
+<p><strong>Effect 2 — Gradient vanishing:</strong> The softmax Jacobian for element \(i\) is \(A_i(1 - A_i)\). When \(A_i \approx 1\): gradient \(\approx 1 \times 0 = 0\). When \(A_i \approx 0\): gradient \(\approx 0 \times 1 = 0\). In saturation, <strong>all positions get near-zero gradient</strong> — neither the dominant nor the non-dominant positions can learn. This is the same mechanism as sigmoid saturation, applied to the entire attention distribution.</p>
+
+<div class="diagram-container">
+<svg viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg" style="font-family: 'Helvetica Neue', Arial, sans-serif;">
+  <!-- Background regions -->
+  <rect x="60" y="30" width="280" height="250" rx="8" fill="#e8f5e9" opacity="0.4"/>
+  <rect x="360" y="30" width="280" height="250" rx="8" fill="#ffebee" opacity="0.4"/>
+
+  <!-- Left: With scaling -->
+  <text x="200" y="25" text-anchor="middle" font-size="13" font-weight="700" fill="#2e7d32">With √d_k scaling</text>
+
+  <!-- Softmax bars (distributed) -->
+  <rect x="100" y="80" width="40" height="120" rx="4" fill="#4caf50" opacity="0.8"/>
+  <rect x="160" y="130" width="40" height="70" rx="4" fill="#4caf50" opacity="0.6"/>
+  <rect x="220" y="160" width="40" height="40" rx="4" fill="#4caf50" opacity="0.5"/>
+
+  <text x="120" y="75" text-anchor="middle" font-size="11" fill="#2e7d32" font-weight="600">0.45</text>
+  <text x="180" y="125" text-anchor="middle" font-size="11" fill="#2e7d32" font-weight="600">0.27</text>
+  <text x="240" y="155" text-anchor="middle" font-size="11" fill="#2e7d32" font-weight="600">0.27</text>
+
+  <text x="120" y="215" text-anchor="middle" font-size="10" fill="#555">t₁</text>
+  <text x="180" y="215" text-anchor="middle" font-size="10" fill="#555">t₂</text>
+  <text x="240" y="215" text-anchor="middle" font-size="10" fill="#555">t₃</text>
+
+  <text x="200" y="245" text-anchor="middle" font-size="10" fill="#2e7d32">Gradients flow to all tokens ✓</text>
+  <text x="200" y="260" text-anchor="middle" font-size="10" fill="#2e7d32">Rich information blending ✓</text>
+
+  <!-- Right: Without scaling -->
+  <text x="500" y="25" text-anchor="middle" font-size="13" font-weight="700" fill="#c62828">Without scaling (d_k = 64)</text>
+
+  <rect x="400" y="55" width="40" height="145" rx="4" fill="#ef5350" opacity="0.8"/>
+  <rect x="460" y="195" width="40" height="5" rx="2" fill="#ef5350" opacity="0.5"/>
+  <rect x="520" y="197" width="40" height="3" rx="1" fill="#ef5350" opacity="0.3"/>
+
+  <text x="420" y="50" text-anchor="middle" font-size="11" fill="#c62828" font-weight="600">0.997</text>
+  <text x="480" y="193" text-anchor="middle" font-size="10" fill="#c62828">≈0</text>
+  <text x="540" y="193" text-anchor="middle" font-size="10" fill="#c62828">≈0</text>
+
+  <text x="420" y="215" text-anchor="middle" font-size="10" fill="#555">t₁</text>
+  <text x="480" y="215" text-anchor="middle" font-size="10" fill="#555">t₂</text>
+  <text x="540" y="215" text-anchor="middle" font-size="10" fill="#555">t₃</text>
+
+  <text x="500" y="245" text-anchor="middle" font-size="10" fill="#c62828">Gradients ≈ 0 everywhere ✗</text>
+  <text x="500" y="260" text-anchor="middle" font-size="10" fill="#c62828">One-hot → copies single value ✗</text>
+
+  <!-- baseline -->
+  <line x1="80" y1="200" x2="320" y2="200" stroke="#888" stroke-width="1"/>
+  <line x1="380" y1="200" x2="620" y2="200" stroke="#888" stroke-width="1"/>
+</svg>
+<div class="diagram-caption">Figure 1: Attention weight distributions with and without √d<sub>k</sub> scaling. Left: scaled scores produce a distributed attention pattern where all tokens contribute and gradients are healthy. Right: unscaled scores push softmax to saturation — one token dominates, gradients vanish for all positions.</div>
+</div>
+
+<h3>3.3 The Fix: Divide by √d<sub>k</sub></h3>
+
+<p>The solution is elegant. If we divide the dot product by \(\sqrt{d_k}\), the variance becomes:</p>
+
+<div class="math-box">
+  <div class="math-box-title">Scaling restores unit variance</div>
+  $$\text{Var}\!\left(\frac{q \cdot k}{\sqrt{d_k}}\right) = \frac{1}{d_k} \cdot \text{Var}(q \cdot k) = \frac{d_k}{d_k} = 1$$
+</div>
+
+<p>After scaling, the scores have variance 1 regardless of \(d_k\). The standard deviation is 1, the scores live in a moderate range (roughly \([-3, 3]\) for Gaussian inputs), and softmax operates in its well-behaved, non-saturated regime.</p>
+
+<div class="callout warning">
+  <div class="callout-title">⚠️ Common interview misconception</div>
+  <p>"Why not divide by \(d_k\) instead of \(\sqrt{d_k}\)?" Because the variance scales linearly with \(d_k\), and the standard deviation (which determines the <em>scale</em> of the score magnitudes) is the square root of the variance. Dividing by \(\sqrt{d_k}\) normalizes the standard deviation to 1. Dividing by \(d_k\) would over-correct: the variance would become \(1/d_k\), compressing all scores toward zero and making softmax nearly uniform — the model couldn't distinguish relevant from irrelevant keys.</p>
+</div>
+
+<h3>3.4 Concrete Comparison: d<sub>k</sub> = 64</h3>
+
+<p>Let's see the actual numbers for a realistic dimension. With \(d_k = 64\) and random unit-variance components, a "typical" dot product has standard deviation \(\sqrt{64} = 8\).</p>
+
+<div class="worked-example">
+  <div class="worked-example-title">🔢 Realistic scenario: d<sub>k</sub> = 64</div>
+
+  <p>Suppose \(q_1 \cdot k_1 = 10.2\), \(q_1 \cdot k_2 = -3.5\), \(q_1 \cdot k_3 = 6.8\) (realistic for std dev = 8).</p>
+
+  <table>
+    <thead>
+      <tr><th></th><th>Raw scores</th><th>Softmax</th><th>After /√64 = /8</th><th>Softmax</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>k₁</td><td>10.2</td><td class="color-red">0.968</td><td>1.275</td><td class="color-green">0.481</td></tr>
+      <tr><td>k₂</td><td>−3.5</td><td class="color-red">≈ 0</td><td>−0.438</td><td class="color-green">0.087</td></tr>
+      <tr><td>k₃</td><td>6.8</td><td class="color-red">0.032</td><td>0.850</td><td class="color-green">0.315</td></tr>
+      <tr><td colspan="2"></td><td class="color-red">Near one-hot</td><td></td><td class="color-green">Distributed</td></tr>
+    </tbody>
+  </table>
+
+  <p>Without scaling: 96.8% of attention on token 1, only 3.2% on token 3, essentially 0% on token 2. The model is barely doing any information mixing. With scaling: 48.1% / 8.7% / 31.5% — token 1 is still preferred (as it should be, it has the highest score), but tokens 2 and 3 contribute meaningfully.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 4 ============================== -->
+
+<h2>4. Softmax Temperature — The Generalized Framework</h2>
+
+<p>The \(\sqrt{d_k}\) scaling is actually a specific instance of a more general concept: <strong>softmax temperature</strong>. Understanding temperature gives you a unified framework for thinking about attention sharpness, knowledge distillation, contrastive learning, and even LLM decoding.</p>
+
+<h3>4.1 The Temperature Parameter</h3>
+
+<div class="math-box">
+  <div class="math-box-title">Softmax with Temperature</div>
+  $$\text{softmax}(z / \tau)_i = \frac{e^{z_i / \tau}}{\sum_j e^{z_j / \tau}}$$
+  <p style="margin-bottom: 0;">where \(\tau > 0\) is the temperature parameter.</p>
+</div>
+
+<p>Temperature controls the "sharpness" of the probability distribution. The name comes from statistical mechanics — the Boltzmann distribution \(p_i \propto e^{-E_i / k_B T}\) uses temperature \(T\) to control how concentrated a system is in low-energy states.</p>
+
+<table>
+  <thead>
+    <tr><th>Temperature \(\tau\)</th><th>Behavior</th><th>Distribution</th><th>Analogy</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>\(\tau \to 0^+\)</td><td>Scores amplified to ±∞</td><td>One-hot (argmax)</td><td>Frozen — system in lowest energy state</td></tr>
+    <tr><td>\(\tau = 1\)</td><td>Standard softmax</td><td>Normal</td><td>Room temperature</td></tr>
+    <tr><td>\(\tau \to \infty\)</td><td>Scores compressed to 0</td><td>Uniform (\(1/n\))</td><td>Infinite heat — all states equally likely</td></tr>
+  </tbody>
+</table>
+
+<h3>4.2 √d<sub>k</sub> as Temperature</h3>
+
+<p>In the attention formula, \(\sqrt{d_k}\) serves as the temperature. But it's not just <em>any</em> temperature — it's precisely the temperature that normalizes the score variance to 1:</p>
+
+<div class="math-box">
+  <div class="math-box-title">Attention = Softmax with temperature √d<sub>k</sub></div>
+  $$\text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) = \text{softmax}\!\left(\frac{z}{\tau}\right) \quad \text{where } \tau = \sqrt{d_k}$$
+  <p style="margin-bottom: 0;">This is not an arbitrary choice: it's the unique temperature that makes \(\text{Var}(z/\tau) = 1\) regardless of \(d_k\).</p>
+</div>
+
+<p>This connection reveals something deeper: the \(\sqrt{d_k}\) scaling ensures that <strong>the effective temperature of the attention distribution is invariant to the head dimension</strong>. Whether you use \(d_k = 32\) or \(d_k = 128\), the softmax sees scores with the same variance. This is a form of <strong>architectural hyperparameter invariance</strong> — changing \(d_k\) doesn't silently change the behavior of your attention patterns.</p>
+
+<h3>4.3 Numerical Demonstration of Temperature Effects</h3>
+
+<div class="worked-example">
+  <div class="worked-example-title">🌡️ Temperature effects on the same score vector</div>
+
+  <p>Using raw scores \(z = [2.0, 1.0, -1.0]\) with varying temperature:</p>
+
+  <table>
+    <thead>
+      <tr><th>\(\tau\)</th><th>\(z / \tau\)</th><th>softmax</th><th>Max weight</th><th>Entropy</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>0.25</td><td>[8.0, 4.0, −4.0]</td><td>[0.982, 0.018, 0.000]</td><td>0.982</td><td>0.14 bits</td></tr>
+      <tr><td>0.50</td><td>[4.0, 2.0, −2.0]</td><td>[0.844, 0.114, 0.002]</td><td>0.844</td><td>0.70 bits</td></tr>
+      <tr><td style="font-weight: 700">1.00</td><td style="font-weight: 700">[2.0, 1.0, −1.0]</td><td style="font-weight: 700">[0.705, 0.259, 0.035]</td><td style="font-weight: 700">0.705</td><td style="font-weight: 700">1.06 bits</td></tr>
+      <tr><td>2.00</td><td>[1.0, 0.5, −0.5]</td><td>[0.506, 0.307, 0.186]</td><td>0.506</td><td>1.42 bits</td></tr>
+      <tr><td>5.00</td><td>[0.4, 0.2, −0.2]</td><td>[0.374, 0.340, 0.286]</td><td>0.374</td><td>1.55 bits</td></tr>
+      <tr><td>∞</td><td>[0, 0, 0]</td><td>[0.333, 0.333, 0.333]</td><td>0.333</td><td>1.58 bits</td></tr>
+    </tbody>
+  </table>
+
+  <p>Maximum entropy for 3 tokens is \(\log_2(3) = 1.585\) bits. As temperature increases, the distribution approaches uniform (maximum entropy, no preference). As temperature decreases, it approaches argmax (minimum entropy, hard selection).</p>
+</div>
+
+<div class="diagram-container">
+<svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" style="font-family: 'Helvetica Neue', Arial, sans-serif;">
+  <!-- Temperature spectrum bar -->
+  <defs>
+    <linearGradient id="tempGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1565c0"/>
+      <stop offset="50%" style="stop-color:#4caf50"/>
+      <stop offset="100%" style="stop-color:#d32f2f"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="80" y="20" width="540" height="24" rx="12" fill="url(#tempGrad)" opacity="0.7"/>
+  <text x="80" y="14" font-size="10" fill="#1565c0" font-weight="700">τ → 0 (cold)</text>
+  <text x="330" y="14" font-size="10" fill="#2e7d32" font-weight="700" text-anchor="middle">τ = √d_k</text>
+  <text x="620" y="14" font-size="10" fill="#d32f2f" font-weight="700" text-anchor="end">τ → ∞ (hot)</text>
+
+  <!-- Three bar charts -->
+  <!-- Cold -->
+  <g transform="translate(80, 70)">
+    <text x="65" y="0" text-anchor="middle" font-size="11" font-weight="700" fill="#1565c0">τ = 0.25</text>
+    <rect x="20" y="20" width="30" height="140" rx="3" fill="#1565c0" opacity="0.8"/>
+    <rect x="60" y="155" width="30" height="5" rx="2" fill="#1565c0" opacity="0.5"/>
+    <rect x="100" y="158" width="30" height="2" rx="1" fill="#1565c0" opacity="0.3"/>
+    <text x="35" y="175" text-anchor="middle" font-size="9" fill="#555">t₁</text>
+    <text x="75" y="175" text-anchor="middle" font-size="9" fill="#555">t₂</text>
+    <text x="115" y="175" text-anchor="middle" font-size="9" fill="#555">t₃</text>
+    <text x="65" y="195" text-anchor="middle" font-size="9" fill="#1565c0">argmax-like</text>
+  </g>
+
+  <!-- Balanced -->
+  <g transform="translate(280, 70)">
+    <text x="65" y="0" text-anchor="middle" font-size="11" font-weight="700" fill="#2e7d32">τ = 1.0 (√d_k)</text>
+    <rect x="20" y="20" width="30" height="100" rx="3" fill="#4caf50" opacity="0.8"/>
+    <rect x="60" y="83" width="30" height="37" rx="3" fill="#4caf50" opacity="0.6"/>
+    <rect x="100" y="115" width="30" height="5" rx="2" fill="#4caf50" opacity="0.4"/>
+    <text x="35" y="175" text-anchor="middle" font-size="9" fill="#555">t₁</text>
+    <text x="75" y="175" text-anchor="middle" font-size="9" fill="#555">t₂</text>
+    <text x="115" y="175" text-anchor="middle" font-size="9" fill="#555">t₃</text>
+    <text x="65" y="195" text-anchor="middle" font-size="9" fill="#2e7d32">healthy blend</text>
+  </g>
+
+  <!-- Hot -->
+  <g transform="translate(480, 70)">
+    <text x="65" y="0" text-anchor="middle" font-size="11" font-weight="700" fill="#d32f2f">τ = 5.0</text>
+    <rect x="20" y="90" width="30" height="30" rx="3" fill="#d32f2f" opacity="0.7"/>
+    <rect x="60" y="95" width="30" height="25" rx="3" fill="#d32f2f" opacity="0.6"/>
+    <rect x="100" y="100" width="30" height="20" rx="3" fill="#d32f2f" opacity="0.5"/>
+    <text x="35" y="175" text-anchor="middle" font-size="9" fill="#555">t₁</text>
+    <text x="75" y="175" text-anchor="middle" font-size="9" fill="#555">t₂</text>
+    <text x="115" y="175" text-anchor="middle" font-size="9" fill="#555">t₃</text>
+    <text x="65" y="195" text-anchor="middle" font-size="9" fill="#d32f2f">near-uniform</text>
+  </g>
+</svg>
+<div class="diagram-caption">Figure 2: The temperature spectrum. Low temperature → sharp, peaked attention (approaches hard selection). √d<sub>k</sub> temperature → well-behaved blend (the Transformer's design point). High temperature → flat, uniform attention (no discrimination between keys).</div>
+</div>
+
+<h3>4.4 Temperature in Practice Beyond Attention</h3>
+
+<p>Understanding temperature lets you connect attention scaling to several other techniques:</p>
+
+<p><strong>Knowledge distillation (Hinton et al., 2015):</strong> A teacher model's logits are softened with high temperature (\(\tau = 2\text{–}20\)) to produce "soft targets." The student learns from these smoothed distributions, capturing inter-class similarities (e.g., a "3" is more like an "8" than a "7"). The teacher's dark knowledge lives in the relative probabilities of wrong answers — revealed by temperature.</p>
+
+<p><strong>Contrastive learning (SimCLR, CLIP):</strong> The InfoNCE loss uses a learned or fixed temperature on the similarity scores: \(\ell = -\log \frac{e^{\text{sim}(z_i, z_j)/\tau}}{\sum_k e^{\text{sim}(z_i, z_k)/\tau}}\). Low \(\tau\) makes the loss focus on hard negatives; high \(\tau\) spreads attention across all negatives. CLIP uses a learnable \(\tau\) initialized to 0.07 — far lower than 1.0, producing sharp distributions that force strong discrimination.</p>
+
+<p><strong>LLM decoding:</strong> When generating text, temperature controls creativity vs. determinism. At \(\tau = 0\) (greedy), the model always picks the most likely token. At \(\tau = 1\), you sample from the model's learned distribution. At \(\tau > 1\), you get more diverse, surprising outputs — but also more errors. This is the same math as attention temperature, applied to the output vocabulary distribution.</p>
+
+<div class="callout insight">
+  <div class="callout-title">💡 The unified view</div>
+  <p>Every softmax in deep learning has an implicit or explicit temperature. In attention, \(\tau = \sqrt{d_k}\) is set by the architecture. In distillation, \(\tau\) is a training hyperparameter. In contrastive learning, \(\tau\) is sometimes learned. In decoding, \(\tau\) is an inference-time knob. In every case, the tradeoff is the same: <strong>lower temperature = sharper discrimination, higher temperature = softer blending</strong>.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 5 ============================== -->
+
+<h2>5. The Softmax Jacobian — Why Saturation Kills Gradients</h2>
+
+<p>This section connects to Blog 8 (Gradient Flow) but is essential here for a complete mathematical picture. When softmax saturates (due to missing or incorrect scaling), the gradients vanish. Let's derive exactly why.</p>
+
+<h3>5.1 Jacobian of Softmax</h3>
+
+<div class="math-box">
+  <div class="math-box-title">Softmax Jacobian</div>
+  <p>For \(A_i = \text{softmax}(S)_i\):</p>
+  $$\frac{\partial A_i}{\partial S_j} = \begin{cases} A_i(1 - A_i) & \text{if } i = j \\ -A_i A_j & \text{if } i \neq j \end{cases}$$
+  <p style="margin-bottom: 0;">Compact form: \(\frac{\partial A_i}{\partial S_j} = A_i(\delta_{ij} - A_j)\)</p>
+</div>
+
+<p>The diagonal term \(A_i(1 - A_i)\) has a maximum value of 0.25 (when \(A_i = 0.5\)). It approaches zero when \(A_i \to 0\) or \(A_i \to 1\). This is the same shape as the sigmoid derivative — a bell curve centered at 0.5.</p>
+
+<h3>5.2 Worked Example: Jacobian at Different Saturations</h3>
+
+<div class="worked-example">
+  <div class="worked-example-title">🔢 Jacobian comparison: healthy vs. saturated</div>
+
+  <p><strong>Case 1 — Healthy distribution:</strong> \(A = [0.45, 0.27, 0.27]\) (with √d<sub>k</sub> scaling)</p>
+
+  <div style="margin: 0.5rem 0;">
+    <div class="matrix-label">Jacobian J (∂A/∂S)</div>
+    <div class="matrix-grid">
+      <div class="matrix-row">
+        <div class="matrix-cell header"></div>
+        <div class="matrix-cell header">∂S₁</div>
+        <div class="matrix-cell header">∂S₂</div>
+        <div class="matrix-cell header">∂S₃</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">∂A₁</div>
+        <div class="matrix-cell highlight">0.248</div>
+        <div class="matrix-cell">−0.123</div>
+        <div class="matrix-cell">−0.123</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">∂A₂</div>
+        <div class="matrix-cell">−0.123</div>
+        <div class="matrix-cell highlight">0.200</div>
+        <div class="matrix-cell">−0.074</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">∂A₃</div>
+        <div class="matrix-cell">−0.123</div>
+        <div class="matrix-cell">−0.074</div>
+        <div class="matrix-cell highlight">0.200</div>
+      </div>
+    </div>
+  </div>
+
+  <p>Diagonal values (highlighted) are 0.20–0.25. Off-diagonal values are meaningful. Gradient signal is healthy — all positions can learn.</p>
+
+  <p><strong>Case 2 — Saturated distribution:</strong> \(A = [0.997, 0.002, 0.001]\) (without scaling, d<sub>k</sub>=64)</p>
+
+  <div style="margin: 0.5rem 0;">
+    <div class="matrix-label">Jacobian J (∂A/∂S)</div>
+    <div class="matrix-grid">
+      <div class="matrix-row">
+        <div class="matrix-cell header"></div>
+        <div class="matrix-cell header">∂S₁</div>
+        <div class="matrix-cell header">∂S₂</div>
+        <div class="matrix-cell header">∂S₃</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">∂A₁</div>
+        <div class="matrix-cell">0.003</div>
+        <div class="matrix-cell">−0.002</div>
+        <div class="matrix-cell">−0.001</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">∂A₂</div>
+        <div class="matrix-cell">−0.002</div>
+        <div class="matrix-cell">0.002</div>
+        <div class="matrix-cell">≈ 0</div>
+      </div>
+      <div class="matrix-row">
+        <div class="matrix-cell header">∂A₃</div>
+        <div class="matrix-cell">−0.001</div>
+        <div class="matrix-cell">≈ 0</div>
+        <div class="matrix-cell">0.001</div>
+      </div>
+    </div>
+  </div>
+
+  <p>Diagonal values are 0.001–0.003 — <strong>two orders of magnitude smaller</strong> than the healthy case. The gradient through softmax is essentially dead. The model cannot learn to redistribute attention once it has collapsed.</p>
+</div>
+
+<div class="callout">
+  <div class="callout-title">The Frobenius norm tells the full story</div>
+  <p>The Frobenius norm of the Jacobian measures the total gradient signal: \(\|J\|_F = \sqrt{\sum_{ij} J_{ij}^2}\). For the healthy case: \(\|J\|_F \approx 0.42\). For the saturated case: \(\|J\|_F \approx 0.004\). That's a <strong>100× reduction</strong> in gradient magnitude. Over multiple layers, this compounds: the attention mechanism becomes a gradient dead zone.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 6 ============================== -->
+
+<h2>6. Additive vs. Multiplicative Attention — Why Scaling Is Only Needed for Dot-Product</h2>
+
+<p>Vaswani et al. (2017) noted that additive attention (Bahdanau) and multiplicative attention (Luong dot-product) perform similarly for small \(d_k\), but multiplicative attention degrades for large \(d_k\) without scaling. This is a direct consequence of the variance analysis.</p>
+
+<div class="math-box">
+  <div class="math-box-title">Why additive attention doesn't need scaling</div>
+  <p><strong>Additive (Bahdanau):</strong> \(\text{score} = v^\top \tanh(W_1 s + W_2 h)\)</p>
+  <p>The tanh activation bounds the hidden representation to \([-1, 1]\). The output score is a dot product with a fixed-size vector \(v\), which has bounded variance regardless of the input dimension. The non-linearity naturally controls the scale.</p>
+
+  <p style="margin-bottom: 0;"><strong>Multiplicative (dot-product):</strong> \(\text{score} = q^\top k = \sum q_i k_i\)</p>
+  <p style="margin-bottom: 0;">No non-linearity, no bounded activation. The score is a raw sum of \(d_k\) terms, so its variance grows linearly with \(d_k\). Explicit scaling is the only way to control it.</p>
+</div>
+
+<p>This is why the original Transformer paper chose multiplicative attention despite this flaw: it's much cheaper computationally (a single matrix multiply \(QK^\top\) vs. a feedforward network per query-key pair) and the scaling fix is trivial. With modern hardware, the \(O(d_k)\) overhead of the scaling is negligible compared to the savings from replacing the feedforward network.</p>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 7 ============================== -->
+
+<h2>7. Masking in the Score Matrix</h2>
+
+<p>Before softmax, we can inject structural constraints by adding a mask to the scaled scores. This is how the Transformer implements causal (autoregressive) decoding and handles variable-length sequences.</p>
+
+<div class="math-box">
+  <div class="math-box-title">Masked Attention</div>
+  $$\text{Attention} = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}} + M\right) V$$
+  <p style="margin-bottom: 0;">where \(M_{ij} = 0\) if position \(i\) is allowed to attend to \(j\), and \(M_{ij} = -\infty\) otherwise.</p>
+</div>
+
+<p>Adding \(-\infty\) before softmax produces \(e^{-\infty} = 0\) — the masked positions contribute exactly zero weight. This is mathematically equivalent to removing those positions from the softmax normalization entirely.</p>
+
+<div class="worked-example">
+  <div class="worked-example-title">🧮 Worked Example — Causal masking on our 3-token example</div>
+
+  <p>Applying a causal mask to our scaled scores from Step 2:</p>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start;">
+    <div>
+      <div class="matrix-label">S′ (scaled scores)</div>
+      <div class="matrix-grid">
+        <div class="matrix-row"><div class="matrix-cell header">q\k</div><div class="matrix-cell header">k₁</div><div class="matrix-cell header">k₂</div><div class="matrix-cell header">k₃</div></div>
+        <div class="matrix-row"><div class="matrix-cell header">q₁</div><div class="matrix-cell">0.50</div><div class="matrix-cell">0.50</div><div class="matrix-cell">1.00</div></div>
+        <div class="matrix-row"><div class="matrix-cell header">q₂</div><div class="matrix-cell">0.50</div><div class="matrix-cell">1.00</div><div class="matrix-cell">0.00</div></div>
+        <div class="matrix-row"><div class="matrix-cell header">q₃</div><div class="matrix-cell">1.00</div><div class="matrix-cell">0.00</div><div class="matrix-cell">0.50</div></div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 1.5rem; padding-top: 2rem;">+</div>
+
+    <div>
+      <div class="matrix-label">M (causal mask)</div>
+      <div class="matrix-grid">
+        <div class="matrix-row"><div class="matrix-cell header">q\k</div><div class="matrix-cell header">k₁</div><div class="matrix-cell header">k₂</div><div class="matrix-cell header">k₃</div></div>
+        <div class="matrix-row"><div class="matrix-cell header">q₁</div><div class="matrix-cell" style="background:#e8f5e9">0</div><div class="matrix-cell" style="background:#ffebee">−∞</div><div class="matrix-cell" style="background:#ffebee">−∞</div></div>
+        <div class="matrix-row"><div class="matrix-cell header">q₂</div><div class="matrix-cell" style="background:#e8f5e9">0</div><div class="matrix-cell" style="background:#e8f5e9">0</div><div class="matrix-cell" style="background:#ffebee">−∞</div></div>
+        <div class="matrix-row"><div class="matrix-cell header">q₃</div><div class="matrix-cell" style="background:#e8f5e9">0</div><div class="matrix-cell" style="background:#e8f5e9">0</div><div class="matrix-cell" style="background:#e8f5e9">0</div></div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top: 1rem;"><strong>Result after masking and softmax:</strong></p>
+
+  <p><strong>Row 1</strong> (token 1 can only attend to itself): softmax([0.50]) → [<strong>1.000</strong>, 0, 0]<br>
+  <strong>Row 2</strong> (attends to tokens 1–2): softmax([0.50, 1.00]) → [<strong>0.378</strong>, <strong>0.622</strong>, 0]<br>
+  <strong>Row 3</strong> (attends to all): softmax([1.00, 0.00, 0.50]) → [<strong>0.506</strong>, <strong>0.186</strong>, <strong>0.307</strong>]</p>
+
+  <p>Token 1 is forced to attend entirely to itself — it has no other context. Token 2 gets a blend of tokens 1 and 2, with more weight on itself (higher score). Token 3 sees the full context, producing the same weights as the unmasked case.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 8 ============================== -->
+
+<h2>8. Numerical Stability of Softmax — The Max-Subtraction Trick</h2>
+
+<p>This comes up constantly in interviews: "How do you actually implement softmax without overflow?" The naive formula \(e^{z_i}\) overflows in float32 for \(z > 88.7\) and underflows for \(z < -104\). With unscaled attention scores reaching magnitudes of 8–12 (std dev \(\sqrt{d_k}\) at \(d_k = 64\text{–}128\)), overflow is a real production concern.</p>
+
+<h3>8.1 The Trick: Shift Invariance</h3>
+
+<div class="math-box">
+  <div class="math-box-title">Softmax is shift-invariant</div>
+  $$\text{softmax}(z)_i = \frac{e^{z_i}}{\sum_j e^{z_j}} = \frac{e^{z_i - c}}{\sum_j e^{z_j - c}} = \text{softmax}(z - c)_i$$
+  <p style="margin-bottom: 0;">This holds for <strong>any</strong> constant \(c\). Setting \(c = \max_j z_j\) ensures the largest exponent is \(e^0 = 1\), and all others are \(e^{\text{negative}} \leq 1\). No overflow possible.</p>
+</div>
+
+<p>The proof is one line: multiplying numerator and denominator by \(e^{-c}\) gives \(\frac{e^{z_i} \cdot e^{-c}}{\sum_j e^{z_j} \cdot e^{-c}} = \frac{e^{z_i - c}}{\sum_j e^{z_j - c}}\). The value of softmax is unchanged.</p>
+
+<div class="worked-example">
+  <div class="worked-example-title">🔢 Worked Example — Overflow prevention</div>
+
+  <p>Scores: \(z = [90, 85, 80]\) — naive \(e^{90}\) overflows float32.</p>
+
+  <p><strong>Naive:</strong> \(e^{90} = \text{Inf}\), \(e^{85} = \text{Inf}\), \(e^{80} = \text{Inf}\) → output = [NaN, NaN, NaN] ✗</p>
+
+  <p><strong>With max-subtraction:</strong> \(c = 90\), so \(z' = [0, -5, -10]\)<br>
+  \(e^{0} = 1.000\), \(e^{-5} = 0.0067\), \(e^{-10} = 0.0000454\)<br>
+  Sum = 1.00676. Output = [0.9933, 0.0067, 0.0000] ✓</p>
+
+  <p>Mathematically identical results, zero overflow risk.</p>
+</div>
+
+<h3>8.2 The Three-Line Implementation</h3>
+
+<p>In PyTorch or NumPy, the numerically stable softmax is:</p>
+
+<div class="math-box">
+  <div class="math-box-title">Stable softmax — pseudocode</div>
+  <p style="font-family: 'Courier New', monospace; font-size: 0.9rem; margin-bottom: 0;">
+  z_shifted = z - max(z, dim=-1, keepdim=True)<br>
+  exp_z = exp(z_shifted)<br>
+  softmax = exp_z / sum(exp_z, dim=-1, keepdim=True)
+  </p>
+</div>
+
+<p>PyTorch's <code>F.softmax</code> and <code>F.scaled_dot_product_attention</code> do this internally — you don't need to implement it yourself. But interviewers expect you to know <em>why</em> it's needed and <em>how</em> it works.</p>
+
+<h3>8.3 Connection to Flash Attention's Online Softmax</h3>
+
+<p>The standard softmax requires <strong>two passes</strong> over the data: one to find the max (or to compute the full denominator), then one to compute the final probabilities. This means you need to materialize the entire \(n \times n\) score matrix in memory — which is exactly the \(O(n^2)\) memory bottleneck that Flash Attention aims to eliminate.</p>
+
+<p>Flash Attention uses the <strong>online softmax</strong> algorithm (Milakov & Gimelshein, 2018): it processes the score matrix in tiles, maintaining a running max and running sum that get corrected as new tiles arrive. Each tile's partial softmax is rescaled when a new, larger maximum is discovered in a later tile. This allows computing exact attention in a single pass with \(O(n)\) memory instead of \(O(n^2)\), by never materializing the full score matrix.</p>
+
+<div class="callout insight">
+  <div class="callout-title">💡 Why this matters for interviews</div>
+  <p>The shift-invariance of softmax is the mathematical property that makes online softmax — and therefore Flash Attention — possible. Without shift-invariance, you couldn't rescale partial results when a new maximum appears. This connects "basic numerics" to "state-of-the-art system design" in one clean arc.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 9 ============================== -->
+
+<h2>9. Complexity Analysis — Time, Memory, and the Quadratic Wall</h2>
+
+<p>Interview conversations about attention inevitably reach "what's the complexity and why is it a problem?" Being able to give concrete numbers for realistic models is what makes a strong impression.</p>
+
+<h3>9.1 Time Complexity</h3>
+
+<div class="math-box">
+  <div class="math-box-title">Per-layer attention complexity</div>
+  <p><strong>Score computation:</strong> \(QK^\top\) is a matrix multiply of \((n \times d_k) \times (d_k \times n)\) → \(O(n^2 \cdot d_k)\) FLOPs</p>
+  <p><strong>Softmax:</strong> \(O(n^2)\) — applied element-wise to the \(n \times n\) score matrix</p>
+  <p><strong>Value weighting:</strong> \(AV\) is \((n \times n) \times (n \times d_v)\) → \(O(n^2 \cdot d_v)\) FLOPs</p>
+  <p style="margin-bottom: 0;"><strong>Total per head:</strong> \(O(n^2 \cdot d_k)\). With \(h\) heads: \(O(n^2 \cdot d_k \cdot h) = O(n^2 \cdot d_{\text{model}})\)</p>
+</div>
+
+<p>Compare to the FFN layer: two matrix multiplies of \((n \times d_{\text{model}}) \times (d_{\text{model}} \times d_{ff})\), giving \(O(n \cdot d_{\text{model}} \cdot d_{ff}) = O(n \cdot d_{\text{model}}^2)\) (with \(d_{ff} = 4 \cdot d_{\text{model}}\)). Attention scales as \(n^2 \cdot d_{\text{model}}\); FFN scales as \(n \cdot d_{\text{model}}^2\). When \(n < d_{\text{model}}\) (short sequences), FFN dominates. When \(n > d_{\text{model}}\) (long sequences), attention dominates.</p>
+
+<h3>9.2 Memory Complexity — The Real Bottleneck</h3>
+
+<p>The \(n \times n\) attention matrix must be stored for the backward pass. This is the memory wall.</p>
+
+<div class="worked-example">
+  <div class="worked-example-title">🔢 Concrete memory costs — GPT-3 scale</div>
+
+  <table>
+    <thead>
+      <tr><th>Model</th><th>Seq length \(n\)</th><th>Heads \(h\)</th><th>Layers \(L\)</th><th>Attention matrix memory</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>GPT-2</td><td>1,024</td><td>12</td><td>12</td><td>\(1024^2 \times 12 \times 12 \times 2\text{B} = 0.3\) GB</td></tr>
+      <tr><td>GPT-3 175B</td><td>2,048</td><td>96</td><td>96</td><td>\(2048^2 \times 96 \times 96 \times 2\text{B} = 77\) GB</td></tr>
+      <tr><td>Llama-3 (128K)</td><td>131,072</td><td>64</td><td>80</td><td class="color-red">\(131072^2 \times 64 \times 80 \times 2\text{B} = 176\) <strong>TB</strong></td></tr>
+    </tbody>
+  </table>
+
+  <p>At 128K context, the naive attention matrices alone would require 176 terabytes — obviously impossible. This is exactly why Flash Attention (tiled computation, \(O(n)\) memory), sparse attention, and sliding window attention exist.</p>
+</div>
+
+<div class="callout warning">
+  <div class="callout-title">⚠️ Interview trap: "Attention is O(n²) so it can't scale"</div>
+  <p>The nuance: \(O(n^2)\) is the <strong>computation</strong> cost, but the real bottleneck in practice is <strong>memory</strong> — specifically the memory bandwidth of moving the \(n \times n\) matrix between HBM and SRAM. Flash Attention doesn't reduce the FLOPs (it still computes all \(n^2\) scores); it reduces the memory reads/writes by tiling the computation to stay in fast SRAM. The FLOPs-vs-memory-bandwidth distinction is what separates a textbook answer from a systems-aware one.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 10 ============================== -->
+
+<h2>10. Why Separate W<sub>Q</sub>, W<sub>K</sub>, W<sub>V</sub> Projections?</h2>
+
+<p>"Why not just use X directly for Q, K, and V?" This is a deceptively simple question that tests whether you understand the expressive power of learned projections.</p>
+
+<h3>10.1 What Happens Without Projections</h3>
+
+<p>If we set \(Q = K = V = X\) (no learned projections), the score matrix becomes:</p>
+
+$$S = XX^\top$$
+
+<p>This matrix is <strong>symmetric</strong> (\(S_{ij} = S_{ji}\)) and <strong>positive semi-definite</strong> (all eigenvalues \(\geq 0\)). Every token's highest dot-product is with itself (\(S_{ii} = \|x_i\|^2\) is the diagonal, which dominates when vectors have similar norms).</p>
+
+<div class="worked-example">
+  <div class="worked-example-title">🔢 Demonstration: Q=K=X produces symmetric, self-dominated attention</div>
+
+  <p>Take three token embeddings (d=3 for simplicity):</p>
+  <p>\(x_1 = [1, 0, 1]\), \(x_2 = [0, 1, 0]\), \(x_3 = [1, 1, 0]\)</p>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 2rem;">
+    <div>
+      <div class="matrix-label">XX⊤ (no projections)</div>
+      <div class="matrix-grid">
+        <div class="matrix-row"><div class="matrix-cell header">q\k</div><div class="matrix-cell header">k₁</div><div class="matrix-cell header">k₂</div><div class="matrix-cell header">k₃</div></div>
+        <div class="matrix-row"><div class="matrix-cell header">q₁</div><div class="matrix-cell highlight">2</div><div class="matrix-cell">0</div><div class="matrix-cell">1</div></div>
+        <div class="matrix-row"><div class="matrix-cell header">q₂</div><div class="matrix-cell">0</div><div class="matrix-cell highlight">1</div><div class="matrix-cell">1</div></div>
+        <div class="matrix-row"><div class="matrix-cell header">q₃</div><div class="matrix-cell">1</div><div class="matrix-cell">1</div><div class="matrix-cell highlight">2</div></div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top: 1rem;"><strong>Problems visible in the numbers:</strong></p>
+  <p>① <strong>Symmetric:</strong> \(S_{12} = S_{21} = 0\). If token 1 attends to token 2 with weight \(w\), token 2 attends to token 1 with the same weight. But "The cat sat on the mat" needs "sat" to attend strongly to "cat" (its subject) while "cat" doesn't need to attend to "sat" equally. Asymmetric attention is fundamental to language.</p>
+  <p>② <strong>Self-dominated:</strong> The diagonal \([2, 1, 2]\) has the largest or tied-largest values per row. Every token attends most to itself. The model degenerates toward identity — barely mixing information across positions.</p>
+  <p>③ <strong>Same space for querying and being queried:</strong> A token can only search for things that look like what it contains. "What am I looking for?" is forced to equal "what do I advertise." With separate \(W_Q\) and \(W_K\), a word like "it" can query for its antecedent (searching for nouns, entities) while advertising itself as a pronoun — two completely different roles.</p>
+</div>
+
+<h3>10.2 What Separate Projections Enable</h3>
+
+<p>With learned \(W_Q, W_K, W_V\):</p>
+
+<p><strong>Asymmetric attention:</strong> \(S_{ij} = (x_i W_Q)(x_j W_K)^\top \neq S_{ji}\) in general. Token \(i\) can attend strongly to token \(j\) without the reverse being true. This is essential for syntactic relationships (verbs attend to subjects, adjectives attend to nouns).</p>
+
+<p><strong>Decoupled roles:</strong> \(W_Q\) learns "what to search for," \(W_K\) learns "what to advertise," \(W_V\) learns "what to send when matched." These are three fundamentally different functions operating on the same input. A pronoun's query representation can encode "looking for a noun antecedent" while its key representation encodes "I'm a pronoun that could be a coreference target" — different learned projections serving different roles.</p>
+
+<p><strong>Rank flexibility:</strong> \(W_Q\) and \(W_K\) can project into a subspace where relevant tokens align in ways that have nothing to do with their raw embedding similarity. Two words that are semantically unrelated in embedding space can have high attention if \(W_Q\) and \(W_K\) learn to map them into alignment.</p>
+
+<div class="callout">
+  <div class="callout-title">Parameter count perspective</div>
+  <p>For one head: \(W_Q, W_K, W_V \in \mathbb{R}^{512 \times 64}\) plus \(W_O \in \mathbb{R}^{512 \times 512}\). That's \(3 \times 512 \times 64 + 512^2 \approx 360\text{K}\) parameters per head for the attention mechanism. These parameters are the model's entire budget for learning "who should attend to whom" and "what information to pass." Eliminating them (using X directly) would remove this learned flexibility entirely.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 11 ============================== -->
+
+<h2>11. Low-Rank Structure of the Attention Matrix</h2>
+
+<p>The \(n \times n\) attention score matrix \(S = QK^\top\) is computed from two matrices of shape \((n \times d_k)\) and \((d_k \times n)\). By the rank inequality of matrix products:</p>
+
+<div class="math-box">
+  <div class="math-box-title">Rank bound on attention scores</div>
+  $$\text{rank}(QK^\top) \leq \min(\text{rank}(Q),\, \text{rank}(K)) \leq \min(n,\, d_k)$$
+  <p style="margin-bottom: 0;">For typical settings: \(d_k = 64\) and \(n = 2048\). The \(2048 \times 2048\) score matrix has rank at most <strong>64</strong>.</p>
+</div>
+
+<p>This has several important implications:</p>
+
+<p><strong>Expressiveness limit per head:</strong> A single attention head can implement at most \(d_k\) linearly independent attention patterns. For \(d_k = 64\), the attention matrix lives in a 64-dimensional subspace of the space of all possible \(n \times n\) matrices. This is why multiple heads are essential — 8 heads with \(d_k = 64\) can collectively represent up to 512 independent patterns.</p>
+
+<p><strong>Softmax doesn't increase rank:</strong> Softmax is applied row-wise — it's a non-linear transformation of each row independently. While it changes the values, it doesn't create new linear independence between rows. The <em>effective</em> rank (number of significant singular values) of the attention matrix after softmax is still bounded by \(d_k\).</p>
+
+<p><strong>Connection to efficient attention:</strong> This low-rank structure is exactly what methods like Linformer exploit. Linformer projects the keys and values to a lower dimension \(k \ll n\), computing a \((n \times k)\) score matrix instead of \((n \times n)\). The argument: if the attention matrix was already approximately low-rank (rank \(d_k = 64\)), projecting to \(k = 128\) or \(k = 256\) should lose little information.</p>
+
+<div class="callout warning">
+  <div class="callout-title">⚠️ Interview subtlety: rank ≠ effective attention patterns</div>
+  <p>The rank bound of 64 doesn't mean the head uses 64 distinct patterns. In practice, many attention heads use far fewer — some heads learn to be nearly uniform (rank 1), others learn a few sharp patterns (effective rank 3–5). The rank bound is a <strong>ceiling</strong>, not a description of actual behavior. Empirical studies (Voita et al., 2019) showed that many heads can be pruned without performance loss — they were never using their full rank capacity.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 12 ============================== -->
+
+<h2>12. Attention Weights ≠ Explanation</h2>
+
+<p>Interviewers sometimes ask whether attention weights can explain <em>why</em> a model made a particular prediction. This tests your understanding of the difference between "where the model looks" and "what the model uses." The answer is nuanced.</p>
+
+<h3>12.1 The Argument Against: Jain & Wallace (2019)</h3>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Attention is not Explanation</div>
+    <div class="paper-ref-authors">Jain & Wallace · NAACL 2019 — Showed attention weights don't reliably indicate feature importance</div>
+  </div>
+</div>
+
+<p>Their key findings: (1) Attention weights often don't correlate with gradient-based feature importance measures. (2) You can find <strong>alternative attention distributions</strong> that produce nearly identical predictions — if many different attention patterns give the same output, no single pattern can be "the explanation." (3) Uniform attention sometimes performs comparably, suggesting the model doesn't rely on the specific attention pattern as much as the weights suggest.</p>
+
+<h3>12.2 The Counterargument: Wiegreffe & Pinter (2019)</h3>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Attention is not not Explanation</div>
+    <div class="paper-ref-authors">Wiegreffe & Pinter · EMNLP 2019 — Argued that alternative distributions require adversarial training, not natural variation</div>
+  </div>
+</div>
+
+<p>They showed that finding alternative attention distributions with the same output requires adversarial training — it's not that the model naturally has many equivalent patterns, but that you can <em>force</em> it to use different ones with enough optimization pressure. Under normal training, attention patterns do carry meaningful (if incomplete) information.</p>
+
+<h3>12.3 The Mature View</h3>
+
+<p>The best interview answer acknowledges both sides:</p>
+
+<div class="callout">
+  <div class="callout-title">What attention weights do and don't tell you</div>
+  <p><strong>They DO tell you:</strong> Which positions' value vectors are being mixed into the output representation. If head 3, layer 5 attends "cat" to "sat," that head is routing information from "sat" into "cat"'s representation at that layer.</p>
+  <p><strong>They DON'T tell you:</strong> (1) Whether the downstream layers actually <em>use</em> that routed information — the FFN and later attention layers may ignore it. (2) Which features within the value vector matter — attention operates on entire vectors, not individual features. (3) The causal contribution to the final prediction — that requires gradient-based or perturbation-based attribution methods.</p>
+  <p>Attention weights are a <strong>necessary but not sufficient</strong> component of explanation. They show the routing pattern, not the utilization pattern.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 13 ============================== -->
+
+<h2>13. Why Softmax? Properties of the Differentiable Argmax</h2>
+
+<p>"Why softmax specifically? Why not some other normalization?" This question probes whether you understand softmax as a deliberate mathematical choice rather than a default.</p>
+
+<h3>13.1 The Four Properties That Make Softmax Unique</h3>
+
+<div class="math-box">
+  <div class="math-box-title">Softmax is the unique function satisfying all four properties</div>
+  <p><strong>① Strict positivity:</strong> \(\text{softmax}(z)_i > 0\) for all \(i\). Every position has a non-zero weight — no token is ever completely ignored (before masking).</p>
+  <p><strong>② Normalization:</strong> \(\sum_i \text{softmax}(z)_i = 1\). The output is a valid probability distribution, making the attention output a proper weighted average.</p>
+  <p><strong>③ Monotonicity:</strong> Higher scores → higher weights. If \(z_i > z_j\), then \(\text{softmax}(z)_i > \text{softmax}(z)_j\). The ranking is preserved.</p>
+  <p style="margin-bottom: 0;"><strong>④ Shift-invariance:</strong> \(\text{softmax}(z + c) = \text{softmax}(z)\). Adding a constant doesn't change the output — only relative differences matter. This is what enables numerical stability (Section 8).</p>
+</div>
+
+<p>Softmax is the <strong>unique function</strong> satisfying all four properties simultaneously. It's the canonical smooth approximation of argmax — as temperature \(\tau \to 0\), softmax approaches a one-hot vector at the argmax position.</p>
+
+<h3>13.2 Why Not These Alternatives?</h3>
+
+<table>
+  <thead>
+    <tr><th>Alternative</th><th>Formula</th><th>What breaks</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>L1 normalization</td><td>\(z_i / \sum |z_j|\)</td><td>Not strictly positive — negative scores give negative weights. Attention could <em>subtract</em> value vectors, destabilizing training.</td></tr>
+    <tr><td>Sparsemax</td><td>Euclidean projection onto simplex</td><td>Exactly zero weights for low-scoring positions — <strong>by design</strong>. Used when you <em>want</em> sparse attention (Martins & Astudillo, 2016). Loses the "every position contributes" property.</td></tr>
+    <tr><td>Sigmoid per element</td><td>\(\sigma(z_i)\) independently</td><td>Doesn't sum to 1 — not a distribution. The output isn't a weighted average of values; it's an unconstrained scaling. Attention weights could all be near 1 or all near 0.</td></tr>
+    <tr><td>Hardmax (argmax)</td><td>1 at max, 0 elsewhere</td><td>Not differentiable — can't backprop through it. The model can't learn to adjust attention patterns via gradient descent.</td></tr>
+    <tr><td>ReLU + normalize</td><td>\(\text{ReLU}(z_i) / \sum \text{ReLU}(z_j)\)</td><td>Negative scores get exactly zero weight with zero gradient — dead attention connections (like dead ReLU). Also breaks when all scores are negative (division by zero).</td></tr>
+  </tbody>
+</table>
+
+<div class="callout insight">
+  <div class="callout-title">💡 Modern developments: sigmoid attention is making a comeback</div>
+  <p>Recent work (including in some Mamba-hybrid and linear attention architectures) has revisited sigmoid-based attention, where each element is independently gated by \(\sigma(z_i)\). The weights don't sum to 1, so it's not a convex combination — each value vector is independently scaled. This trades the probability-distribution interpretation for computational advantages (no softmax denominator = easier to parallelize and linearize). FlashSigmoid attention can be computed without materializing the full score matrix. The tradeoff: less sharp discrimination between keys, but better hardware utilization.</p>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 14 ============================== -->
+
+<h2>14. Putting It All Together: The Complete Data Flow</h2>
+
+<div class="diagram-container">
+<svg viewBox="0 0 700 460" xmlns="http://www.w3.org/2000/svg" style="font-family: 'Helvetica Neue', Arial, sans-serif;">
+  <!-- Flow boxes -->
+  <rect x="230" y="10" width="240" height="40" rx="8" fill="#e3f2fd" stroke="#1976d2" stroke-width="1.5"/>
+  <text x="350" y="35" text-anchor="middle" font-size="13" font-weight="700" fill="#1976d2">X ∈ ℝ^(n × d_model)</text>
+
+  <!-- Three projection arrows -->
+  <line x1="280" y1="50" x2="130" y2="80" stroke="#555" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="350" y1="50" x2="350" y2="80" stroke="#555" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="420" y1="50" x2="570" y2="80" stroke="#555" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#555"/></marker></defs>
+
+  <!-- Q, K, V boxes -->
+  <rect x="50" y="80" width="160" height="36" rx="6" fill="#fff3e0" stroke="#e65100" stroke-width="1.2"/>
+  <text x="130" y="103" text-anchor="middle" font-size="12" font-weight="600" fill="#e65100">Q = X·W_Q  (n × d_k)</text>
+
+  <rect x="270" y="80" width="160" height="36" rx="6" fill="#fff3e0" stroke="#e65100" stroke-width="1.2"/>
+  <text x="350" y="103" text-anchor="middle" font-size="12" font-weight="600" fill="#e65100">K = X·W_K  (n × d_k)</text>
+
+  <rect x="490" y="80" width="160" height="36" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.2"/>
+  <text x="570" y="103" text-anchor="middle" font-size="12" font-weight="600" fill="#2e7d32">V = X·W_V  (n × d_v)</text>
+
+  <!-- QK^T -->
+  <line x1="130" y1="116" x2="240" y2="150" stroke="#555" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="350" y1="116" x2="310" y2="150" stroke="#555" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <rect x="190" y="148" width="180" height="36" rx="6" fill="#fce4ec" stroke="#c62828" stroke-width="1.2"/>
+  <text x="280" y="170" text-anchor="middle" font-size="12" font-weight="600" fill="#c62828">S = QK⊤  (n × n)</text>
+  <text x="280" y="200" text-anchor="middle" font-size="10" fill="#888">Var(S_ij) = d_k</text>
+
+  <!-- Scale -->
+  <line x1="280" y1="184" x2="280" y2="218" stroke="#555" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <rect x="190" y="216" width="180" height="36" rx="6" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+  <text x="280" y="239" text-anchor="middle" font-size="12" font-weight="700" fill="#7b1fa2">÷ √d_k  (τ = √d_k)</text>
+  <text x="280" y="268" text-anchor="middle" font-size="10" fill="#888">Var(S'_ij) = 1 ← the fix</text>
+
+  <!-- Mask (optional) -->
+  <line x1="280" y1="252" x2="280" y2="286" stroke="#555" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <rect x="190" y="284" width="180" height="36" rx="6" fill="#fff8e1" stroke="#f9a825" stroke-width="1.2"/>
+  <text x="280" y="306" text-anchor="middle" font-size="12" font-weight="600" fill="#f57f17">+ Mask (optional)</text>
+
+  <!-- Softmax -->
+  <line x1="280" y1="320" x2="280" y2="344" stroke="#555" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <rect x="190" y="342" width="180" height="36" rx="6" fill="#e8eaf6" stroke="#283593" stroke-width="1.2"/>
+  <text x="280" y="365" text-anchor="middle" font-size="12" font-weight="600" fill="#283593">A = softmax(row-wise)</text>
+
+  <!-- × V -->
+  <line x1="280" y1="378" x2="280" y2="402" stroke="#555" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="570" y1="116" x2="570" y2="412" stroke="#2e7d32" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <line x1="570" y1="412" x2="370" y2="412" stroke="#2e7d32" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <rect x="200" y="400" width="160" height="40" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="280" y="425" text-anchor="middle" font-size="13" font-weight="700" fill="#2e7d32">O = AV  (n × d_v)</text>
+
+  <!-- V label on dashed line -->
+  <text x="585" y="270" font-size="10" fill="#2e7d32" font-weight="600">× V</text>
+</svg>
+<div class="diagram-caption">Figure 3: Complete data flow through scaled dot-product attention. The √d<sub>k</sub> scaling (purple box) is the critical step that prevents softmax saturation. Mask addition is used for causal decoding. The V matrix bypasses the score computation entirely — it only participates in the final weighted sum.</div>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 15 ============================== -->
+
+<h2>15. Key Paper References</h2>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Attention Is All You Need</div>
+    <div class="paper-ref-authors">Vaswani et al. · NeurIPS 2017 — Introduces scaled dot-product attention and the √d<sub>k</sub> scaling</div>
+  </div>
+</div>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Neural Machine Translation by Jointly Learning to Align and Translate</div>
+    <div class="paper-ref-authors">Bahdanau, Cho & Bengio · ICLR 2015 — Additive attention (no scaling needed due to tanh)</div>
+  </div>
+</div>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Effective Approaches to Attention-based Neural Machine Translation</div>
+    <div class="paper-ref-authors">Luong, Pham & Manning · EMNLP 2015 — Multiplicative (dot-product) attention, precursor to Transformer scaling</div>
+  </div>
+</div>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Distilling the Knowledge in a Neural Network</div>
+    <div class="paper-ref-authors">Hinton, Vinyals & Dean · 2015 — Temperature-scaled softmax for knowledge distillation</div>
+  </div>
+</div>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Learning Transferable Visual Models From Natural Language Supervision (CLIP)</div>
+    <div class="paper-ref-authors">Radford et al. · ICML 2021 — Learnable temperature in contrastive loss</div>
+  </div>
+</div>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness</div>
+    <div class="paper-ref-authors">Dao, Fu, Ermon, Rudra & Ré · NeurIPS 2022 — Tiled attention using online softmax, O(n) memory</div>
+  </div>
+</div>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Online normalizer calculation for softmax</div>
+    <div class="paper-ref-authors">Milakov & Gimelshein · arXiv 2018 — The online softmax algorithm that Flash Attention builds on</div>
+  </div>
+</div>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Attention is not Explanation</div>
+    <div class="paper-ref-authors">Jain & Wallace · NAACL 2019 — Attention weights vs. feature importance</div>
+  </div>
+</div>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Attention is not not Explanation</div>
+    <div class="paper-ref-authors">Wiegreffe & Pinter · EMNLP 2019 — Rebuttal showing attention carries meaningful signal</div>
+  </div>
+</div>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Linformer: Self-Attention with Linear Complexity</div>
+    <div class="paper-ref-authors">Wang et al. · arXiv 2020 — Exploits low-rank structure of attention for O(n) attention</div>
+  </div>
+</div>
+
+<div class="paper-ref">
+  <div class="paper-ref-icon">📄</div>
+  <div>
+    <div class="paper-ref-title">Are Sixteen Heads Really Better than One?</div>
+    <div class="paper-ref-authors">Voita et al. · NeurIPS 2019 — Head pruning, showing many heads are redundant</div>
+  </div>
+</div>
+
+<div class="separator">· · ·</div>
+
+<!-- ============================== SECTION 16 ============================== -->
+
+<h2>16. Interview Questions</h2>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q1 — Derivation</div>
+    <div class="question-text">Derive why we divide by √d<sub>k</sub> in attention. What happens without it?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>If \(q_i, k_i\) are independent with mean 0, variance 1, then each product \(q_i k_i\) has mean 0, variance 1. The dot product \(\sum_{i=1}^{d_k} q_i k_i\) is a sum of \(d_k\) such terms, so it has mean 0, variance \(d_k\), and standard deviation \(\sqrt{d_k}\). For \(d_k = 64\), scores have std dev 8, pushing softmax into saturation — the output becomes near one-hot. This causes: (1) information loss (output ≈ single value vector instead of a blend), (2) vanishing gradients (softmax Jacobian \(A_i(1 - A_i) \approx 0\) everywhere). Dividing by \(\sqrt{d_k}\) normalizes the variance to 1, keeping softmax non-saturated. This is equivalent to setting the softmax temperature to \(\tau = \sqrt{d_k}\).</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q2 — Computation</div>
+    <div class="question-text">Walk me through the computation of scaled dot-product attention for a single query vector against 3 key vectors.</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>Given query \(q \in \mathbb{R}^{d_k}\) and keys \(k_1, k_2, k_3 \in \mathbb{R}^{d_k}\): (1) Compute raw scores: \(s_j = q \cdot k_j\) for each key — three dot products. (2) Scale: \(s'_j = s_j / \sqrt{d_k}\). (3) Softmax: \(a_j = e^{s'_j} / \sum_m e^{s'_m}\) — now the three weights sum to 1. (4) Output: \(o = \sum_j a_j \cdot v_j\) — a weighted average of value vectors. The output is a convex combination of the V vectors, with coefficients determined by the Q-K compatibility scores. Because softmax is monotonic, the highest-scoring key contributes most, but all keys contribute proportionally to their compatibility.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q3 — Detail</div>
+    <div class="question-text">Why can't we divide by d<sub>k</sub> instead of √d<sub>k</sub>?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>The variance of the dot product is \(d_k\), so the standard deviation is \(\sqrt{d_k}\). To normalize scores to standard deviation 1, you divide by the standard deviation, which is \(\sqrt{d_k}\). Dividing by \(d_k\) would give variance \(d_k / d_k^2 = 1/d_k\) — the scores would be compressed to near-zero, making the softmax output near-uniform (\(1/n\) everywhere). The model would lose its ability to discriminate between keys. The correct normalization targets unit variance (std dev = 1), not zero variance.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q4 — Conceptual</div>
+    <div class="question-text">What is softmax temperature and how does it relate to attention scaling?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>Softmax temperature \(\tau\) divides all logits before the exponential: \(\text{softmax}(z/\tau)\). Low \(\tau \to 0\) → argmax (hard selection). High \(\tau \to \infty\) → uniform (no preference). \(\tau = 1\) → standard softmax. In attention, \(\tau = \sqrt{d_k}\) — this specific temperature normalizes the dot-product variance to 1, ensuring consistent softmax behavior regardless of head dimension. The same concept appears in knowledge distillation (high \(\tau\) to soften teacher outputs), contrastive learning (CLIP's learned \(\tau\)), and LLM sampling (user-controlled creativity). The unifying principle: temperature controls the sharpness of the probability distribution.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q5 — Gradient</div>
+    <div class="question-text">How does the softmax Jacobian behave under saturation, and what's the gradient consequence?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>The softmax Jacobian diagonal is \(A_i(1 - A_i)\), which is maximized at 0.25 when \(A_i = 0.5\). When softmax saturates (one element near 1, others near 0), both the dominant element (\(A_i \approx 1 \Rightarrow A_i(1-A_i) \approx 0\)) and non-dominant elements (\(A_j \approx 0 \Rightarrow A_j(1-A_j) \approx 0\)) have near-zero Jacobian. The Frobenius norm of the full Jacobian drops by ~100× from the healthy to the saturated case. This means gradients cannot flow through the softmax — the attention mechanism becomes a gradient dead zone. This is precisely the sigmoid vanishing gradient problem, applied to the attention distribution. The √d<sub>k</sub> scaling keeps the Jacobian well-conditioned.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q6 — Comparison</div>
+    <div class="question-text">Why does additive (Bahdanau) attention not need scaling but multiplicative (dot-product) does?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>Additive attention computes \(v^\top \tanh(W_1 s + W_2 h)\). The tanh activation bounds the internal representation to \([-1, 1]\), naturally preventing large score magnitudes regardless of input dimension. The final dot product with \(v\) has bounded variance. Multiplicative attention computes \(q^\top k = \sum q_i k_i\) — a raw sum with no non-linearity. The variance grows linearly with dimension. The Transformer chose multiplicative despite this flaw because it's a single matrix multiply \(QK^\top\) (hardware-optimized, massively parallelizable), while additive requires a feedforward network per query-key pair. The \(\sqrt{d_k}\) fix is trivial and restores the variance invariance that tanh provides for free.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q7 — Masking</div>
+    <div class="question-text">Mathematically, why do we add −∞ to masked positions instead of zeroing them?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>We need masked positions to have zero weight <strong>after softmax</strong>, not before. Setting scores to 0 before softmax would give \(e^0 = 1\), which is a non-zero weight — the model would still attend to masked positions. Setting scores to \(-\infty\) gives \(e^{-\infty} = 0\), which produces truly zero weight after softmax. This is equivalent to completely removing those positions from the softmax normalization: \(\text{softmax}([s_1, -\infty, s_3])\) produces the same result as \(\text{softmax}([s_1, s_3])\) with a zero inserted. In practice, we use a very large negative number (e.g., \(-10^9\)) instead of actual infinity to avoid numerical issues.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q8 — Application</div>
+    <div class="question-text">If you changed d<sub>k</sub> from 64 to 128 but forgot to update the scaling factor, what would happen?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>The scaling would still divide by \(\sqrt{64} = 8\) instead of the correct \(\sqrt{128} \approx 11.3\). The post-scaling variance would be \(128/64 = 2\) instead of 1 — scores have std dev \(\sqrt{2} \approx 1.41\). This isn't catastrophic (it's not as bad as no scaling at all), but it pushes softmax toward slightly sharper distributions than intended. Over many layers, this compounded sharpening can lead to attention heads collapsing to near one-hot patterns earlier in training, reducing model capacity. The model might still train but would be harder to optimize and potentially underperform. The \(\sqrt{d_k}\) scaling must always match the actual head dimension.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q9 — Depth</div>
+    <div class="question-text">Why is the output of attention a convex combination of value vectors? What does this imply about expressiveness?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>Softmax weights are non-negative and sum to 1 — they form a probability distribution. The output \(o = \sum a_j v_j\) is therefore a <strong>convex combination</strong>: the output lies within the convex hull of the value vectors. This means attention alone cannot produce any output that's "outside" the space spanned by the V vectors. This is why the FFN is essential: it provides non-linear transformation that can map outside the convex hull. A stack of attention-only layers would just compute nested convex combinations — still within the convex hull of the original value representations. The FFN's ReLU/GELU breaks this limitation at every layer.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q10 — Temperature</div>
+    <div class="question-text">In CLIP, the temperature parameter is learned and typically converges to ~0.07. Why is this much lower than 1.0, and what does it tell us?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>CLIP's contrastive loss uses \(\text{softmax}(\text{sim}/\tau)\) where sim is cosine similarity (range \([-1, 1]\)). A temperature of 0.07 means the effective scores are \(\text{sim}/0.07\), amplifying a similarity of 0.8 to ~11.4. This makes the distribution extremely sharp — the model must be very confident about which image matches which text. Unlike attention (where we want soft blending across positions), contrastive learning benefits from sharp discrimination: a caption should strongly prefer its matching image over all negatives. Low temperature forces the model to learn embeddings where matching pairs have much higher similarity than non-matching pairs — a harder but more discriminative objective. The temperature was initially a hyperparameter; making it learnable lets the model adjust the hardness of the contrastive task during training, typically starting softer and becoming sharper.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q11 — Numerical</div>
+    <div class="question-text">How do you implement softmax without numerical overflow? Why does the trick work?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>Subtract the maximum value from all logits before exponentiating: \(\text{softmax}(z)_i = e^{z_i - \max(z)} / \sum_j e^{z_j - \max(z)}\). This works because softmax is <strong>shift-invariant</strong>: \(\text{softmax}(z + c) = \text{softmax}(z)\) for any constant \(c\). Proof: multiplying numerator and denominator by \(e^{-c}\) cancels out. After subtracting max, the largest exponent is \(e^0 = 1\) — no overflow. In float32, \(e^x\) overflows for \(x > 88.7\); without scaling, attention scores can easily exceed this for \(d_k \geq 64\). This shift-invariance is also the key property that enables Flash Attention's online softmax: partial results can be rescaled when a new maximum is discovered in a later tile.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q12 — Systems</div>
+    <div class="question-text">What is the memory cost of attention for a 128K context model? How does Flash Attention address it?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>The attention matrix is \(n \times n\) per head per layer. For \(n = 128\text{K}\), \(h = 64\) heads, \(L = 80\) layers, in float16: \(131072^2 \times 64 \times 80 \times 2 = 176\) TB — completely infeasible. The bottleneck isn't FLOPs but <strong>memory bandwidth</strong>: reading/writing the full \(n^2\) matrix between HBM and SRAM. Flash Attention solves this by tiling: it processes the score matrix in blocks that fit in SRAM, using the online softmax algorithm to compute exact attention without materializing the full \(n \times n\) matrix. This reduces memory from \(O(n^2)\) to \(O(n)\) while computing mathematically identical results. It doesn't reduce FLOPs — it reduces memory IO, which is the actual bottleneck on modern GPUs.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q13 — Design</div>
+    <div class="question-text">What happens if you use X directly as Q, K, and V instead of learned projections?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>Without projections, \(S = XX^\top\) — this is (1) <strong>symmetric</strong>: \(S_{ij} = S_{ji}\), so token \(i\) attends to \(j\) with the same weight as \(j\) attends to \(i\). But language is asymmetric: "sat" should attend strongly to "cat" (its subject) without the reverse. (2) <strong>Self-dominated</strong>: \(S_{ii} = \|x_i\|^2\) is typically the largest entry in each row, so every token attends primarily to itself — defeating the purpose of cross-position mixing. (3) <strong>Single-role</strong>: each token uses the same representation for "what I'm searching for" and "what I advertise" — but these are fundamentally different roles (a pronoun "it" queries for noun antecedents while advertising as a coreference target). Separate \(W_Q, W_K, W_V\) decouple these roles and enable asymmetric, non-trivial attention patterns.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q14 — Rank</div>
+    <div class="question-text">What is the rank of the attention score matrix, and why does this matter for multi-head attention?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>The score matrix \(QK^\top\) has shape \(n \times n\) but rank at most \(\min(n, d_k) = d_k\) (typically 64), because it's the product of an \((n \times d_k)\) and \((d_k \times n)\) matrix. This means a single head can express at most 64 linearly independent attention patterns — it lives in a tiny subspace of all possible \(n \times n\) matrices. Multi-head attention addresses this: \(h = 8\) heads with \(d_k = 64\) can collectively represent up to \(8 \times 64 = 512\) independent patterns. This low-rank structure is also why methods like Linformer work — they project K and V to dimension \(k \ll n\), arguing that since the attention matrix was already rank-\(d_k\), little information is lost. Empirically, Voita et al. (2019) showed many heads can be pruned — they never use their full rank capacity.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q15 — Interpretability</div>
+    <div class="question-text">Can you use attention weights to explain why a model made a particular prediction?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>Partially, but not reliably. Attention weights show <strong>which value vectors are mixed</strong> into a position's representation — the routing pattern. But they don't show: (1) whether downstream layers <em>use</em> that routed information — the FFN or later attention layers might ignore it; (2) which features within the value vector matter; (3) the causal contribution to the prediction — that requires gradient-based attribution (e.g., integrated gradients). Jain & Wallace (2019) showed attention doesn't correlate with gradient-based importance and that alternative attention patterns can produce identical outputs. Wiegreffe & Pinter (2019) countered that finding alternatives requires adversarial training — attention patterns do carry signal under normal conditions. The mature answer: attention weights are a <strong>necessary but not sufficient</strong> component of explanation. They tell you where the model routes information, not what it does with it.</p>
+  </div>
+</div>
+
+<div class="question-block" onclick="this.classList.toggle('open')">
+  <div class="question-header">
+    <div class="question-tag">Q16 — Design</div>
+    <div class="question-text">Why does attention use softmax instead of other normalization functions? What are the alternatives?</div>
+    <div class="question-toggle">+</div>
+  </div>
+  <div class="question-answer">
+    <p>Softmax is the unique function that is (1) strictly positive, (2) sums to 1, (3) monotonic, and (4) shift-invariant — making it the canonical smooth approximation of argmax. Alternatives and their problems: <strong>L1 norm</strong> allows negative weights (attention could subtract values, destabilizing training). <strong>Sparsemax</strong> projects onto the simplex — exactly zero weights for low-scoring keys, useful for sparse attention by design (Martins & Astudillo, 2016) but loses the "every position contributes" property. <strong>Per-element sigmoid</strong> doesn't sum to 1, so the output isn't a proper weighted average — all weights could be near 1 or all near 0. <strong>Hardmax</strong> isn't differentiable. <strong>ReLU + normalize</strong> has dead-connection problems and division-by-zero risk. That said, sigmoid attention is making a comeback in some architectures (Mamba hybrids, linear attention) because removing the softmax denominator enables hardware-efficient parallelization — trading the distribution interpretation for speed.</p>
+  </div>
+</div>
+
+<p style="text-align: center; color: var(--text-secondary); margin-top: 3rem; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem;">Part 3 of the Transformer Interview Prep Series</p>
+
+</body>
+</html>
