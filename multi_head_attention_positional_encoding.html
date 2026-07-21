@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Head Attention & Positional Encoding — Why Multiple Heads, Sinusoidal vs Learned vs RoPE vs ALiBi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js" crossorigin="anonymous" async></script>
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['\\(', '\\)']], displayMath: [['$$', '$$']] },
+            options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+        };
+    </script>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface-2: #1c2333;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --accent-dim: #1f3a5f;
+            --green: #3fb950;
+            --green-dim: #1a3a2a;
+            --yellow: #d29922;
+            --yellow-dim: #3d2e00;
+            --red: #f85149;
+            --red-dim: #3d1a1a;
+            --purple: #bc8cff;
+            --purple-dim: #2a1a3e;
+            --orange: #f0883e;
+            --orange-dim: #3d2200;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+        .series-badge {
+            display: inline-block;
+            font-size: 0.85rem;
+            color: var(--accent);
+            border: 1px solid var(--accent-dim);
+            border-radius: 20px;
+            padding: 0.25rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-bottom: 0.75rem;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        .meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+        }
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid var(--border);
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+        }
+        p { margin-bottom: 1rem; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        strong { color: #ffffff; font-weight: 600; }
+        code {
+            background: var(--surface);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        }
+
+        /* Paper reference cards */
+        .paper-ref {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        .paper-ref .icon { font-size: 1.3rem; flex-shrink: 0; }
+        .paper-ref .title { font-weight: 600; color: var(--text); }
+        .paper-ref .authors { font-size: 0.85rem; color: var(--text-secondary); }
+
+        /* Equation blocks */
+        .equation-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem 1.5rem;
+            margin: 1.25rem 0;
+            overflow-x: auto;
+        }
+        .equation-block .eq-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Callout boxes */
+        .callout {
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+            border: 1px solid;
+        }
+        .callout-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .callout-insight { background: var(--accent-dim); border-color: var(--accent); }
+        .callout-insight .callout-title { color: var(--accent); }
+        .callout-key { background: var(--green-dim); border-color: var(--green); }
+        .callout-key .callout-title { color: var(--green); }
+        .callout-warning { background: var(--yellow-dim); border-color: var(--yellow); }
+        .callout-warning .callout-title { color: var(--yellow); }
+        .callout-danger { background: var(--red-dim); border-color: var(--red); }
+        .callout-danger .callout-title { color: var(--red); }
+
+        /* Diagrams */
+        .diagram {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre;
+            color: var(--text-secondary);
+        }
+        .diagram .highlight { color: var(--accent); }
+        .diagram .green { color: var(--green); }
+        .diagram .yellow { color: var(--yellow); }
+        .diagram .red { color: var(--red); }
+        .diagram .purple { color: var(--purple); }
+        .diagram .orange { color: var(--orange); }
+        .diagram-caption {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: -0.5rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.25rem 0;
+            font-size: 0.9rem;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+        }
+        th {
+            background: var(--surface);
+            font-weight: 600;
+            color: var(--accent);
+        }
+        td { background: var(--surface-2); }
+
+        /* Divider */
+        .divider {
+            text-align: center;
+            color: var(--text-secondary);
+            margin: 2.5rem 0;
+            font-size: 1.2rem;
+            letter-spacing: 0.5rem;
+        }
+
+        /* TOC */
+        .toc {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .toc h3 { margin-top: 0; color: var(--text-secondary); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .toc ol { padding-left: 1.5rem; }
+        .toc li { margin: 0.3rem 0; }
+        .toc a { color: var(--text); font-size: 0.92rem; }
+
+        /* Interview questions */
+        details {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 0.75rem 0;
+            overflow: hidden;
+        }
+        summary {
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            font-weight: 600;
+            user-select: none;
+            list-style: none;
+        }
+        summary::-webkit-details-marker { display: none; }
+        summary::before {
+            content: '▸ ';
+            color: var(--accent);
+        }
+        details[open] summary::before { content: '▾ '; }
+        details .answer {
+            padding: 0 1.25rem 1.25rem;
+            border-top: 1px solid var(--border);
+            margin-top: 0;
+            padding-top: 1rem;
+        }
+
+        .q-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .q-conceptual { background: var(--accent-dim); color: var(--accent); }
+        .q-math { background: var(--purple-dim); color: var(--purple); }
+        .q-comparison { background: var(--green-dim); color: var(--green); }
+        .q-depth { background: var(--yellow-dim); color: var(--yellow); }
+        .q-application { background: var(--orange-dim); color: var(--orange); }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: 1rem; }
+            h1 { font-size: 1.6rem; }
+            .diagram { font-size: 0.7rem; padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="series-badge">Transformer Interview Prep · Part 4 of 8</div>
+
+<h1>Multi-Head Attention &amp;<br>Positional Encoding</h1>
+
+<p class="subtitle">Why multiple heads, what they learn, and how Transformers know word order — sinusoidal vs learned vs RoPE vs ALiBi, with full math and intuition</p>
+
+<p class="meta">Pratiksha · 2026 · 40 min read</p>
+
+<div class="toc">
+    <h3>Contents</h3>
+    <ol>
+        <li><a href="#why-multiple-heads">Why Multiple Heads? The Rank Bottleneck</a></li>
+        <li><a href="#mha-math">Multi-Head Attention: The Complete Math</a></li>
+        <li><a href="#what-heads-learn">What Heads Actually Learn</a></li>
+        <li><a href="#head-pruning">Head Pruning &amp; Redundancy</a></li>
+        <li><a href="#why-position">Why Position Matters: The Permutation Problem</a></li>
+        <li><a href="#sinusoidal">Sinusoidal Positional Encoding</a></li>
+        <li><a href="#learned">Learned Positional Embeddings</a></li>
+        <li><a href="#rope">RoPE: Rotary Position Embedding</a></li>
+        <li><a href="#alibi">ALiBi: Attention with Linear Biases</a></li>
+        <li><a href="#t5-bias">Relative Position Bias (T5-Style)</a></li>
+        <li><a href="#comparison">Comparison &amp; Design Decisions</a></li>
+        <li><a href="#references">Key Paper References</a></li>
+        <li><a href="#questions">Interview Questions</a></li>
+    </ol>
+</div>
+
+<p>Part 2 introduced multi-head attention and positional encoding as components of the Transformer. Part 7 surveyed RoPE and ALiBi as production techniques. This article goes <strong>deep</strong> on both topics — the mathematical motivation for multiple heads, what individual heads learn, the complete derivation of every positional encoding scheme, and the tradeoffs that determine which to use. These are among the most frequently probed topics in Applied Scientist interviews.</p>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 1: WHY MULTIPLE HEADS -->
+<!-- ============================================ -->
+
+<h2 id="why-multiple-heads">1. Why Multiple Heads? The Rank Bottleneck</h2>
+
+<p>The standard explanation — "different heads attend to different things" — is correct but incomplete. The deeper reason is <strong>linear algebra</strong>: a single attention head creates a rank bottleneck that fundamentally limits what the attention layer can compute.</p>
+
+<h3>1.1 The Rank-1 Limitation of Single-Head Attention</h3>
+
+<p>Consider a single attention head. The attention weight for position \(i\) attending to position \(j\) is:</p>
+
+<div class="equation-block">
+    <div class="eq-title">Single-Head Attention Score</div>
+    $$\alpha_{ij} \propto \exp\!\left(\frac{(x_i W_Q)(x_j W_K)^\top}{\sqrt{d_k}}\right) = \exp\!\left(\frac{x_i W_Q W_K^\top x_j^\top}{\sqrt{d_k}}\right)$$
+</div>
+
+<p>The matrix \(W_Q W_K^\top \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}\) governs which positions attend to which. For a single head with \(d_k = 64\) and \(d_{\text{model}} = 512\), this product has <strong>rank at most 64</strong> — because \(W_Q \in \mathbb{R}^{512 \times 64}\) and \(W_K \in \mathbb{R}^{512 \times 64}\), so \(W_Q W_K^\top\) passes through a 64-dimensional bottleneck.</p>
+
+<p>This means a single head can only compute attention patterns that lie in a <strong>64-dimensional subspace</strong> of the full 512-dimensional space. It cannot simultaneously capture fine-grained syntactic relationships (subject-verb agreement), semantic similarity (synonym detection), and positional patterns (adjacent-token dependency) — these require different directions in the high-dimensional space.</p>
+
+<div class="callout callout-insight">
+    <div class="callout-title">💡 The geometric intuition</div>
+    <p>Think of each head as a 64-dimensional "lens" viewing the 512-dimensional space from one angle. A single lens sees one projection of the data — like looking at a 3D object from one direction and seeing only its shadow. Eight heads give you eight different projections, and the concatenation + \(W_O\) reconstructs a richer picture than any single view could provide.</p>
+</div>
+
+<h3>1.2 How Multiple Heads Restore Full Rank</h3>
+
+<p>With \(h = 8\) heads, each producing an independent \(W_Q^i {W_K^i}^\top\) matrix of rank 64, the combined attention mechanism effectively operates with:</p>
+
+<div class="equation-block">
+    <div class="eq-title">Effective Rank of Multi-Head Attention</div>
+    $$\text{rank}\!\left(\sum_{i=1}^{h} W_Q^i {W_K^i}^\top\right) \leq \sum_{i=1}^{h} \text{rank}(W_Q^i {W_K^i}^\top) = h \times d_k = 8 \times 64 = 512$$
+</div>
+
+<p>With 8 heads × 64 dimensions each, the combined system can span the <strong>full 512-dimensional space</strong>. Each head learns to attend in a different subspace, and together they cover the complete representation.</p>
+
+<p>This isn't just theoretical. Voita et al. (2019) showed that trained multi-head attention heads learn <strong>nearly orthogonal subspaces</strong> — the \(W_Q W_K^\top\) matrices of different heads have low cosine similarity, confirming they capture genuinely different relationships.</p>
+
+<div class="diagram"><span class="highlight">Single Head (rank 64)</span>                    <span class="green">8 Heads (rank up to 512)</span>
+
+512-dim space                              512-dim space
+┌────────────────────────┐                 ┌────────────────────────┐
+│                        │                 │<span class="highlight">▓▓</span><span class="green">▒▒</span><span class="yellow">░░</span><span class="purple">██</span><span class="orange">▓▓</span><span class="red">▒▒</span><span class="highlight">░░</span><span class="green">██</span>│
+│     <span class="highlight">▓▓▓▓</span>              │                 │<span class="highlight">▓▓</span><span class="green">▒▒</span><span class="yellow">░░</span><span class="purple">██</span><span class="orange">▓▓</span><span class="red">▒▒</span><span class="highlight">░░</span><span class="green">██</span>│
+│     <span class="highlight">▓▓▓▓</span>  ← 64-dim   │                 │<span class="highlight">▓▓</span><span class="green">▒▒</span><span class="yellow">░░</span><span class="purple">██</span><span class="orange">▓▓</span><span class="red">▒▒</span><span class="highlight">░░</span><span class="green">██</span>│
+│     <span class="highlight">▓▓▓▓</span>    subspace  │                 │<span class="highlight">▓▓</span><span class="green">▒▒</span><span class="yellow">░░</span><span class="purple">██</span><span class="orange">▓▓</span><span class="red">▒▒</span><span class="highlight">░░</span><span class="green">██</span>│
+│                        │                 │  Each color = one head's │
+│   448 dims unused!     │                 │  64-dim subspace         │
+│                        │                 │  Together: full coverage │
+└────────────────────────┘                 └────────────────────────┘
+
+Can learn ONE type of                      Can learn MANY types of
+attention pattern                          attention patterns simultaneously</div>
+<p class="diagram-caption">Figure 1: A single head operates in a 64-dimensional subspace of the 512-dimensional model space, leaving most of the space unused. Eight heads with nearly orthogonal subspaces can collectively span the entire space.</p>
+
+<h3>1.3 The Parameter Efficiency Argument</h3>
+
+<p>A natural question: why not use a single head with \(d_k = 512\) (full rank) instead of 8 heads with \(d_k = 64\)?</p>
+
+<p><strong>Parameter count is identical.</strong> With 8 heads: \(W_Q, W_K, W_V\) each has \(8 \times (512 \times 64) = 512 \times 512\) parameters, plus \(W_O \in \mathbb{R}^{512 \times 512}\). Total: \(4 \times 512^2\). A single head with \(d_k = 512\): \(W_Q, W_K, W_V\) each is \(512 \times 512\), and \(W_O\) is identity (or another \(512 \times 512\)). Total: \(3\text{–}4 \times 512^2\). Same parameter budget.</p>
+
+<p>The difference is <strong>expressiveness per parameter</strong>. Multiple heads force the model to learn <strong>diverse, independent</strong> attention patterns — an implicit regularization. A single head with \(d_k = 512\) can theoretically learn anything the multi-head version can, but in practice converges to less diverse patterns because there's no structural incentive to separate different types of attention into different subspaces. The paper's own ablation confirmed this: a single 512-dim head performed worse than 8 × 64 despite equal parameters.</p>
+
+<div class="callout callout-warning">
+    <div class="callout-title">⚠️ Interview trap: "More heads = more parameters"</div>
+    <p>This is false. Multi-head attention has the <strong>same parameter count</strong> as single-head attention when \(h \times d_k = d_{\text{model}}\). The total projection sizes are identical: \(d_{\text{model}} \times d_{\text{model}}\) for each of \(W_Q, W_K, W_V, W_O\). Multi-head attention is a different <strong>factorization</strong> of the same parameter budget, not an expansion of it.</p>
+</div>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 2: MHA MATH -->
+<!-- ============================================ -->
+
+<h2 id="mha-math">2. Multi-Head Attention: The Complete Math</h2>
+
+<h3>2.1 Dimension Trace: Input to Output</h3>
+
+<p>Let's trace every tensor shape through multi-head attention for a concrete configuration: \(n = 10\) tokens, \(d_{\text{model}} = 512\), \(h = 8\) heads, \(d_k = d_v = 64\).</p>
+
+<div class="equation-block">
+    <div class="eq-title">Multi-Head Attention — Full Computation</div>
+    $$\text{For head } i \in \{1, \ldots, 8\}:$$
+    $$Q_i = X W_Q^i, \quad K_i = X W_K^i, \quad V_i = X W_V^i$$
+    $$\text{head}_i = \text{softmax}\!\left(\frac{Q_i K_i^\top}{\sqrt{d_k}}\right) V_i$$
+    $$\text{MultiHead}(X) = \text{Concat}(\text{head}_1, \ldots, \text{head}_8) \cdot W_O$$
+</div>
+
+<div class="diagram"><span class="highlight">Complete dimension trace (n=10, d_model=512, h=8, d_k=d_v=64)</span>
+
+<span class="green">X</span>             <span class="green">W_Q^i</span>         <span class="highlight">Q_i</span>
+10 × 512    ×   512 × 64   =   10 × 64      (same for K_i, V_i)
+
+<span class="highlight">Q_i</span>         <span class="highlight">K_i^T</span>        <span class="yellow">Scores</span>        <span class="yellow">Weights</span>       <span class="highlight">V_i</span>       <span class="purple">head_i</span>
+10 × 64  ×  64 × 10  =  10 × 10  →softmax→ 10 × 10  ×  10 × 64 = 10 × 64
+
+<span class="purple">Concat(head_1,...,head_8)</span>           <span class="orange">W_O</span>           <span class="green">Output</span>
+10 × (8 × 64) = 10 × 512      ×   512 × 512   =   10 × 512
+
+<span class="green">Input: 10 × 512  →→→→→→→→→→→→→→→→→→→→→→→→→→→  Output: 10 × 512</span>
+                     d_model preserved end-to-end</div>
+<p class="diagram-caption">Figure 2: Complete dimension trace through multi-head attention. Each head projects to 64 dimensions, computes attention independently, and the 8 outputs are concatenated back to 512 dimensions before the final W_O projection.</p>
+
+<h3>2.2 The Role of W_O: More Than Just Projection</h3>
+
+<p>The output projection \(W_O \in \mathbb{R}^{(h \cdot d_v) \times d_{\text{model}}}\) is often described as "just projecting the concatenated heads back." But it plays a deeper role: \(W_O\) <strong>mixes information across heads</strong>.</p>
+
+<p>Without \(W_O\), each head's output would occupy a non-overlapping 64-dimensional slice of the 512-dimensional output. Head 1's information sits in dimensions 1–64, head 2's in 65–128, and so on — they never interact. \(W_O\) is a full 512 × 512 matrix that creates <strong>linear combinations across all heads</strong>. This means the model can combine "what head 3 attended to" with "how head 7 weighted its values" into a single output dimension.</p>
+
+<div class="equation-block">
+    <div class="eq-title">W_O as Cross-Head Mixing</div>
+    $$\text{output}_j = \sum_{i=1}^{h} \sum_{k=1}^{d_v} W_O[(i-1) \cdot d_v + k,\; j] \cdot \text{head}_{i,k}$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">Each output dimension is a weighted sum over <strong>all heads and all value dimensions</strong>.</p>
+</div>
+
+<div class="callout callout-key">
+    <div class="callout-title">⚡ The practical implication</div>
+    <p>If you remove \(W_O\) (or replace it with a block-diagonal matrix), multi-head attention degrades to \(h\) independent single-head attentions that don't share information. Experiments by Cordonnier et al. (2020) showed that a full \(W_O\) is essential — block-diagonal variants lose 1–2 BLEU points on translation tasks. The cross-head mixing is doing real work.</p>
+</div>
+
+<h3>2.3 Parameter Count Breakdown</h3>
+
+<p>For the original Transformer base model (\(d_{\text{model}} = 512\), \(h = 8\), \(d_k = d_v = 64\)):</p>
+
+<table>
+    <tr><th>Parameter</th><th>Shape</th><th>Count</th><th>Notes</th></tr>
+    <tr><td>\(W_Q\) (all heads)</td><td>512 × 512</td><td>262,144</td><td>Stored as 8 × (512 × 64)</td></tr>
+    <tr><td>\(W_K\) (all heads)</td><td>512 × 512</td><td>262,144</td><td>Same structure</td></tr>
+    <tr><td>\(W_V\) (all heads)</td><td>512 × 512</td><td>262,144</td><td>Same structure</td></tr>
+    <tr><td>\(W_O\)</td><td>512 × 512</td><td>262,144</td><td>Cross-head mixing</td></tr>
+    <tr><td><strong>Total per layer</strong></td><td></td><td><strong>~1.05M</strong></td><td>+biases if used</td></tr>
+</table>
+
+<p>Compare this to the FFN in the same layer: \(W_1\) (512 × 2048) + \(W_2\) (2048 × 512) = ~2.1M parameters. The FFN has roughly <strong>twice the parameters</strong> of the attention layer — attention is actually the smaller component.</p>
+
+<h3>2.4 Worked Numerical Example</h3>
+
+<p>Interviewers frequently ask for a concrete walkthrough with actual numbers. Here's a minimal example: <strong>3 tokens, \(d_{\text{model}} = 4\), \(h = 2\) heads, \(d_k = d_v = 2\)</strong>.</p>
+
+<div class="equation-block">
+    <div class="eq-title">Step 1 — Input</div>
+    $$X = \begin{pmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 1 & 0 & 0 \end{pmatrix} \in \mathbb{R}^{3 \times 4} \quad \text{(3 tokens, each 4-dim)}$$
+</div>
+
+<div class="diagram"><span class="highlight">Step 2 — Project to Q, K, V for each head</span>
+
+Suppose (simplified) weight matrices:
+
+<span class="green">Head 1:</span>  W_Q¹ = [[1,0],     W_K¹ = [[0,1],     W_V¹ = [[1,0],
+              [0,1],            [1,0],            [0,1],
+              [0,0],            [0,0],            [0,0],
+              [0,0]]            [0,0]]            [0,0]]
+         (4×2)              (4×2)              (4×2)
+
+<span class="yellow">Head 2:</span>  W_Q² = [[0,0],     W_K² = [[0,0],     W_V² = [[0,0],
+              [0,0],            [0,0],            [0,0],
+              [1,0],            [0,1],            [1,0],
+              [0,1]]            [1,0]]            [0,1]]
+
+Head 1 projects from dims 1-2, Head 2 from dims 3-4 → <span class="green">different subspaces</span></div>
+
+<div class="diagram"><span class="highlight">Step 3 — Compute Q, K, V (Head 1)</span>
+
+Q₁ = X · W_Q¹ = [[1,0],     K₁ = X · W_K¹ = [[0,1],     V₁ = X · W_V¹ = [[1,0],
+                  [0,1],                       [1,0],                       [0,1],
+                  [1,1]]                       [1,1]]                       [1,1]]
+
+<span class="highlight">Step 4 — Attention scores (Head 1)</span>
+
+S₁ = Q₁ · K₁ᵀ / √2  =  1/√2 · [[0, 1, 1],     (raw dot products, scaled by √d_k)
+                                  [1, 0, 1],
+                                  [1, 1, 2]]
+
+<span class="highlight">Step 5 — Softmax (row-wise)</span>
+
+A₁ = softmax(S₁) ≈ [[0.23, 0.31, 0.46],    ← token 1 attends most to token 3
+                      [0.31, 0.23, 0.46],    ← token 2 attends most to token 3
+                      [0.18, 0.18, 0.64]]    ← token 3 attends most to itself
+                                                (score 2/√2 ≈ 1.41 is highest)
+
+<span class="highlight">Step 6 — Weighted sum of values</span>
+
+head₁ = A₁ · V₁ ≈ [[0.69, 0.77],     ← 3×2 output (one 2-dim vector per token)
+                     [0.77, 0.69],
+                     [0.82, 0.82]]</div>
+
+<div class="diagram"><span class="highlight">Step 7 — Same process for Head 2 (different subspace, different pattern)</span>
+
+head₂ = A₂ · V₂ ≈ [[0.77, 0.23],     ← different attention weights, different output
+                     [0.23, 0.77],        because Head 2 operates on dims 3-4
+                     [0.50, 0.50]]
+
+<span class="highlight">Step 8 — Concatenate + W_O projection</span>
+
+Concat = [head₁ | head₂] = [[0.69, 0.77, <span class="yellow">0.77, 0.23</span>],     ← 3×4 (back to d_model)
+                             [0.77, 0.69, <span class="yellow">0.23, 0.77</span>],
+                             [0.82, 0.82, <span class="yellow">0.50, 0.50</span>]]
+
+Output = Concat · W_O  ∈ ℝ^(3×4)     ← <span class="green">W_O mixes across heads</span>
+                                         dim 1 of output depends on ALL 4 concat dims
+                                         (both heads contribute to every output dim)</div>
+<p class="diagram-caption">Figure 2b: Complete numerical walkthrough of 2-head attention. Head 1 operates on dimensions 1-2, Head 2 on dimensions 3-4 — different subspaces, different attention patterns. W_O mixes them into the final output.</p>
+
+<div class="callout callout-insight">
+    <div class="callout-title">💡 What this example shows</div>
+    <p>Even with this tiny example, the two heads computed <strong>different attention patterns</strong> — Head 1's highest score was at (3,3) = 2/√2, while Head 2 had a different structure because it projected from different input dimensions. In a real model, the \(W_Q, W_K, W_V\) matrices are learned to find maximally useful subspaces, and the diversity emerges from training on different aspects of the data.</p>
+</div>
+
+<h3>2.5 The √d_k Scaling — Full Statistical Derivation</h3>
+
+<p>This is one of the most commonly asked derivations in Transformer interviews. The question: <strong>why divide by exactly \(\sqrt{d_k}\)?</strong></p>
+
+<div class="equation-block">
+    <div class="eq-title">Setup</div>
+    $$\text{Assume } q_i, k_i \sim \text{i.i.d. with mean } 0 \text{ and variance } 1$$
+    $$\text{The dot product is: } q \cdot k = \sum_{i=1}^{d_k} q_i \cdot k_i$$
+</div>
+
+<p><strong>Step 1: Variance of a single product.</strong> For independent random variables with zero mean:</p>
+
+<div class="equation-block">
+    <div class="eq-title">Variance of Product</div>
+    $$\text{Var}(q_i \cdot k_i) = \mathbb{E}[q_i^2 k_i^2] - (\mathbb{E}[q_i k_i])^2 = \mathbb{E}[q_i^2]\mathbb{E}[k_i^2] - 0 = 1 \cdot 1 = 1$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">Using independence: \(\mathbb{E}[q_i^2 k_i^2] = \mathbb{E}[q_i^2]\mathbb{E}[k_i^2]\), and \(\mathbb{E}[q_i k_i] = \mathbb{E}[q_i]\mathbb{E}[k_i] = 0\).</p>
+</div>
+
+<p><strong>Step 2: Variance of the sum.</strong> Since the \(d_k\) products are independent:</p>
+
+<div class="equation-block">
+    <div class="eq-title">Variance of Dot Product</div>
+    $$\text{Var}(q \cdot k) = \text{Var}\!\left(\sum_{i=1}^{d_k} q_i k_i\right) = \sum_{i=1}^{d_k} \text{Var}(q_i k_i) = d_k$$
+    $$\therefore \quad \text{Std}(q \cdot k) = \sqrt{d_k}$$
+</div>
+
+<p><strong>Step 3: The problem.</strong> For \(d_k = 64\), the dot product has standard deviation \(\sqrt{64} = 8\). This means raw attention scores are spread across a range of roughly \([-16, +16]\). When these large-magnitude scores enter softmax, the largest score dominates exponentially — the output is nearly one-hot.</p>
+
+<p><strong>Step 4: The fix.</strong> Dividing by \(\sqrt{d_k}\) normalizes the variance back to 1:</p>
+
+<div class="equation-block">
+    <div class="eq-title">Scaling Restores Unit Variance</div>
+    $$\text{Var}\!\left(\frac{q \cdot k}{\sqrt{d_k}}\right) = \frac{\text{Var}(q \cdot k)}{d_k} = \frac{d_k}{d_k} = 1$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">Scores now have std ≈ 1, keeping softmax in its non-saturated regime where gradients are healthy.</p>
+</div>
+
+<div class="diagram"><span class="highlight">Effect of scaling on softmax behavior</span>
+
+d_k = 64, raw scores ~ N(0, 64), std = 8
+
+<span class="red">Without scaling:</span>  scores in [-16, +16]
+  softmax([..., -2.1, <span class="red">15.3</span>, 0.4, ...]) ≈ [... 0.00, <span class="red">0.99</span>, 0.00, ...]  ← near one-hot
+  Gradient: softmax Jacobian ≈ 0 everywhere → <span class="red">learning stops</span>
+
+<span class="green">With √d_k scaling:</span>  scores in [-2, +2]
+  softmax([..., -0.26, <span class="green">1.91</span>, 0.05, ...]) ≈ [... 0.08, <span class="green">0.52</span>, 0.12, ...]  ← distributed
+  Gradient: healthy softmax Jacobian → <span class="green">learning continues</span>
+
+<span class="yellow">The exact same principle as:</span>
+  - Xavier/He initialization (scale weights by 1/√fan_in)
+  - Batch/LayerNorm (normalize to unit variance)
+  All three are variance stabilization at different points in the network.</div>
+<p class="diagram-caption">Figure 2c: Without √d_k scaling, attention scores have large variance, pushing softmax into saturation (near one-hot, vanishing gradients). Scaling restores unit variance, keeping attention distributed and gradients healthy.</p>
+
+<h3>2.6 Three Uses of Multi-Head Attention in the Transformer</h3>
+
+<p>The same multi-head mechanism is used in three distinct ways, differing only in <strong>where Q, K, V come from</strong> and <strong>whether masking is applied</strong>:</p>
+
+<table>
+    <tr>
+        <th>Usage</th>
+        <th>Q source</th>
+        <th>K, V source</th>
+        <th>Masking</th>
+        <th>Purpose</th>
+    </tr>
+    <tr>
+        <td><strong>Encoder self-attention</strong></td>
+        <td>Encoder input</td>
+        <td>Encoder input (same)</td>
+        <td>None (bidirectional)</td>
+        <td>Build rich contextual representations; every token sees every other token</td>
+    </tr>
+    <tr>
+        <td><strong>Decoder masked self-attention</strong></td>
+        <td>Decoder input</td>
+        <td>Decoder input (same)</td>
+        <td>Causal mask (\(-\infty\) for \(j > i\))</td>
+        <td>Autoregressive: each position can only attend to itself and earlier positions</td>
+    </tr>
+    <tr>
+        <td><strong>Decoder cross-attention</strong></td>
+        <td>Decoder output</td>
+        <td><strong>Encoder output</strong></td>
+        <td>None</td>
+        <td>Decoder "reads" the encoder; bridge between source and target sequences</td>
+    </tr>
+</table>
+
+<div class="diagram"><span class="highlight">Three uses of multi-head attention — same mechanism, different inputs</span>
+
+<span class="green">① Encoder Self-Attention (bidirectional)</span>
+   Source: "The cat sat"
+   Q, K, V all from encoder input
+   Every token ↔ every token (no mask)
+
+   Attention matrix:
+   ┌──────────────────┐
+   │ <span class="green">✓  ✓  ✓</span>          │  "The" sees all
+   │ <span class="green">✓  ✓  ✓</span>          │  "cat" sees all
+   │ <span class="green">✓  ✓  ✓</span>          │  "sat" sees all
+   └──────────────────┘
+
+<span class="yellow">② Decoder Masked Self-Attention (causal)</span>
+   Target: "[BOS] Le chat"
+   Q, K, V all from decoder input
+   Causal mask: can't see future
+
+   Attention matrix:
+   ┌──────────────────┐
+   │ <span class="green">✓</span>  <span class="red">✗  ✗</span>          │  [BOS] sees only itself
+   │ <span class="green">✓  ✓</span>  <span class="red">✗</span>          │  "Le" sees [BOS], itself
+   │ <span class="green">✓  ✓  ✓</span>          │  "chat" sees all previous
+   └──────────────────┘
+
+<span class="purple">③ Decoder Cross-Attention</span>
+   Q from decoder, K/V from <span class="purple">encoder output</span>
+   "chat" queries → attends to "The", "cat", "sat"
+   No mask (decoder can see all encoder positions)
+
+   Attention matrix (decoder × encoder):
+                      The  cat  sat
+   ┌──────────────────────────────┐
+   │ [BOS]  <span class="purple">0.1  0.2  0.7</span>        │  [BOS] attends mostly to "sat"
+   │ "Le"   <span class="purple">0.6  0.1  0.3</span>        │  "Le" attends mostly to "The"
+   │ "chat" <span class="purple">0.1  0.8  0.1</span>        │  "chat" attends mostly to "cat" ✓
+   └──────────────────────────────┘</div>
+<p class="diagram-caption">Figure 2d: The same multi-head attention mechanism serves three roles. Encoder self-attention is bidirectional (no mask). Decoder self-attention is causal (lower triangular mask). Cross-attention bridges decoder queries to encoder keys/values — functionally equivalent to Bahdanau attention but using scaled dot-product with multiple heads.</p>
+
+<div class="callout callout-warning">
+    <div class="callout-title">⚠️ Common interview confusion: "Does cross-attention use multi-head?"</div>
+    <p>Yes — <strong>all three</strong> uses of attention in the Transformer are multi-head. Each has its own set of \(W_Q, W_K, W_V, W_O\) parameters. Cross-attention's \(W_K\) and \(W_V\) project from the encoder's output dimension, while its \(W_Q\) projects from the decoder's. The architecture has \(3 \times N = 18\) sets of attention parameters in total (3 attention sub-layers per decoder layer × 6 layers, plus 1 per encoder layer × 6). Modern decoder-only models (GPT, Llama) use only the masked self-attention variant — no encoder, no cross-attention.</p>
+</div>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 3: WHAT HEADS LEARN -->
+<!-- ============================================ -->
+
+<h2 id="what-heads-learn">3. What Heads Actually Learn</h2>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Are Sixteen Heads Really Better than One?</div>
+        <div class="authors">Michel, Levy & Neubig · NeurIPS 2019 — Head importance analysis and pruning</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">What Does BERT Look At? An Analysis of BERT's Attention</div>
+        <div class="authors">Clark et al. · BlackboxNLP 2019 — Probing individual attention heads</div>
+    </div>
+</div>
+
+<p>The original paper noted that "individual attention heads clearly learn to perform different tasks." Subsequent analysis revealed strikingly specialized roles:</p>
+
+<h3>3.1 Positional Heads</h3>
+
+<p>Some heads learn to attend to specific relative positions regardless of content. Clark et al. (2019) found heads that consistently attend to the <strong>previous token</strong> (a bigram-like pattern), the <strong>next token</strong>, or the <strong>first token</strong> in the sequence (often [CLS] or [BOS]). These are "structural" heads — they provide the model with a form of local positional information at every layer, complementing the explicit positional encoding.</p>
+
+<h3>3.2 Syntactic Heads</h3>
+
+<p>Certain heads learn to track syntactic relationships with remarkable precision. In English-language models, researchers identified heads that:</p>
+
+<ul style="margin: 0.5rem 0 1rem 1.5rem;">
+    <li><strong>Subject-verb agreement:</strong> A head where the verb token attends to its subject across arbitrary intervening clauses ("The <em>keys</em> to the cabinet <em>are</em>...")</li>
+    <li><strong>Coreference:</strong> A head where pronouns attend to their antecedents ("Alice said <em>she</em>..." → "<em>she</em>" attends to "Alice")</li>
+    <li><strong>Dependency arcs:</strong> Heads that approximately reconstruct the dependency parse tree</li>
+</ul>
+
+<h3>3.3 Rare-Pattern Heads</h3>
+
+<p>Some heads activate only for specific, infrequent patterns. Olsson et al. (2022) identified <strong>induction heads</strong> — heads that implement the pattern "A B ... A → predict B." These heads attend from the second occurrence of A backward to the token after the first occurrence, effectively learning in-context copying. These are critical for few-shot learning.</p>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">In-context Learning and Induction Heads</div>
+        <div class="authors">Olsson et al. · Anthropic, 2022 — Induction heads as a mechanistic explanation for in-context learning</div>
+    </div>
+</div>
+
+<div class="diagram"><span class="highlight">What different heads learn (illustrative, from BERT/GPT analysis)</span>
+
+<span class="green">Head 1: Previous Token</span>        <span class="yellow">Head 3: Subject-Verb</span>         <span class="purple">Head 6: Induction</span>
+The cat sat on the mat        The keys to the cabinet are   A B C D A <span class="purple">→ B</span>
+ ←  ←  ←  ←  ←               ──────────────────→           ────────↗
+Each token attends to         "are" attends back to         Second "A" attends to
+the one before it             "keys" (skipping 3 tokens)    token after first "A"
+
+<span class="highlight">Head 2: [SEP]/[BOS]</span>          <span class="orange">Head 5: Delimiter</span>            <span class="red">Head 8: Broad/Diffuse</span>
+The cat sat on the mat        The cat , which sat , ...     The cat sat on the mat
+↑   ↑   ↑   ↑   ↑            ← commas collect context →   ···  all tokens attend
+All tokens attend to          Punctuation tokens act as     broadly (nearly uniform)
+the first/last position       aggregation points            — may be prunable</div>
+<p class="diagram-caption">Figure 3: Illustration of head specialization patterns discovered through probing studies. Different heads learn qualitatively different attention patterns — some positional, some syntactic, some rare but critical (induction heads).</p>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 4: HEAD PRUNING -->
+<!-- ============================================ -->
+
+<h2 id="head-pruning">4. Head Pruning &amp; Redundancy</h2>
+
+<p>If heads specialize, a natural question follows: <strong>are all heads necessary?</strong> Michel et al. (2019) performed systematic head pruning experiments and found a surprising result.</p>
+
+<h3>4.1 Many Heads Are Redundant</h3>
+
+<p>On machine translation (WMT EN-FR), removing up to <strong>20–40% of heads</strong> at test time produced less than 0.5 BLEU degradation. Some individual heads could be removed with <strong>zero performance loss</strong>. This suggests significant redundancy — many heads learn overlapping or low-value patterns.</p>
+
+<p>However, the story is nuanced. Removing heads during <strong>training</strong> (not just at test time) often hurt more, because the remaining heads had been trained assuming the removed heads would be present. The redundancy is partly an artifact of overparameterization during training — extra heads provide useful gradient signal even if they're not all needed at inference.</p>
+
+<h3>4.2 A Few Heads Are Critical</h3>
+
+<p>While many heads are prunable, a small number are <strong>catastrophically important</strong>. Michel et al. found that removing certain individual heads caused BLEU to drop by 5+ points — far more than the average head's contribution. These "critical heads" tend to be the syntactic and induction heads described above. The distribution of head importance is heavy-tailed: most heads contribute a little, but a few contribute enormously.</p>
+
+<div class="callout callout-insight">
+    <div class="callout-title">💡 Connection to GQA</div>
+    <p>The observation that many heads learn similar K/V patterns is exactly what motivates <strong>Grouped-Query Attention</strong> (Part 7). If multiple Q heads attend similarly using their K/V projections, you can share K/V across groups of Q heads without losing much expressiveness. GQA is essentially a structured form of head pruning — applied to the K/V side, where redundancy is highest.</p>
+</div>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 5: WHY POSITION MATTERS -->
+<!-- ============================================ -->
+
+<h2 id="why-position">5. Why Position Matters: The Permutation Problem</h2>
+
+<p>Self-attention has a property that's simultaneously a strength and a problem: it is <strong>permutation-equivariant</strong>.</p>
+
+<div class="equation-block">
+    <div class="eq-title">Permutation Equivariance of Self-Attention</div>
+    $$\text{Attention}(\Pi X) = \Pi \cdot \text{Attention}(X)$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">For any permutation matrix \(\Pi\). Permuting the input rows permutes the output rows identically.</p>
+</div>
+
+<p>This means "The cat sat on the mat" and "mat the on sat cat The" produce the <strong>same attention weights</strong> between corresponding token pairs (just reordered). Without positional information, self-attention treats the input as a <strong>set</strong>, not a sequence. Order is invisible.</p>
+
+<p><strong>Why this is a strength:</strong> Permutation equivariance means attention can discover relationships independent of position — "cat" and "sat" are related regardless of where they appear. This is fundamentally different from RNNs, where position is baked into the sequential computation.</p>
+
+<p><strong>Why it's a problem:</strong> Language isn't a set. "Dog bites man" and "Man bites dog" have identical tokens with completely different meanings. The model <em>must</em> know word order. Positional encoding is the solution — inject position information so the model can distinguish order while retaining attention's ability to connect arbitrary positions.</p>
+
+<div class="callout callout-warning">
+    <div class="callout-title">⚠️ The proof that position is necessary</div>
+    <p>Without any positional signal, a Transformer's output for any permutation of the input is a permutation of the original output. This means the model cannot distinguish between any two sentences with the same bag of words. Since language meaning is order-dependent, a Transformer without positional encoding cannot learn any order-sensitive task — including language modeling, where predicting the next token requires knowing the order of previous tokens.</p>
+</div>
+
+<p>The question is <strong>how</strong> to inject position. The field has converged on four main approaches, each with distinct mathematical properties.</p>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 6: SINUSOIDAL PE -->
+<!-- ============================================ -->
+
+<h2 id="sinusoidal">6. Sinusoidal Positional Encoding</h2>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Attention Is All You Need</div>
+        <div class="authors">Vaswani et al. · NeurIPS 2017 — Original sinusoidal positional encoding</div>
+    </div>
+</div>
+
+<h3>6.1 The Formula</h3>
+
+<div class="equation-block">
+    <div class="eq-title">Sinusoidal Positional Encoding</div>
+    $$PE(\text{pos}, 2i) = \sin\!\left(\frac{\text{pos}}{10000^{2i/d_{\text{model}}}}\right)$$
+    $$PE(\text{pos}, 2i+1) = \cos\!\left(\frac{\text{pos}}{10000^{2i/d_{\text{model}}}}\right)$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">pos = position in sequence (0, 1, 2, ...), \(i\) = dimension index (0 to \(d_{\text{model}}/2 - 1\))</p>
+</div>
+
+<p>Each pair of dimensions \((2i, 2i+1)\) oscillates at a different frequency. Dimension 0/1 has the highest frequency (period \(2\pi \approx 6.28\) positions), while the last dimension pair has the lowest (period \(10000 \cdot 2\pi \approx 62,832\) positions). This creates a binary-code-like representation where low-order dimensions change rapidly (like the seconds hand of a clock) and high-order dimensions change slowly (like the hours hand).</p>
+
+<div class="diagram"><span class="highlight">Sinusoidal PE: frequency spectrum across dimensions</span>
+
+dim 0,1:   sin/cos at freq 1/1         ─ highest frequency (period ≈ 6.3)
+           ∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿
+
+dim 2,3:   sin/cos at freq 1/10000^(2/512)
+           ∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿
+
+dim 100,101: sin/cos at freq 1/10000^(100/512)
+           ∿∿∿∿∿∿∿∿∿∿
+
+dim 510,511: sin/cos at freq 1/10000^(510/512) ─ lowest frequency (period ≈ 62,832)
+           ∿∿
+
+             pos 0        pos 100      pos 200      pos 500      pos 1000
+
+<span class="green">Like a clock:</span> dim 0,1 = seconds hand (fast)
+              dim 510,511 = year hand (slow)
+              Together: unique "timestamp" for each position</div>
+<p class="diagram-caption">Figure 4: Each dimension pair oscillates at a geometrically decreasing frequency. Low dimensions distinguish nearby positions; high dimensions distinguish distant positions. Together, every position gets a unique encoding.</p>
+
+<h3>6.2 The Relative Position Property — Full Derivation</h3>
+
+<p>The key mathematical property of sinusoidal PE: for any fixed offset \(k\), there exists a linear transformation (rotation matrix) \(M_k\) such that:</p>
+
+<div class="equation-block">
+    <div class="eq-title">Relative Position via Rotation</div>
+    $$PE(\text{pos} + k) = M_k \cdot PE(\text{pos})$$
+    <p style="margin-top: 0.5rem;">where \(M_k\) depends only on \(k\), not on pos.</p>
+</div>
+
+<p><strong>Proof sketch.</strong> Focus on one dimension pair \((2i, 2i+1)\) with frequency \(\omega_i = 1/10000^{2i/d}\). Using the angle addition formulas:</p>
+
+<div class="equation-block">
+    <div class="eq-title">Rotation Matrix Derivation</div>
+    $$\begin{pmatrix} \sin(\omega_i(\text{pos}+k)) \\ \cos(\omega_i(\text{pos}+k)) \end{pmatrix} = \begin{pmatrix} \cos(\omega_i k) & \sin(\omega_i k) \\ -\sin(\omega_i k) & \cos(\omega_i k) \end{pmatrix} \begin{pmatrix} \sin(\omega_i \text{pos}) \\ \cos(\omega_i \text{pos}) \end{pmatrix}$$
+</div>
+
+<p>The 2×2 rotation matrix depends only on \(k\) and the dimension index \(i\), not on \(\text{pos}\). The full \(M_k\) is a block-diagonal matrix with these 2×2 rotations along the diagonal. This means the model can learn linear projections that compute \(PE(\text{pos}+k)\) from \(PE(\text{pos})\) — effectively learning to attend to "the token \(k\) positions back" without knowing the absolute position.</p>
+
+<div class="callout callout-key">
+    <div class="callout-title">⚡ Why this property matters</div>
+    <p>This linear-transformation property means attention can learn <strong>relative position patterns</strong> using only absolute position encodings. A weight matrix that implements \(M_k\) effectively says "attend to the token \(k\) positions away." Since this is a linear operation, the model can learn it through its existing \(W_Q\) and \(W_K\) projections — no architectural modification needed. This was the original paper's motivation for choosing sinusoidal over learned embeddings: theoretically better extrapolation to unseen lengths.</p>
+</div>
+
+<h3>6.3 How Sinusoidal PE Is Added</h3>
+
+<div class="equation-block">
+    <div class="eq-title">Input Construction</div>
+    $$\text{input} = \text{Embedding}(x) \cdot \sqrt{d_{\text{model}}} + PE(\text{pos})$$
+</div>
+
+<p>The PE vector is <strong>added</strong> to the token embedding — not concatenated. This means position and semantics share the same dimensions, and the model must learn to disentangle them. The \(\sqrt{d_{\text{model}}}\) scaling on the embedding (discussed in Part 2) ensures that the semantic signal isn't overwhelmed by the positional signal, since PE values are in \([-1, 1]\) while raw embeddings have values \(\sim 1/\sqrt{d_{\text{model}}}\).</p>
+
+<h3>6.4 Limitations</h3>
+
+<p><strong>One-shot injection:</strong> Sinusoidal PE is added once at the input. By the time information reaches layer 6, the positional signal has been transformed through 5 layers of attention and FFN — it may be diluted or distorted. This is one reason RoPE (applied at every layer) performs better.</p>
+
+<p><strong>Extrapolation in practice:</strong> Despite the theoretical relative-position property, sinusoidal PE doesn't extrapolate well in practice. The model has never seen the specific PE values for positions beyond training length, and the learned \(W_Q, W_K\) weights are tuned to the PE distribution seen during training. Positions beyond the training range produce out-of-distribution dot products.</p>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 7: LEARNED PE -->
+<!-- ============================================ -->
+
+<h2 id="learned">7. Learned Positional Embeddings</h2>
+
+<h3>7.1 The Approach</h3>
+
+<p>Instead of using a fixed mathematical formula, learned positional embeddings treat each position as a trainable parameter vector, just like token embeddings:</p>
+
+<div class="equation-block">
+    <div class="eq-title">Learned Positional Embedding</div>
+    $$P \in \mathbb{R}^{L_{\max} \times d_{\text{model}}} \quad \text{(learnable parameter matrix)}$$
+    $$\text{input} = \text{Embedding}(x) + P[\text{pos}]$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">\(L_{\max}\) = maximum sequence length supported (e.g., 512 for BERT, 1024 for GPT-2)</p>
+</div>
+
+<p>This is simple and effective. BERT, GPT-2, and many early Transformer models used this approach. The embedding for each position is learned during training to encode whatever positional information is most useful for the task.</p>
+
+<h3>7.2 Advantages</h3>
+
+<p><strong>Flexibility:</strong> The model can learn arbitrary positional patterns — not constrained to smooth sinusoidal functions. If positions 0 and 511 should have similar encodings (e.g., for circular or periodic tasks), the model can learn this.</p>
+
+<p><strong>Simplicity:</strong> Just another embedding lookup table. No special math, no implementation complexity.</p>
+
+<p><strong>Performance:</strong> The original Transformer paper found that learned and sinusoidal embeddings produced "nearly identical results" on machine translation. On some tasks, learned embeddings are slightly better because they can adapt to task-specific positional patterns.</p>
+
+<h3>7.3 Limitations</h3>
+
+<p><strong>No extrapolation:</strong> The embedding for position \(L_{\max} + 1\) doesn't exist. There's no way to generalize beyond the trained length without retraining. This is a hard limitation — the model's maximum context length is fixed at training time.</p>
+
+<p><strong>No relative position inductive bias:</strong> Unlike sinusoidal PE, there's no mathematical guarantee that the model can learn relative-position attention from learned embeddings. In practice it does to some extent (nearby positions learn similar embeddings), but this must be discovered through training rather than being architecturally guaranteed.</p>
+
+<p><strong>Sparse gradient updates:</strong> As discussed in Part 8 (Gradient Flow), position embeddings suffer from frequency-dependent learning. Position 0 gets a gradient update on every training example. Position 511 only gets updated when the input sequence is exactly 512 tokens long — which may be rare. Late positions are undertrained.</p>
+
+<table>
+    <tr><th>Property</th><th>Sinusoidal</th><th>Learned</th></tr>
+    <tr><td>Parameters</td><td>0 (fixed)</td><td>\(L_{\max} \times d_{\text{model}}\)</td></tr>
+    <tr><td>Relative position</td><td>Linear transformation (theoretical)</td><td>Must be learned</td></tr>
+    <tr><td>Extrapolation</td><td>Theoretical yes, practical no</td><td>No (hard cutoff)</td></tr>
+    <tr><td>Injection</td><td>Added once at input</td><td>Added once at input</td></tr>
+    <tr><td>Performance</td><td>~Equal on translation</td><td>~Equal on translation</td></tr>
+    <tr><td>Used in</td><td>Original Transformer</td><td>BERT, GPT-2</td></tr>
+</table>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 8: ROPE -->
+<!-- ============================================ -->
+
+<h2 id="rope">8. RoPE: Rotary Position Embedding</h2>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">RoFormer: Enhanced Transformer with Rotary Position Embedding</div>
+        <div class="authors">Su, Lu, Pan, Murtadha, Wen & Liu · arXiv 2021 — Used in Llama, PaLM, GPT-NeoX, Mistral</div>
+    </div>
+</div>
+
+<p>RoPE is the dominant positional encoding in modern LLMs. It represents a fundamental shift from the sinusoidal/learned approach: instead of <strong>adding</strong> position to the input, RoPE <strong>rotates</strong> the Q and K vectors by position-dependent angles. This elegantly encodes relative position directly into the attention score computation.</p>
+
+<h3>8.1 The Core Idea</h3>
+
+<p>RoPE's design goal: construct a function \(f(x, m)\) that encodes position \(m\) into vector \(x\), such that the dot product between two encoded vectors depends only on the relative position \(m - n\):</p>
+
+<div class="equation-block">
+    <div class="eq-title">RoPE Design Requirement</div>
+    $$\langle f(q, m),\, f(k, n) \rangle = g(q, k, m - n)$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">The inner product depends on the content (q, k) and the relative position (m − n), but not on absolute positions m, n individually.</p>
+</div>
+
+<p>The solution: <strong>rotation</strong>. Rotation in 2D preserves dot products between vectors with the same rotation, and the angle of the dot product depends on the angle difference:</p>
+
+<div class="equation-block">
+    <div class="eq-title">2D Rotation Property</div>
+    $$\langle R(\theta_1) \, q,\; R(\theta_2) \, k \rangle = \langle R(\theta_1 - \theta_2) \, q,\; k \rangle$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">If we set \(\theta_1 = m\theta\) and \(\theta_2 = n\theta\), the dot product depends on \((m-n)\theta\) — relative position.</p>
+</div>
+
+<h3>8.2 The Full Math</h3>
+
+<p>RoPE pairs up the dimensions of Q and K: \((d_1, d_2)\), \((d_3, d_4)\), ..., \((d_{d-1}, d_d)\). Each pair is rotated by a position-dependent angle \(m\theta_i\), where \(m\) is the position index and \(\theta_i\) varies by dimension pair:</p>
+
+<div class="equation-block">
+    <div class="eq-title">RoPE — Rotation for One Dimension Pair</div>
+    $$R(m, \theta_i) = \begin{pmatrix} \cos m\theta_i & -\sin m\theta_i \\ \sin m\theta_i & \cos m\theta_i \end{pmatrix}$$
+    $$\theta_i = 10000^{-2i/d} \quad \text{for } i = 0, 1, \ldots, d/2 - 1$$
+</div>
+
+<p>The full rotation for a \(d\)-dimensional vector at position \(m\) is a block-diagonal matrix:</p>
+
+<div class="equation-block">
+    <div class="eq-title">RoPE — Full Rotation Matrix</div>
+    $$R_m = \begin{pmatrix} R(m,\theta_0) & & & \\ & R(m,\theta_1) & & \\ & & \ddots & \\ & & & R(m,\theta_{d/2-1}) \end{pmatrix}$$
+    $$\text{RoPE}(q, m) = R_m \cdot q, \qquad \text{RoPE}(k, n) = R_n \cdot k$$
+</div>
+
+<p>In practice, the rotation is implemented efficiently without materializing the full matrix:</p>
+
+<div class="equation-block">
+    <div class="eq-title">Efficient RoPE Implementation</div>
+    $$q'_{2i} = q_{2i} \cos(m\theta_i) - q_{2i+1} \sin(m\theta_i)$$
+    $$q'_{2i+1} = q_{2i} \sin(m\theta_i) + q_{2i+1} \cos(m\theta_i)$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">Element-wise sin/cos multiplications and additions — no matrix multiplication needed.</p>
+</div>
+
+<h3>8.3 Verifying the Relative Position Property</h3>
+
+<p>The attention score between position \(m\) and position \(n\) becomes:</p>
+
+<div class="equation-block">
+    <div class="eq-title">RoPE Attention Score</div>
+    $$(R_m q)^\top (R_n k) = q^\top R_m^\top R_n \, k = q^\top R_{n-m} \, k$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">Since rotation matrices satisfy \(R_m^\top R_n = R_{n-m}\). The score depends only on relative position \(n - m\).</p>
+</div>
+
+<div class="diagram"><span class="highlight">RoPE: How rotation encodes relative position</span>
+
+                      Position m=3                    Position n=7
+                      ┌──────────┐                    ┌──────────┐
+              q ──→   │ Rotate   │ ──→ R₃q    k ──→  │ Rotate   │ ──→ R₇k
+                      │ by 3θ    │                    │ by 7θ    │
+                      └──────────┘                    └──────────┘
+
+              Attention score:  (R₃q)ᵀ(R₇k) = qᵀ R₃ᵀR₇ k = qᵀ <span class="green">R₄</span> k
+                                                            ↑
+                                                    <span class="green">relative position = 7-3 = 4</span>
+
+<span class="yellow">Key properties:</span>
+  ✓ Relative position naturally encoded via angle difference
+  ✓ Norm-preserving: ||R_m q|| = ||q|| (rotation doesn't scale vectors)
+  ✓ No extra parameters (deterministic, like sinusoidal)
+  ✓ Applied to Q and K at <span class="highlight">every layer</span> (not just input)
+  ✓ V is NOT rotated — only the attention pattern is position-aware</div>
+<p class="diagram-caption">Figure 5: RoPE rotates Q and K by position-dependent angles. The dot product between rotated vectors depends only on the angle difference (relative position), not absolute positions. V is left unrotated — position affects which values to retrieve, not the values themselves.</p>
+
+<h3>8.4 Why V Is Not Rotated</h3>
+
+<p>A common question: if we rotate Q and K, why not also rotate V? The answer is that positional encoding serves different roles for attention patterns vs. value aggregation:</p>
+
+<p><strong>Q and K determine <em>what to attend to</em></strong> — this should depend on relative position ("attend to the token 3 positions back"). <strong>V determines <em>what information to pass</em></strong> — this should be pure content, not position-dependent. If V were rotated, the actual information passed through attention would change based on absolute position, which would make the model less generalizable. The position information is already captured in the attention weights; the values should carry semantic content.</p>
+
+<h3>8.5 Decaying Attention with Distance</h3>
+
+<p>RoPE has an elegant property: attention naturally decays with distance. When dimensions are rotated by different frequencies \(\theta_i\), nearby positions have aligned rotations (small angles = high dot product), while distant positions have misaligned rotations (the different frequencies cause destructive interference). Su et al. (2021) proved that the expected attention score decays monotonically with distance — a desirable inductive bias for language, where nearby tokens are generally more relevant than distant ones.</p>
+
+<h3>8.6 Context Length Extension</h3>
+
+<p>Since RoPE uses angles \(m\theta_i\) that grow linearly with position \(m\), positions beyond the training length produce unseen rotation angles. Three main approaches address this (covered in depth in Part 7):</p>
+
+<table>
+    <tr><th>Method</th><th>Approach</th><th>Fine-tuning?</th><th>Key Tradeoff</th></tr>
+    <tr><td><strong>Position Interpolation</strong></td><td>Scale positions: \(m \to m \cdot \frac{L_{\text{train}}}{L_{\text{target}}}\)</td><td>Yes (small)</td><td>Destroys fine-grained local position info</td></tr>
+    <tr><td><strong>NTK-aware</strong></td><td>Scale base: \(10000 \to 10000 \cdot \alpha\)</td><td>Optional</td><td>Compresses low-freq more than high-freq</td></tr>
+    <tr><td><strong>YaRN</strong></td><td>NTK + learned temperature scaling</td><td>Yes (small)</td><td>Most effective; used in production Llama</td></tr>
+</table>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 9: ALIBI -->
+<!-- ============================================ -->
+
+<h2 id="alibi">9. ALiBi: Attention with Linear Biases</h2>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Train Short, Test Long: Attention with Linear Biases Enables Input Length Generalization</div>
+        <div class="authors">Press, Smith & Lewis · ICLR 2022 — Used in BLOOM, MPT</div>
+    </div>
+</div>
+
+<p>ALiBi takes the radically simplest approach to positional encoding: <strong>don't encode position in the embeddings at all.</strong> Instead, add a position-dependent bias directly to the attention scores, <em>after</em> computing \(QK^\top\):</p>
+
+<div class="equation-block">
+    <div class="eq-title">ALiBi</div>
+    $$\text{score}_{ij} = \frac{q_i \cdot k_j}{\sqrt{d_k}} - m \cdot |i - j|$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">\(m\) = head-specific slope (fixed, not learned). Closer tokens get higher scores.</p>
+</div>
+
+<h3>9.1 Head-Specific Slopes</h3>
+
+<p>Each attention head gets a different slope \(m\), set as a geometric sequence. For 8 heads:</p>
+
+<div class="equation-block">
+    <div class="eq-title">ALiBi Slopes</div>
+    $$m_i = \frac{1}{2^{8/h \cdot i}} \quad \text{for } i = 1, \ldots, h$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">For h=8: slopes are \(\frac{1}{2}, \frac{1}{4}, \frac{1}{8}, \frac{1}{16}, \frac{1}{32}, \frac{1}{64}, \frac{1}{128}, \frac{1}{256}\)</p>
+</div>
+
+<p>Heads with steep slopes (large \(m\)) focus on local context — the linear penalty quickly suppresses distant tokens. Heads with gentle slopes (small \(m\)) can attend to longer-range dependencies. This division of labor is determined by the fixed slope schedule, not learned.</p>
+
+<div class="diagram"><span class="highlight">ALiBi: linear bias on attention scores</span>
+
+Standard attention scores (no position):    ALiBi (after adding linear bias, slope m=1/4):
+  q₁·k₁  q₁·k₂  q₁·k₃  q₁·k₄  q₁·k₅      q₁·k₁  q₁·k₂  q₁·k₃  q₁·k₄  q₁·k₅
+  q₂·k₁  q₂·k₂  q₂·k₃  q₂·k₄  q₂·k₅      q₂·k₁  q₂·k₂  q₂·k₃  q₂·k₄  q₂·k₅
+  ...                                        ...
+
+                <span class="yellow">Bias matrix (subtracted):</span>               <span class="green">Effect after softmax:</span>
+                 0    1/4  2/4  3/4  4/4      <span class="green">█████</span> high
+                 1/4   0   1/4  2/4  3/4      <span class="green">████</span>  ↓
+                 2/4  1/4   0   1/4  2/4      <span class="green">███</span>   nearby tokens
+                 3/4  2/4  1/4   0   1/4      <span class="green">██</span>    get more weight
+                 4/4  3/4  2/4  1/4   0       <span class="green">█</span>     ↓ low
+
+  <span class="purple">Head 1 (m=1/2): sharp local focus</span>    <span class="orange">Head 8 (m=1/256): nearly global attention</span>
+  █████                                ██████████████████████████████
+  Penalty grows fast → local only      Penalty grows slowly → long-range OK</div>
+<p class="diagram-caption">Figure 6: ALiBi adds a linear distance penalty to attention scores. Different heads have different slopes — steep slopes create local attention, gentle slopes allow global attention. No positional encoding is added to the embeddings at all.</p>
+
+<h3>9.2 Why ALiBi Extrapolates</h3>
+
+<p>ALiBi's extrapolation is trivially perfect: the linear bias \(m \cdot |i - j|\) extends to any distance with no modification. There are no learned position-specific parameters, no angles that go out of distribution, no embeddings for unseen positions. The bias formula works identically for position 100 as for position 100,000.</p>
+
+<p>Press et al. demonstrated that a model trained at 1024 tokens maintained quality at 2048+ tokens with zero modification — something neither sinusoidal, learned, nor (unextended) RoPE could do.</p>
+
+<h3>9.3 Tradeoffs vs RoPE</h3>
+
+<p><strong>Where ALiBi wins:</strong> Zero-shot extrapolation. No additional computation (just a bias add). No parameters. Dead simple to implement.</p>
+
+<p><strong>Where RoPE wins:</strong> Richer positional information. RoPE's rotation encodes relative position into the full structure of Q and K, allowing the model to learn complex positional patterns beyond simple distance decay. For tasks requiring precise long-range retrieval (e.g., "what was said in paragraph 3?"), RoPE's richer encoding outperforms ALiBi's linear penalty. This is why most modern LLMs (Llama, Mistral, PaLM, Gemma) use RoPE despite ALiBi's simplicity.</p>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 10: RELATIVE POSITION BIAS (T5) -->
+<!-- ============================================ -->
+
+<h2 id="t5-bias">10. Relative Position Bias (T5-Style)</h2>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer</div>
+        <div class="authors">Raffel et al. · JMLR 2020 — T5 relative position bias</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Transformer-XL: Attentive Language Models Beyond a Fixed-Length Context</div>
+        <div class="authors">Dai et al. · ACL 2019 — Relative position encoding for recurrence</div>
+    </div>
+</div>
+
+<p>Between "add position to embeddings" (sinusoidal/learned) and "don't encode position at all" (ALiBi), there's a middle ground: <strong>learn an explicit relative position bias</strong> added to attention scores. This is the approach used in T5 and Transformer-XL, and it comes up in interviews because T5/Flan-T5 remain widely used.</p>
+
+<h3>10.1 How It Works</h3>
+
+<div class="equation-block">
+    <div class="eq-title">T5 Relative Position Bias</div>
+    $$\text{score}_{ij} = \frac{q_i \cdot k_j}{\sqrt{d_k}} + B(i - j)$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">\(B\) is a learned bias that depends on the relative position \(i - j\). Each attention head has its own bias table. No positional encoding is added to the embeddings.</p>
+</div>
+
+<p>The key design choice: <strong>bucketed distances.</strong> Rather than learning a separate bias for every possible relative position (which would require a table as large as the max sequence length), T5 groups distances into a fixed number of buckets (typically 32). Nearby positions get fine-grained buckets (distance 0, 1, 2, ..., 8 each get their own bucket). Distant positions share buckets with logarithmically increasing ranges (distances 8–12 share a bucket, 12–20 share another, etc.).</p>
+
+<div class="equation-block">
+    <div class="eq-title">T5 Bucketing (simplified)</div>
+    $$\text{bucket}(\delta) = \begin{cases} \delta & \text{if } |\delta| \leq 8 \quad \text{(exact for nearby positions)} \\ 8 + \lfloor \log_{\text{ratio}}(|\delta| / 8) \rfloor & \text{if } |\delta| > 8 \quad \text{(log-spaced for distant)} \end{cases}$$
+    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">32 buckets total, per head. Nearby: exact. Distant: logarithmic grouping.</p>
+</div>
+
+<div class="diagram"><span class="highlight">T5 relative position bias — bucketing scheme</span>
+
+Relative distance:   0  1  2  3  4  5  6  7  8  9-12  13-20  21-40  41-128  129+
+                     │  │  │  │  │  │  │  │  │   │      │      │      │      │
+Bucket index:        0  1  2  3  4  5  6  7  8   9     10     11     12    ...31
+
+                     <span class="green">├─── fine-grained ───┤</span>   <span class="yellow">├────── logarithmic spacing ──────┤</span>
+
+Each bucket stores <span class="highlight">one learned scalar per head</span>.
+Total parameters: 32 buckets × h heads × 2 (fwd/bwd in T5) = small.
+
+<span class="purple">vs ALiBi:</span>  ALiBi uses a <span class="purple">fixed</span> linear penalty → 0 parameters, less flexible.
+<span class="green">vs T5:</span>    T5 <span class="green">learns</span> the bias → more parameters, more flexible.</div>
+<p class="diagram-caption">Figure 6b: T5 buckets relative positions into 32 bins — exact for nearby positions (0–8), logarithmically spaced for distant ones. Each bin has a learned bias per head. This balances expressiveness (learned, per-head) with efficiency (only 32 parameters per head).</p>
+
+<h3>10.2 Advantages Over ALiBi</h3>
+
+<p><strong>Learned, non-linear decay:</strong> ALiBi enforces a fixed linear distance penalty. T5 can learn arbitrary decay curves — some heads might learn a sharp local focus (like ALiBi with a steep slope), while others learn a plateau (strong attention within a window, then rapid drop-off), or even learn to attend more to specific relative positions (e.g., "4 positions back" for syntactic dependencies). The bias function is completely unconstrained within each bucket.</p>
+
+<p><strong>Per-head customization:</strong> Each head learns its own 32-entry bias table. The model discovers the optimal distance sensitivity per head during training, rather than relying on a pre-set geometric slope schedule.</p>
+
+<h3>10.3 Limitations</h3>
+
+<p><strong>Extrapolation:</strong> The last bucket catches all distances beyond the bucketing range. During inference on sequences longer than seen in training, all distant positions map to the same bias — the model has no mechanism to differentiate between "100 positions away" and "1000 positions away" if both fall in the last bucket. This is better than learned PE (hard cutoff) but worse than ALiBi (smooth linear extrapolation).</p>
+
+<p><strong>Added parameters:</strong> Small but nonzero: 32 × h × n_layers scalars. In practice negligible compared to \(W_Q, W_K, W_V\).</p>
+
+<div class="callout callout-insight">
+    <div class="callout-title">💡 Where it sits in the taxonomy</div>
+    <p>T5's relative position bias is conceptually between ALiBi (fixed linear bias on scores) and learned PE (fully learned position embedding added to input). Like ALiBi, it operates on attention scores rather than embeddings. Like learned PE, the bias values are trainable. The bucketing trick gives it the benefit of relative position encoding with bounded parameter cost. Think of it as "ALiBi but learned."</p>
+</div>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 11: COMPARISON -->
+<!-- ============================================ -->
+
+<h2 id="comparison">11. Comparison &amp; Design Decisions</h2>
+
+<table>
+    <tr>
+        <th>Property</th>
+        <th>Sinusoidal</th>
+        <th>Learned</th>
+        <th>T5 Rel. Bias</th>
+        <th>RoPE</th>
+        <th>ALiBi</th>
+    </tr>
+    <tr>
+        <td><strong>Where applied</strong></td>
+        <td>Added to input (once)</td>
+        <td>Added to input (once)</td>
+        <td>Bias on scores (every layer)</td>
+        <td>Rotates Q, K (every layer)</td>
+        <td>Bias on scores (every layer)</td>
+    </tr>
+    <tr>
+        <td><strong>Relative position</strong></td>
+        <td>Via rotation (theoretical)</td>
+        <td>Must be learned</td>
+        <td>Yes (learned per bucket)</td>
+        <td>Natural (by construction)</td>
+        <td>Linear decay (by construction)</td>
+    </tr>
+    <tr>
+        <td><strong>Parameters</strong></td>
+        <td>0</td>
+        <td>\(L_{\max} \times d\)</td>
+        <td>32 × h × layers (small)</td>
+        <td>0</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td><strong>Extrapolation</strong></td>
+        <td>Theoretically yes, practically poor</td>
+        <td>No (hard cutoff)</td>
+        <td>Limited (last bucket)</td>
+        <td>With NTK/YaRN scaling</td>
+        <td>Excellent (trivial)</td>
+    </tr>
+    <tr>
+        <td><strong>Gradient flow</strong></td>
+        <td>Pass-through (no params)</td>
+        <td>Sparse updates (position-dependent)</td>
+        <td>Dense updates (all buckets)</td>
+        <td>Norm-preserving (orthogonal)</td>
+        <td>Pass-through (no params)</td>
+    </tr>
+    <tr>
+        <td><strong>Expressiveness</strong></td>
+        <td>Fixed frequency spectrum</td>
+        <td>Arbitrary (learned)</td>
+        <td>Learned per-head decay curves</td>
+        <td>Rich rotation encoding</td>
+        <td>Linear decay only</td>
+    </tr>
+    <tr>
+        <td><strong>Dominant use</strong></td>
+        <td>Original Transformer</td>
+        <td>BERT, GPT-2</td>
+        <td>T5, Flan-T5, LongT5</td>
+        <td><strong>Llama, Mistral, PaLM, GPT-NeoX</strong></td>
+        <td>BLOOM, MPT</td>
+    </tr>
+</table>
+
+<div class="callout callout-key">
+    <div class="callout-title">⚡ The modern consensus</div>
+    <p>RoPE has become the default for nearly all large-scale LLMs. It provides the best combination of relative position encoding, gradient preservation, and extensibility. ALiBi remains a viable alternative when simplicity and zero-shot extrapolation are priorities. Sinusoidal and learned PE are largely historical — they work but are outperformed by RoPE on most benchmarks. The key insight that drove adoption: position information should be injected <strong>at the attention computation level</strong> (Q/K or scores), not at the input embedding level.</p>
+</div>
+
+<div class="diagram"><span class="highlight">Evolution of positional encoding — key insight at each stage</span>
+
+2017  <span class="yellow">Sinusoidal PE</span>
+      │  "Position is a fixed signal added at the input"
+      │  ✓ No parameters, ✓ Relative pos (theory)
+      │  ✗ Injected once, ✗ Degrades through layers
+      ▼
+2018  <span class="yellow">Learned PE</span> (BERT, GPT-2)
+      │  "Let the model learn what position means"
+      │  ✓ More flexible, ✓ Task-adaptive
+      │  ✗ Can't extrapolate, ✗ Sparse gradient updates
+      ▼
+2019  <span class="orange">T5 Relative Bias</span> (T5, Transformer-XL)
+      │  <span class="orange">"Learn relative position biases on attention scores"</span>
+      │  ✓ Relative, ✓ Learned per-head, ✓ On scores not embeddings
+      │  ✗ Limited extrapolation (bucketed), ✗ Small param overhead
+      ▼
+2021  <span class="green">RoPE</span> (Llama, PaLM, Mistral)
+      │  <span class="green">"Encode position in the ATTENTION COMPUTATION, not the input"</span>
+      │  ✓ Relative by construction, ✓ Every layer, ✓ Norm-preserving
+      │  ✗ Needs tricks for length extension
+      ▼
+2022  <span class="green">ALiBi</span> (BLOOM, MPT)
+        "Don't encode position at all — just penalize distance"
+        ✓ Simplest possible, ✓ Perfect extrapolation
+        ✗ Less expressive than RoPE for complex patterns</div>
+<p class="diagram-caption">Figure 7: The evolution of positional encoding. The key paradigm shift (2021) was moving from "add position to the embedding" to "inject position into the attention mechanism itself."</p>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 11: REFERENCES -->
+<!-- ============================================ -->
+
+<h2 id="references">12. Key Paper References</h2>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Attention Is All You Need</div>
+        <div class="authors">Vaswani et al. · NeurIPS 2017 — Multi-head attention, sinusoidal PE</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">RoFormer: Enhanced Transformer with Rotary Position Embedding</div>
+        <div class="authors">Su et al. · arXiv 2021 — RoPE</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Train Short, Test Long: Attention with Linear Biases Enables Input Length Generalization</div>
+        <div class="authors">Press, Smith & Lewis · ICLR 2022 — ALiBi</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Are Sixteen Heads Really Better than One?</div>
+        <div class="authors">Michel, Levy & Neubig · NeurIPS 2019 — Head pruning and importance analysis</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">What Does BERT Look At? An Analysis of BERT's Attention</div>
+        <div class="authors">Clark et al. · BlackboxNLP 2019 — Probing individual attention heads</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">In-context Learning and Induction Heads</div>
+        <div class="authors">Olsson et al. · Anthropic, 2022 — Induction heads for in-context learning</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer</div>
+        <div class="authors">Raffel et al. · JMLR 2020 — T5 relative position bias</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Transformer-XL: Attentive Language Models Beyond a Fixed-Length Context</div>
+        <div class="authors">Dai et al. · ACL 2019 — Relative position encoding for recurrence</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Multi-Head Attention: Collaborate Instead of Concatenate</div>
+        <div class="authors">Cordonnier, Loukas & Jaggi · 2020 — Role of W_O and cross-head interaction</div>
+    </div>
+</div>
+
+<div class="paper-ref">
+    <span class="icon">📄</span>
+    <div>
+        <div class="title">Analyzing Multi-Head Self-Attention: Specialized Heads Do the Heavy Lifting</div>
+        <div class="authors">Voita et al. · ACL 2019 — Head specialization and orthogonal subspaces</div>
+    </div>
+</div>
+
+<div class="divider">· · ·</div>
+
+<!-- ============================================ -->
+<!-- SECTION 12: INTERVIEW QUESTIONS -->
+<!-- ============================================ -->
+
+<h2 id="questions">13. Interview Questions You Must Be Ready For</h2>
+
+<details>
+    <summary><span class="q-tag q-conceptual">Conceptual</span> Q1 — Why does the Transformer use multiple attention heads instead of a single head?</summary>
+    <div class="answer">
+        <p>Two reasons — one algebraic, one empirical. <strong>Algebraically:</strong> a single head with \(d_k = 64\) produces an attention score matrix governed by \(W_Q W_K^\top\), which has rank at most 64 in a 512-dimensional space. This means it can only compute attention patterns in a 64-dimensional subspace — it cannot simultaneously capture syntactic, semantic, and positional patterns. Multiple heads span complementary subspaces, collectively reaching rank up to \(d_{\text{model}}\). <strong>Empirically:</strong> different heads learn specialized roles — some track adjacent tokens, some handle subject-verb agreement, some implement induction patterns for in-context learning. The concatenation + \(W_O\) projection mixes information across heads. Critically, multi-head has the <strong>same parameter count</strong> as single-head when \(h \times d_k = d_{\text{model}}\) — it's a different factorization, not more parameters.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-math">Math</span> Q2 — Walk me through the dimension trace of multi-head attention.</summary>
+    <div class="answer">
+        <p>For \(n\) tokens, \(d_{\text{model}} = 512\), \(h = 8\), \(d_k = 64\): Input \(X \in \mathbb{R}^{n \times 512}\). For each head \(i\): project to \(Q_i = XW_Q^i \in \mathbb{R}^{n \times 64}\), similarly \(K_i, V_i\). Compute \(Q_i K_i^\top / \sqrt{64} \in \mathbb{R}^{n \times n}\) → softmax → multiply by \(V_i\) → head output \(\in \mathbb{R}^{n \times 64}\). Concatenate 8 heads: \(\mathbb{R}^{n \times 512}\). Multiply by \(W_O \in \mathbb{R}^{512 \times 512}\) → output \(\in \mathbb{R}^{n \times 512}\). Total attention parameters: \(4 \times 512^2 \approx 1.05M\) per layer (same as single-head with \(d_k = 512\)).</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-depth">Depth</span> Q3 — What does W_O actually do? What happens if you remove it?</summary>
+    <div class="answer">
+        <p>\(W_O\) mixes information <strong>across heads</strong>. Without it, each head's output occupies a non-overlapping 64-dimensional slice — head 1 in dims 1–64, head 2 in 65–128, etc. They never interact. \(W_O\) is a full 512×512 matrix that creates linear combinations across all heads and all value dimensions: \(\text{output}_j = \sum_{i,k} W_O[(i-1)d_v + k, j] \cdot \text{head}_{i,k}\). Replacing \(W_O\) with a block-diagonal matrix (no cross-head mixing) degrades performance by 1–2 BLEU, confirming the mixing is doing real work. \(W_O\) is what turns \(h\) independent attention computations into a single coherent attention mechanism.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-conceptual">Conceptual</span> Q4 — What have studies found about what individual heads learn?</summary>
+    <div class="answer">
+        <p>Clark et al. (2019) and Voita et al. (2019) found heads specialize into distinct roles: (1) <strong>Positional heads</strong> — attend to previous/next/first token regardless of content. (2) <strong>Syntactic heads</strong> — track subject-verb agreement, coreference, dependency arcs. (3) <strong>Induction heads</strong> (Olsson et al., 2022) — implement "A B ... A → B" copying patterns, critical for in-context learning. (4) <strong>Broad/diffuse heads</strong> — nearly uniform attention, may be prunable. The distribution is heavy-tailed: most heads contribute modestly, but a few are catastrophically important (removing them drops BLEU by 5+ points). This diversity is the empirical payoff of the rank argument — different subspaces capture genuinely different linguistic phenomena.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-conceptual">Conceptual</span> Q5 — Can you prune attention heads? How many are redundant?</summary>
+    <div class="answer">
+        <p>Yes. Michel et al. (2019) showed 20–40% of heads can be removed at test time with less than 0.5 BLEU degradation on WMT EN-FR. Some individual heads can be removed with zero loss. However, the redundancy is partly an artifact of training — the remaining heads were trained <em>assuming</em> the removed heads exist. Removing heads during training (not just test time) hurts more. The importance distribution is heavy-tailed: while many heads are prunable, a small number are critical. This observation directly motivates <strong>GQA</strong> — if many heads learn similar K/V patterns, sharing K/V across groups of Q heads is a structured form of pruning that saves KV-cache memory with minimal quality loss.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-math">Math</span> Q6 — Why is self-attention permutation-equivariant and why does that require positional encoding?</summary>
+    <div class="answer">
+        <p>Self-attention computes \(\text{softmax}(QK^\top / \sqrt{d_k}) V\). If we permute the input rows by \(\Pi\), then \(Q, K, V\) are all permuted by \(\Pi\). The score matrix becomes \((\Pi Q)(\Pi K)^\top = \Pi Q K^\top \Pi^\top\), and softmax is applied row-wise, so \(\text{softmax}(\Pi S \Pi^\top) = \Pi \cdot \text{softmax}(S) \cdot \Pi^\top\). Multiplying by \(\Pi V\) gives \(\Pi \cdot \text{Attention}(X)\). The output is the same as permuting the original output — <strong>the model treats its input as a set, not a sequence</strong>. Since "Dog bites man" ≠ "Man bites dog" but they have the same bag of tokens, the model must receive positional information to distinguish them. Positional encoding breaks the permutation symmetry.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-math">Math</span> Q7 — Derive the relative position property of sinusoidal positional encoding.</summary>
+    <div class="answer">
+        <p>For dimension pair \((2i, 2i+1)\) with frequency \(\omega_i = 1/10000^{2i/d}\), \(PE(\text{pos}) = (\sin(\omega_i \cdot \text{pos}), \cos(\omega_i \cdot \text{pos}))\). Using the angle addition formulas: \(\sin(\omega_i(\text{pos}+k)) = \sin(\omega_i \text{pos})\cos(\omega_i k) + \cos(\omega_i \text{pos})\sin(\omega_i k)\), and similarly for cosine. In matrix form: \(PE(\text{pos}+k) = M_k \cdot PE(\text{pos})\), where \(M_k\) is the 2×2 rotation matrix \(\begin{pmatrix} \cos(\omega_i k) & \sin(\omega_i k) \\ -\sin(\omega_i k) & \cos(\omega_i k) \end{pmatrix}\). This depends only on \(k\) and the dimension index, not on \(\text{pos}\). The full \(M_k\) is block-diagonal with these 2×2 blocks. This means the model can learn linear projections in \(W_Q, W_K\) that implement "attend to position \(\text{pos}+k\)" for any fixed \(k\).</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-comparison">Comparison</span> Q8 — Compare RoPE and sinusoidal PE. Why did RoPE win?</summary>
+    <div class="answer">
+        <p>Both use the same frequency base (\(10000^{-2i/d}\)) and encode relative position through rotation, but differ in three critical ways: (1) <strong>Where applied:</strong> Sinusoidal is added to the input once; RoPE rotates Q and K at every layer. This means RoPE's positional signal is fresh at every layer, while sinusoidal's may degrade through transformations. (2) <strong>How applied:</strong> Sinusoidal adds a constant to the embedding (mixing position with semantics in the same space); RoPE rotates Q/K (preserving vector norms — semantics untouched). (3) <strong>Extensibility:</strong> RoPE's rotation angles can be rescaled for context extension (NTK, YaRN); sinusoidal's added values go out-of-distribution. RoPE won because per-layer injection and norm preservation are strictly better properties, and the context extension methods made the extrapolation gap moot.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-math">Math</span> Q9 — Walk through the full RoPE math. Why does it encode relative position?</summary>
+    <div class="answer">
+        <p>RoPE pairs dimensions and applies a 2D rotation per pair: \(\text{RoPE}(q, m) = R_m q\), where \(R_m\) is block-diagonal with 2×2 rotation blocks \(\begin{pmatrix} \cos(m\theta_i) & -\sin(m\theta_i) \\ \sin(m\theta_i) & \cos(m\theta_i) \end{pmatrix}\), and \(\theta_i = 10000^{-2i/d}\). The attention score becomes: \((R_m q)^\top (R_n k) = q^\top R_m^\top R_n k = q^\top R_{n-m} k\), because rotation matrices satisfy \(R_m^\top = R_{-m}\) and \(R_{-m} R_n = R_{n-m}\). The score depends on \(n - m\) only — relative position. RoPE is norm-preserving (\(\|R_m q\| = \|q\|\)), has zero parameters, is applied at every layer, and only affects Q and K (V carries pure content). The per-pair frequency variation ensures each pair captures position at a different scale.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-comparison">Comparison</span> Q10 — When would you choose ALiBi over RoPE?</summary>
+    <div class="answer">
+        <p>Choose ALiBi when: (1) <strong>Zero-shot length extrapolation is critical</strong> — ALiBi's linear bias extends trivially to any length with no modification, while RoPE needs NTK/YaRN scaling and fine-tuning. (2) <strong>Implementation simplicity is a priority</strong> — ALiBi is a single bias addition; no per-dimension rotation needed. (3) <strong>The task doesn't require precise long-range retrieval</strong> — ALiBi's linear penalty is a blunt instrument; it can't represent "attend specifically to the 50th token back" the way RoPE's rotation can. Choose RoPE when the task involves complex positional patterns, precise long-range retrieval (RAG, long-document QA), or when using a model in the Llama/Mistral family (ecosystem compatibility). In practice, RoPE dominates because the YaRN extension methods have made the extrapolation gap manageable.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-depth">Depth</span> Q11 — Why does RoPE only rotate Q and K but not V?</summary>
+    <div class="answer">
+        <p>Q and K determine <strong>what to attend to</strong> — this should depend on relative position ("attend to the token 3 positions back"). V determines <strong>what information to pass</strong> — this should be pure content, position-independent. If V were rotated, the information passed through attention would change based on absolute position, making the model less generalizable. The attention weights already capture positional relationships (via rotated Q/K); the values should carry semantic content without positional distortion. Additionally, rotating V would break norm preservation at the output: the weighted sum of rotated values at different positions would not have predictable magnitude, complicating gradient flow through the value path.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-application">Application</span> Q12 — You're building a document QA model that needs to handle 100K+ token inputs. Which positional encoding do you choose and why?</summary>
+    <div class="answer">
+        <p><strong>RoPE with YaRN extension.</strong> The reasoning: (1) 100K tokens is far beyond typical training lengths (4K–8K), so extrapolation matters. ALiBi extrapolates natively, but its linear decay becomes a problem for long-range retrieval — a question about paragraph 3 in a 100K document requires precise attention to tokens 50K+ positions away, and ALiBi's linear penalty would suppress them too aggressively. (2) RoPE's rich rotation encoding preserves the model's ability to learn complex positional patterns (e.g., "this answer is in the section with heading X"). YaRN-style extension (NTK scaling + temperature) allows extending from 4K training to 128K+ with minimal fine-tuning. (3) Combine with <strong>sliding window attention</strong> in early layers (local processing) and full attention in later layers (global retrieval) — this is the Mistral approach. The sliding window handles local syntax, full attention handles document-level QA, and RoPE provides consistent position information throughout.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-depth">Depth</span> Q13 — The original paper found sinusoidal and learned PE perform "nearly identically." Why did the field move away from both?</summary>
+    <div class="answer">
+        <p>Three converging insights drove the shift: (1) <strong>One-shot injection is a bottleneck.</strong> Both sinusoidal and learned PE are added once at the input. By layer 6, the positional signal has been transformed through attention and FFN layers — it degrades. RoPE and ALiBi inject position at every layer, keeping the signal fresh. (2) <strong>Adding position to embeddings is wasteful.</strong> When PE is added to the token embedding, position and semantics compete for the same dimensions. The model must learn to disentangle them. RoPE (rotation) and ALiBi (score bias) keep position separate from content. (3) <strong>Context length scaling.</strong> Both sinusoidal and learned PE are designed for fixed-length inputs. The push toward 32K–128K+ context windows required encoding schemes that could extend. Learned PE has a hard cutoff; sinusoidal degrades in practice. RoPE's angle-scaling methods and ALiBi's inherent extrapolation addressed this need.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-conceptual">Conceptual</span> Q14 — What is the relationship between the ablation "h=8, d_k=64 is optimal" and the rank bottleneck argument?</summary>
+    <div class="answer">
+        <p>The paper tested h=1 (d_k=512), h=4 (d_k=128), h=8 (d_k=64), h=16 (d_k=32), and h=32 (d_k=16). All have the same total parameters. Performance peaked at h=8, degrading in both directions. The rank argument explains <strong>both failure modes</strong>: (1) <strong>h=1:</strong> rank up to 512, but no structural incentive for diversity — the model converges to less varied attention patterns (a regularization problem, not a capacity problem). (2) <strong>h=32:</strong> each head has only d_k=16 dimensions — too few to form a meaningful attention pattern. Each head's \(W_Q W_K^\top\) has rank 16, and 16 dimensions can't represent the nuances needed for even a single linguistic relationship. The sweet spot (h=8, d_k=64) balances head diversity against per-head expressiveness — enough dimensions per head to learn complex patterns, enough heads for diversity.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-math">Math</span> Q15 — Derive why the attention scores are divided by √d_k. What happens if you don't?</summary>
+    <div class="answer">
+        <p>Assume \(q_i, k_i\) are i.i.d. with mean 0 and variance 1. The dot product \(q \cdot k = \sum_{i=1}^{d_k} q_i k_i\) has mean 0 and variance \(d_k\) (each product has variance \(\text{Var}(q_i k_i) = E[q_i^2]E[k_i^2] - (E[q_i]E[k_i])^2 = 1\); sum of \(d_k\) independent terms gives variance \(d_k\)). For \(d_k = 64\), scores have std = 8, spread across \([-16, +16]\). Large-magnitude scores push softmax into saturation — the output is nearly one-hot. The softmax Jacobian at a near-one-hot distribution is near-zero everywhere: \(A_i(1-A_i) \approx 0\) for the dominant element, \(A_j \approx 0\) for all others. <strong>Gradients vanish and learning stops.</strong> Dividing by \(\sqrt{d_k}\) restores unit variance: \(\text{Var}(q \cdot k / \sqrt{d_k}) = d_k / d_k = 1\), keeping softmax non-saturated with healthy gradients. Same principle as Xavier initialization and LayerNorm — variance stabilization.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-comparison">Comparison</span> Q16 — What are the three types of attention in the Transformer? How do they differ?</summary>
+    <div class="answer">
+        <p>All three use the same multi-head scaled dot-product mechanism; only the sources of Q, K, V and the masking differ: (1) <strong>Encoder self-attention:</strong> Q, K, V all from encoder input. No mask — every token sees every other token (bidirectional). Builds rich contextual representations. (2) <strong>Decoder masked self-attention:</strong> Q, K, V all from decoder input. Causal mask (\(-\infty\) for \(j > i\)) — each position only attends to itself and earlier positions. Enforces autoregressive property. (3) <strong>Decoder cross-attention:</strong> Q from decoder, K and V from encoder output. No mask — decoder can attend to all encoder positions. This is the bridge between source and target, functionally equivalent to Bahdanau attention. Each has its own learned \(W_Q, W_K, W_V, W_O\). Modern decoder-only models (GPT, Llama) use only type 2 — no encoder, no cross-attention.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-comparison">Comparison</span> Q17 — How does T5's relative position bias compare to ALiBi and RoPE?</summary>
+    <div class="answer">
+        <p>T5 adds a <strong>learned</strong> bias \(B(i-j)\) to attention scores — similar to ALiBi (bias on scores) but with learned values instead of fixed linear decay. The bias is bucketed: 32 buckets per head, fine-grained for nearby positions (distances 0–8 each get their own bucket), logarithmically spaced for distant positions. This lets each head learn its own distance sensitivity — some heads might learn sharp local focus, others a plateau, others a complex non-monotonic pattern. <strong>vs ALiBi:</strong> more expressive (learned vs fixed linear), but worse extrapolation (distant positions collapse into the last bucket vs ALiBi's smooth extension). <strong>vs RoPE:</strong> both encode relative position, but T5 operates only on scores (additive bias) while RoPE modifies the Q/K vectors themselves (rotation). RoPE's rotation encodes richer positional structure in the full vector space; T5's bias is a single scalar per position pair. RoPE also has better extension methods (NTK/YaRN). T5's advantage: simpler to implement and reason about; no complex rotation math.</p>
+    </div>
+</details>
+
+<details>
+    <summary><span class="q-tag q-application">Application</span> Q18 — Walk me through a concrete numerical example of multi-head attention with actual numbers.</summary>
+    <div class="answer">
+        <p>Minimal example: 3 tokens, \(d_{\text{model}} = 4\), 2 heads, \(d_k = 2\). Start with input \(X \in \mathbb{R}^{3 \times 4}\). <strong>Per head:</strong> project \(X\) through \(W_Q^i, W_K^i, W_V^i \in \mathbb{R}^{4 \times 2}\) to get \(Q_i, K_i, V_i \in \mathbb{R}^{3 \times 2}\). The key: Head 1's \(W_Q^1\) might project from dims 1–2, Head 2's \(W_Q^2\) from dims 3–4 — different subspaces. Compute \(Q_1 K_1^\top / \sqrt{2} \in \mathbb{R}^{3 \times 3}\) — the raw scores. Apply row-wise softmax to get attention weights. Multiply weights by \(V_1\) to get \(\text{head}_1 \in \mathbb{R}^{3 \times 2}\). Do the same for head 2 (different subspace → different attention pattern). Concatenate: \([\text{head}_1 | \text{head}_2] \in \mathbb{R}^{3 \times 4}\). Multiply by \(W_O \in \mathbb{R}^{4 \times 4}\) — this is where heads interact. Output: \(\mathbb{R}^{3 \times 4}\), same shape as input. The essential thing to communicate: both heads have the same parameter count, but produce different attention patterns because they project into different subspaces.</p>
+    </div>
+</details>
+
+<p style="text-align: center; color: var(--text-secondary); margin-top: 3rem; font-size: 0.9rem;">Part 4 of the Transformer Interview Prep Series</p>
+
+</body>
+</html>

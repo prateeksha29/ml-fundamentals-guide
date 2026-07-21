@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fine-Tuning & Adaptation Methods: A Complete Guide</title>
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['\\(', '\\)']], displayMath: [['$$', '$$']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-alt: #f8f9fa;
+            --text: #1a1a2e;
+            --text-secondary: #555;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --border: #e2e8f0;
+            --code-bg: #f1f5f9;
+            --callout-tip: #ecfdf5;
+            --callout-tip-border: #10b981;
+            --callout-warn: #fff7ed;
+            --callout-warn-border: #f59e0b;
+            --callout-insight: #eff6ff;
+            --callout-insight-border: #3b82f6;
+            --paper-bg: #f0f4ff;
+            --paper-border: #a3bffa;
+            --svg-bg: #f8fafc;
+            --svg-box: #e2e8f0;
+            --svg-box-accent: #dbeafe;
+            --svg-text: #1a1a2e;
+            --svg-arrow: #64748b;
+            --svg-highlight: #2563eb;
+            --svg-green: #10b981;
+            --svg-orange: #f59e0b;
+            --svg-red: #ef4444;
+            --svg-purple: #8b5cf6;
+            --table-header: #f1f5f9;
+            --table-border: #e2e8f0;
+            --details-bg: #f8fafc;
+            --tag-bg: #e2e8f0;
+            --tag-text: #475569;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --bg-alt: #1e293b;
+            --text: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent: #60a5fa;
+            --accent-light: #1e3a5f;
+            --border: #334155;
+            --code-bg: #1e293b;
+            --callout-tip: #0d2818;
+            --callout-tip-border: #10b981;
+            --callout-warn: #2d1b00;
+            --callout-warn-border: #f59e0b;
+            --callout-insight: #0c1929;
+            --callout-insight-border: #3b82f6;
+            --paper-bg: #1a2332;
+            --paper-border: #4a6fa5;
+            --svg-bg: #1e293b;
+            --svg-box: #334155;
+            --svg-box-accent: #1e3a5f;
+            --svg-text: #e2e8f0;
+            --svg-arrow: #94a3b8;
+            --svg-highlight: #60a5fa;
+            --svg-green: #34d399;
+            --svg-orange: #fbbf24;
+            --svg-red: #f87171;
+            --svg-purple: #a78bfa;
+            --table-header: #1e293b;
+            --table-border: #334155;
+            --details-bg: #1e293b;
+            --tag-bg: #334155;
+            --tag-text: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.75;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: background 0.3s;
+        }
+        .theme-toggle:hover { background: var(--border); }
+
+        /* Header */
+        .series-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        /* Section headers */
+        h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p { margin-bottom: 1rem; }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        strong { font-weight: 600; }
+
+        code {
+            background: var(--code-bg);
+            padding: 0.15em 0.4em;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        /* Divider */
+        .divider {
+            text-align: center;
+            margin: 2.5rem 0;
+            color: var(--text-secondary);
+            letter-spacing: 0.5em;
+        }
+
+        /* Math blocks */
+        .math-block {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+
+        .math-block .math-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+            color: var(--accent);
+        }
+
+        /* Callout boxes */
+        .callout {
+            border-left: 4px solid;
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+        }
+
+        .callout-tip {
+            background: var(--callout-tip);
+            border-color: var(--callout-tip-border);
+        }
+
+        .callout-warn {
+            background: var(--callout-warn);
+            border-color: var(--callout-warn-border);
+        }
+
+        .callout-insight {
+            background: var(--callout-insight);
+            border-color: var(--callout-insight-border);
+        }
+
+        .callout .callout-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .callout p:last-child { margin-bottom: 0; }
+
+        /* Paper references */
+        .paper-ref {
+            background: var(--paper-bg);
+            border: 1px solid var(--paper-border);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .paper-ref .paper-icon { font-size: 1.3rem; flex-shrink: 0; }
+
+        .paper-ref .paper-content {
+            font-size: 0.92rem;
+        }
+
+        .paper-ref .paper-title {
+            font-weight: 600;
+            display: block;
+        }
+
+        .paper-ref .paper-authors {
+            color: var(--text-secondary);
+            display: block;
+            font-size: 0.85rem;
+        }
+
+        /* SVG diagrams */
+        .diagram {
+            background: var(--svg-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .diagram svg { max-width: 100%; height: auto; }
+
+        .diagram .caption {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.75rem;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.92rem;
+        }
+
+        th {
+            background: var(--table-header);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--table-border);
+        }
+
+        td {
+            padding: 0.65rem 1rem;
+            border: 1px solid var(--table-border);
+            vertical-align: top;
+        }
+
+        /* Interview Q&A */
+        details {
+            background: var(--details-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        summary {
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        summary::-webkit-details-marker { display: none; }
+
+        summary::before {
+            content: '▶';
+            font-size: 0.7rem;
+            transition: transform 0.2s;
+            color: var(--text-secondary);
+        }
+
+        details[open] summary::before { transform: rotate(90deg); }
+
+        .answer {
+            padding: 0 1.25rem 1rem;
+            border-top: 1px solid var(--border);
+            margin-top: 0;
+            padding-top: 1rem;
+        }
+
+        .answer p:last-child { margin-bottom: 0; }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            background: var(--tag-bg);
+            color: var(--tag-text);
+            font-size: 0.75rem;
+            padding: 0.15em 0.6em;
+            border-radius: 4px;
+            margin-right: 0.3rem;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-card {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* List styling */
+        ul, ol {
+            margin: 0.75rem 0 1rem 1.5rem;
+        }
+
+        li { margin-bottom: 0.4rem; }
+
+        /* Footer */
+        .footer {
+            margin-top: 4rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        @media (max-width: 640px) {
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.3rem; }
+            .container { padding: 1.5rem 1rem 3rem; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">◑</button>
+
+    <div class="container">
+
+        <div class="series-label">ML Deep Dives · Fine-Tuning & Adaptation</div>
+
+        <h1>Fine-Tuning & Adaptation Methods:<br>From Full Updates to Parameter-Efficient Tuning</h1>
+        <p class="subtitle">Domain-adaptive pretraining, full fine-tuning, LoRA, QLoRA, adapters, prefix tuning, knowledge distillation, contrastive fine-tuning, instruction tuning, RLHF/DPO, model compression, and the practical details that interviews test — every method an Applied Scientist needs, with math, diagrams, and 15 interview questions.</p>
+
+        <!-- ===== Section 1 ===== -->
+        <h2>1. Why Fine-Tune at All?</h2>
+
+        <p>Modern ML follows a two-phase paradigm: <strong>pretrain</strong> on massive general data, then <strong>fine-tune</strong> on task-specific data. Pretraining learns general representations — syntax, world knowledge, visual features. Fine-tuning adapts those representations to your specific task — ranking connector documents, classifying sentiment, generating code.</p>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L8,3 L0,6" fill="var(--svg-arrow)"/>
+                    </marker>
+                </defs>
+                <!-- Pretraining box -->
+                <rect x="10" y="30" width="200" height="100" rx="8" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="110" y="60" text-anchor="middle" font-size="13" font-weight="600" fill="var(--svg-text)">Phase 1: Pretraining</text>
+                <text x="110" y="82" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">Billions of tokens</text>
+                <text x="110" y="98" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">General representations</text>
+                <text x="110" y="114" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">Weeks on 100s of GPUs</text>
+
+                <!-- Arrow -->
+                <line x1="220" y1="80" x2="280" y2="80" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow1)"/>
+
+                <!-- Fine-tuning box -->
+                <rect x="290" y="30" width="200" height="100" rx="8" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="390" y="60" text-anchor="middle" font-size="13" font-weight="600" fill="var(--svg-text)">Phase 2: Fine-Tuning</text>
+                <text x="390" y="82" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">Task-specific data</text>
+                <text x="390" y="98" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">Adapted behavior</text>
+                <text x="390" y="114" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">Hours on 1–8 GPUs</text>
+
+                <!-- Arrow -->
+                <line x1="500" y1="80" x2="560" y2="80" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow1)"/>
+
+                <!-- Deployed model -->
+                <rect x="570" y="45" width="120" height="70" rx="8" fill="var(--svg-box)" stroke="var(--svg-green)" stroke-width="1.5"/>
+                <text x="630" y="75" text-anchor="middle" font-size="13" font-weight="600" fill="var(--svg-green)">Deployed</text>
+                <text x="630" y="95" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">Task-ready model</text>
+            </svg>
+            <div class="caption">Figure 1: The two-phase paradigm. Pretraining is expensive and done once; fine-tuning is cheap and done per task. The key question: how much of the pretrained model do you need to update?</div>
+        </div>
+
+        <h3>1.1 When to Fine-Tune vs. Prompt</h3>
+
+        <p>Not every task needs fine-tuning. The decision depends on how far your task is from the pretraining distribution, how much labeled data you have, and your latency/cost constraints:</p>
+
+        <table>
+            <tr><th>Approach</th><th>When to Use</th><th>Data Needed</th><th>Cost</th></tr>
+            <tr><td><strong>Zero/few-shot prompting</strong></td><td>Task is close to pretraining; prototyping</td><td>0–100 examples</td><td>Lowest</td></tr>
+            <tr><td><strong>Parameter-efficient (LoRA)</strong></td><td>Moderate domain shift; limited compute</td><td>1K–100K examples</td><td>Low</td></tr>
+            <tr><td><strong>Full fine-tuning</strong></td><td>Large domain shift; ample data + compute</td><td>10K+ examples</td><td>High</td></tr>
+        </table>
+
+        <h3>1.2 Catastrophic Forgetting</h3>
+
+        <p>The fundamental tension in fine-tuning: gradient updates that improve task performance can <strong>overwrite</strong> the general representations learned during pretraining. A model fine-tuned on legal text might lose its ability to reason about code. This is <strong>catastrophic forgetting</strong>.</p>
+
+        <p>Every adaptation method navigates this tradeoff differently. Full fine-tuning updates everything (maximum expressiveness, maximum forgetting risk). Parameter-efficient methods constrain updates to a small subspace (less forgetting, slightly less expressiveness). Understanding this tension is the thread connecting every method in this article.</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 2 ===== -->
+        <h2>2. Domain-Adaptive Pretraining (DAPT)</h2>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Don't Stop Pretraining: Adapt Language Models to Domains and Tasks</span>
+                <span class="paper-authors">Gururangan et al. · ACL 2020 — Showed continued pretraining on domain data consistently helps</span>
+            </div>
+        </div>
+
+        <p>Before task-specific fine-tuning, there's often a valuable intermediate step: <strong>continue pretraining on unlabeled domain-specific text</strong>. A general model trained on web text doesn't understand the vocabulary, jargon, and reasoning patterns of your target domain. DAPT bridges this gap cheaply — you don't need labels, just raw text from the domain.</p>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 130" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrowD" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L8,3 L0,6" fill="var(--svg-arrow)"/>
+                    </marker>
+                </defs>
+                <rect x="10" y="30" width="150" height="70" rx="7" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="85" y="57" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">General Pretrain</text>
+                <text x="85" y="77" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Web text, books</text>
+
+                <line x1="165" y1="65" x2="210" y2="65" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowD)"/>
+
+                <rect x="215" y="30" width="170" height="70" rx="7" fill="var(--svg-box-accent)" stroke="var(--svg-purple)" stroke-width="1.5"/>
+                <text x="300" y="52" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-purple)">DAPT</text>
+                <text x="300" y="72" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Domain text (unlabeled)</text>
+                <text x="300" y="87" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">MLM / CLM objective</text>
+
+                <line x1="390" y1="65" x2="435" y2="65" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowD)"/>
+
+                <rect x="440" y="30" width="150" height="70" rx="7" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="515" y="57" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-highlight)">Task Fine-Tune</text>
+                <text x="515" y="77" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Labeled task data</text>
+
+                <line x1="595" y1="65" x2="640" y2="65" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowD)"/>
+
+                <rect x="645" y="40" width="50" height="50" rx="7" fill="var(--svg-box)" stroke="var(--svg-green)" stroke-width="1.5"/>
+                <text x="670" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-green)">✓</text>
+            </svg>
+            <div class="caption">Figure: The three-phase pipeline. DAPT sits between general pretraining and task fine-tuning, adapting the model's representations to the target domain using the same pretraining objective (MLM or CLM) but on domain-specific text.</div>
+        </div>
+
+        <p><strong>Examples:</strong> BioBERT (continued pretraining on PubMed), SciBERT (scientific papers), LegalBERT (legal corpora). Gururangan et al. showed DAPT helps consistently across domains — even when the domain seems "close" to general pretraining, continued pretraining on domain text improves downstream performance.</p>
+
+        <p><strong>TAPT (Task-Adaptive Pretraining):</strong> Even narrower — continue pretraining on the <em>unlabeled</em> task data itself (e.g., the documents you'll be searching over). Surprisingly effective even with small corpora, because it adapts the model to the exact distribution it will encounter at inference.</p>
+
+        <div class="callout callout-insight">
+            <div class="callout-title">💡 When to use DAPT vs. skip to fine-tuning</div>
+            <p>Use DAPT when your target domain has specialized vocabulary, conventions, or reasoning that general pretraining wouldn't cover well — legal, medical, scientific, enterprise IT. Skip it when the domain is already well-represented in pretraining data (general web content, common Q&A). DAPT is essentially free if you have domain text — no labels needed, just compute time for continued pretraining.</p>
+        </div>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 3 ===== -->
+        <h2>3. Full Fine-Tuning</h2>
+
+        <p>The baseline approach: initialize from pretrained weights, then update <strong>all parameters</strong> with gradient descent on your task-specific loss.</p>
+
+        <div class="math-block">
+            <div class="math-title">Full Fine-Tuning Update</div>
+            $$\theta_{t+1} = \theta_t - \eta \cdot \nabla_\theta \mathcal{L}_{\text{task}}(x, y; \theta_t)$$
+            All \(N\) parameters are updated at each step. For a 7B model, this means 7 billion gradients computed and applied per batch.
+        </div>
+
+        <h3>2.1 When Full Fine-Tuning Works</h3>
+
+        <ul>
+            <li><strong>Sufficient data</strong> — enough examples to update all parameters without overfitting (typically 50K+ for large models)</li>
+            <li><strong>Large domain shift</strong> — the target domain is far from pretraining (e.g., medical, legal, or a new language)</li>
+            <li><strong>Sufficient compute</strong> — you can afford the memory for full optimizer states (Adam stores 2 copies of all parameters as moments)</li>
+        </ul>
+
+        <h3>2.2 Memory Cost</h3>
+
+        <p>Full fine-tuning of a 7B parameter model with AdamW in mixed precision requires:</p>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">14 GB</div>
+                <div class="stat-label">Model weights (FP16)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">14 GB</div>
+                <div class="stat-label">Gradients (FP16)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">56 GB</div>
+                <div class="stat-label">Optimizer states (FP32)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">~84+ GB</div>
+                <div class="stat-label">Total (+ activations)</div>
+            </div>
+        </div>
+
+        <p>This is why full fine-tuning of 7B+ models requires multiple A100 80GB GPUs. For a 70B model, you need distributed training across a cluster. Parameter-efficient methods exist precisely because this cost is prohibitive for most teams.</p>
+
+        <h3>2.3 Learning Rate Considerations</h3>
+
+        <div class="callout callout-insight">
+            <div class="callout-title">💡 Why fine-tuning uses 10–100× smaller learning rates than pretraining</div>
+            <p>During pretraining, weights are initialized randomly and need large updates to reach a good basin. During fine-tuning, you're <em>already in a good basin</em> — the pretrained weights encode useful representations. A large learning rate would catapult you out of this basin, destroying what was learned. Typical fine-tuning LR: 1e-5 to 5e-5 (vs. 1e-3 to 3e-4 for pretraining).</p>
+        </div>
+
+        <h3>2.4 Separate Copy Per Task</h3>
+
+        <p>Full fine-tuning produces a completely new model for each task. If you have 10 tasks, you store 10 copies of the full model — 70 GB × 10 = 700 GB for a 7B model. This is where parameter-efficient methods shine: LoRA adds ~0.1–1% extra parameters per task, so 10 tasks ≈ 10 small adapters + 1 shared base model.</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 4 ===== -->
+        <h2>4. Feature Extraction & Linear Probing</h2>
+
+        <p>The opposite extreme from full fine-tuning: <strong>freeze the entire pretrained model</strong> and train only a new classification head on top.</p>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L8,3 L0,6" fill="var(--svg-arrow)"/>
+                    </marker>
+                </defs>
+                <!-- Frozen backbone -->
+                <rect x="30" y="40" width="260" height="100" rx="8" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="160" y="65" text-anchor="middle" font-size="13" font-weight="600" fill="var(--svg-text)">Pretrained Backbone</text>
+                <text x="160" y="85" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">All layers frozen 🔒</text>
+                <text x="160" y="105" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">No gradient computation</text>
+                <text x="160" y="125" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">Used as fixed feature extractor</text>
+
+                <!-- Arrow -->
+                <line x1="300" y1="90" x2="380" y2="90" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow2)"/>
+                <text x="340" y="82" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">features</text>
+
+                <!-- Trainable head -->
+                <rect x="390" y="55" width="180" height="70" rx="8" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="480" y="82" text-anchor="middle" font-size="13" font-weight="600" fill="var(--svg-highlight)">Linear Head</text>
+                <text x="480" y="102" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">Trainable 🔓</text>
+
+                <!-- Arrow to output -->
+                <line x1="580" y1="90" x2="650" y2="90" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow2)"/>
+                <text x="660" y="94" font-size="12" fill="var(--svg-text)">ŷ</text>
+            </svg>
+            <div class="caption">Figure 2: Linear probing. The pretrained backbone produces fixed features; only the classification head is trained. Zero forgetting risk, but limited by the quality of pretrained features for your specific task.</div>
+        </div>
+
+        <p><strong>Why this works:</strong> pretrained representations are already rich. A BERT model's [CLS] token or a ViT's output embedding already encodes useful features — the head just learns the mapping to your labels.</p>
+
+        <p><strong>When it fails:</strong> when pretrained features don't capture the distinctions your task needs. A model pretrained on web text might not produce features that distinguish connector ticket priorities, because that distinction didn't appear in pretraining data.</p>
+
+        <h3>3.1 Progressive Unfreezing</h3>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Universal Language Model Fine-tuning for Text Classification (ULMFiT)</span>
+                <span class="paper-authors">Howard & Ruder · ACL 2018 — Introduced progressive unfreezing, discriminative LR, and slanted triangular LR</span>
+            </div>
+        </div>
+
+        <p>ULMFiT proposed a middle ground: start with linear probing (only the head), then <strong>gradually unfreeze layers from top to bottom</strong>, with lower layers getting smaller learning rates. The insight: top layers encode task-specific features (easy to adapt), while bottom layers encode general features (should change minimally).</p>
+
+        <div class="math-block">
+            <div class="math-title">Discriminative Learning Rates</div>
+            $$\eta_l = \eta_{\text{base}} \cdot \alpha^{L-l}$$
+            where \(l\) is the layer index, \(L\) is total layers, and \(\alpha < 1\) (typically 0.5 or 2.6⁻¹). Layer 1 (bottom) gets the smallest LR; the top layer gets \(\eta_{\text{base}}\).
+        </div>
+
+        <p>This was an important precursor to parameter-efficient methods — it showed that you don't need to update all parameters equally, and that constraining lower-layer updates helps preserve pretrained knowledge.</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 5 ===== -->
+        <h2>5. LoRA (Low-Rank Adaptation)</h2>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">LoRA: Low-Rank Adaptation of Large Language Models</span>
+                <span class="paper-authors">Hu et al. · ICLR 2022 — The foundational parameter-efficient fine-tuning method</span>
+            </div>
+        </div>
+
+        <p>LoRA is the most widely used parameter-efficient fine-tuning method. The core insight: <strong>the weight updates during fine-tuning have low intrinsic rank</strong>. Instead of updating the full weight matrix \(W \in \mathbb{R}^{d \times d}\), decompose the update into two small matrices:</p>
+
+        <div class="math-block">
+            <div class="math-title">LoRA Decomposition</div>
+            $$W' = W_0 + \Delta W = W_0 + BA$$
+            where \(W_0 \in \mathbb{R}^{d \times d}\) is frozen, \(B \in \mathbb{R}^{d \times r}\), \(A \in \mathbb{R}^{r \times d}\), and \(r \ll d\).
+            <br><br>
+            For \(d = 4096\) and \(r = 16\): full update = 16.7M params, LoRA update = 131K params (<strong>128× reduction</strong>).
+        </div>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L8,3 L0,6" fill="var(--svg-arrow)"/>
+                    </marker>
+                </defs>
+
+                <!-- Input -->
+                <text x="50" y="145" text-anchor="middle" font-size="14" font-weight="600" fill="var(--svg-text)">x</text>
+                <line x1="65" y1="140" x2="130" y2="100" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow3)"/>
+                <line x1="65" y1="140" x2="130" y2="195" stroke="var(--svg-highlight)" stroke-width="1.5" marker-end="url(#arrow3)"/>
+
+                <!-- Frozen W0 path -->
+                <rect x="140" y="70" width="140" height="55" rx="6" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="210" y="95" text-anchor="middle" font-size="13" font-weight="600" fill="var(--svg-text)">W₀</text>
+                <text x="210" y="113" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">d × d · Frozen 🔒</text>
+
+                <!-- LoRA path - A -->
+                <rect x="140" y="170" width="100" height="50" rx="6" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="190" y="195" text-anchor="middle" font-size="13" font-weight="600" fill="var(--svg-highlight)">A</text>
+                <text x="190" y="210" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">r × d</text>
+
+                <!-- Arrow A to B -->
+                <line x1="245" y1="195" x2="290" y2="195" stroke="var(--svg-highlight)" stroke-width="1.5" marker-end="url(#arrow3)"/>
+
+                <!-- LoRA path - B -->
+                <rect x="300" y="170" width="100" height="50" rx="6" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="350" y="195" text-anchor="middle" font-size="13" font-weight="600" fill="var(--svg-highlight)">B</text>
+                <text x="350" y="210" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">d × r</text>
+
+                <!-- Scaling label -->
+                <text x="350" y="245" text-anchor="middle" font-size="10" fill="var(--svg-highlight)">× α/r</text>
+
+                <!-- Merge paths -->
+                <line x1="285" y1="97" x2="470" y2="97" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <line x1="405" y1="195" x2="470" y2="195" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+
+                <!-- Addition circle -->
+                <circle cx="490" cy="145" r="22" fill="var(--svg-box)" stroke="var(--svg-green)" stroke-width="2"/>
+                <text x="490" y="150" text-anchor="middle" font-size="18" font-weight="600" fill="var(--svg-green)">+</text>
+
+                <line x1="470" y1="97" x2="490" y2="123" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <line x1="470" y1="195" x2="490" y2="167" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+
+                <!-- Output -->
+                <line x1="512" y1="145" x2="580" y2="145" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow3)"/>
+                <text x="610" y="150" text-anchor="middle" font-size="14" font-weight="600" fill="var(--svg-text)">h = W₀x + BAx</text>
+
+                <!-- Labels -->
+                <text x="210" y="55" text-anchor="middle" font-size="11" fill="var(--svg-arrow)">Pretrained path (no gradients)</text>
+                <text x="260" y="260" text-anchor="middle" font-size="11" fill="var(--svg-highlight)">LoRA path (trainable)</text>
+            </svg>
+            <div class="caption">Figure 3: LoRA forward pass. Input x flows through both the frozen pretrained weight W₀ and the low-rank adapter BA. Outputs are summed. During training, gradients only flow through A and B. At inference, BA can be merged into W₀ for zero additional latency.</div>
+        </div>
+
+        <h3>4.1 Why Low-Rank Works</h3>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning</span>
+                <span class="paper-authors">Aghajanyan et al. · ACL 2021 — Showed pretrained models have low intrinsic dimensionality</span>
+            </div>
+        </div>
+
+        <p>Aghajanyan et al. demonstrated that pretrained models can be fine-tuned effectively in a subspace with dimension <strong>far smaller</strong> than the total parameter count. For a model with millions of parameters, the meaningful optimization happens in a subspace of a few thousand dimensions. This is the theoretical justification for LoRA — if the update lives in a low-dimensional subspace, a low-rank decomposition can capture it.</p>
+
+        <p>Intuitively: pretraining already places the model near a good solution. Fine-tuning only needs to make a small adjustment — and small adjustments in high-dimensional spaces tend to be low-rank.</p>
+
+        <h3>4.2 Initialization</h3>
+
+        <div class="callout callout-insight">
+            <div class="callout-title">💡 Why B is initialized to zero</div>
+            <p>\(A\) is initialized with random Gaussian values, while \(B\) is initialized to <strong>zero</strong>. This means \(\Delta W = BA = 0\) at the start of training — the model begins at exactly the pretrained weights. Training then gradually moves the update away from zero. This is crucial: random initialization of both A and B would perturb the pretrained weights immediately, potentially causing unstable early training.</p>
+        </div>
+
+        <h3>4.3 Which Layers to Apply LoRA To</h3>
+
+        <p>The original paper tested applying LoRA to different attention projections in GPT-3:</p>
+
+        <table>
+            <tr><th>Target Modules</th><th>Params</th><th>Performance</th></tr>
+            <tr><td>W<sub>Q</sub> only</td><td>Lowest</td><td>Good</td></tr>
+            <tr><td>W<sub>Q</sub> + W<sub>V</sub></td><td>Low</td><td><strong>Best tradeoff</strong></td></tr>
+            <tr><td>W<sub>Q</sub> + W<sub>K</sub> + W<sub>V</sub> + W<sub>O</sub></td><td>Medium</td><td>Slightly better</td></tr>
+            <tr><td>All attention + FFN</td><td>Higher</td><td>Best (diminishing returns)</td></tr>
+        </table>
+
+        <p><strong>W<sub>Q</sub> and W<sub>V</sub></strong> is the most common default — it gives the best parameter-efficiency tradeoff. Applying LoRA to FFN layers adds more parameters and can help when the task requires learning new factual associations (since FFN layers act as key-value memories for facts), but the gains are often marginal.</p>
+
+        <h3>4.4 Rank Selection</h3>
+
+        <p>Rank \(r\) controls the capacity of the adapter. Higher rank = more parameters = more expressive, but with diminishing returns:</p>
+
+        <div class="diagram">
+            <svg viewBox="0 0 600 220" xmlns="http://www.w3.org/2000/svg">
+                <!-- Axes -->
+                <line x1="80" y1="180" x2="530" y2="180" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <line x1="80" y1="180" x2="80" y2="30" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+
+                <!-- Axis labels -->
+                <text x="300" y="210" text-anchor="middle" font-size="12" fill="var(--svg-text)">Rank r</text>
+                <text x="40" y="105" text-anchor="middle" font-size="12" fill="var(--svg-text)" transform="rotate(-90, 40, 105)">Task Performance</text>
+
+                <!-- Rank labels -->
+                <text x="120" y="197" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">1</text>
+                <text x="180" y="197" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">4</text>
+                <text x="250" y="197" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">8</text>
+                <text x="320" y="197" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">16</text>
+                <text x="390" y="197" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">32</text>
+                <text x="460" y="197" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">64</text>
+
+                <!-- Curve -->
+                <path d="M120,160 Q180,80 250,65 Q320,55 390,50 Q460,48 510,47" fill="none" stroke="var(--svg-highlight)" stroke-width="2.5"/>
+
+                <!-- Sweet spot highlight -->
+                <rect x="230" y="40" width="110" height="150" rx="4" fill="var(--svg-highlight)" opacity="0.08"/>
+                <text x="285" y="35" text-anchor="middle" font-size="10" font-weight="600" fill="var(--svg-highlight)">Sweet spot</text>
+
+                <!-- Diminishing returns annotation -->
+                <text x="460" y="38" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Diminishing returns</text>
+                <line x1="410" y1="48" x2="500" y2="48" stroke="var(--svg-arrow)" stroke-width="1" stroke-dasharray="4,3"/>
+            </svg>
+            <div class="caption">Figure 4: Task performance vs. LoRA rank. Performance improves steeply from r=1 to r=8–16, then plateaus. The sweet spot (r=8 to 16) captures most of the benefit at a fraction of the parameters. For very complex tasks or large domain shifts, r=32–64 can help.</div>
+        </div>
+
+        <p><strong>Rules of thumb:</strong> r=8 for simple classification/adaptation, r=16 for moderate complexity, r=32–64 for complex tasks or when matching full fine-tuning quality. Always validate with a sweep if time permits.</p>
+
+        <h3>4.5 The Alpha Parameter</h3>
+
+        <div class="math-block">
+            <div class="math-title">LoRA Scaling</div>
+            $$h = W_0 x + \frac{\alpha}{r} \cdot BAx$$
+            The ratio \(\alpha/r\) controls how strongly the adapter influences the output. Typically \(\alpha = 2r\) or \(\alpha = r\), so the effective scaling is 1–2. Higher \(\alpha\) means stronger adaptation; lower means the model stays closer to pretrained behavior.
+        </div>
+
+        <p>When you increase rank, you typically keep alpha proportional so the per-parameter contribution stays similar. This is why HuggingFace PEFT defaults to <code>lora_alpha = 2 * lora_r</code>.</p>
+
+        <h3>4.6 Merging at Inference</h3>
+
+        <p>The killer advantage of LoRA over adapters: at inference time, compute \(W' = W_0 + BA\) once and replace the original weight. The model now has <strong>zero additional latency</strong> — it's architecturally identical to the original, just with different weights. No extra layers, no extra computation.</p>
+
+        <p>This also enables <strong>multi-task serving</strong>: keep one base model in GPU memory, store task-specific LoRA adapters (a few MB each) on disk, and swap them in per request by adding the appropriate \(BA\) to the base weights.</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 6 ===== -->
+        <h2>6. QLoRA</h2>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">QLoRA: Efficient Finetuning of Quantized Language Models</span>
+                <span class="paper-authors">Dettmers et al. · NeurIPS 2023 — Fine-tune 65B models on a single 48GB GPU</span>
+            </div>
+        </div>
+
+        <p>QLoRA combines <strong>4-bit quantization</strong> of the base model with LoRA adapters in full precision. The result: fine-tune a 65B parameter model on a single 48GB GPU with no observable quality loss compared to full 16-bit fine-tuning.</p>
+
+        <h3>5.1 Three Innovations</h3>
+
+        <p><strong>1. 4-bit NormalFloat (NF4) quantization.</strong> Pretrained weight distributions are approximately normal (centered around zero, bell-shaped). NF4 places quantization levels at the quantiles of the normal distribution — equal number of weights per bin — rather than spacing them uniformly (INT4). This gives optimal information-theoretic quantization for normally distributed data.</p>
+
+        <div class="diagram">
+            <svg viewBox="0 0 650 200" xmlns="http://www.w3.org/2000/svg">
+                <!-- INT4 uniform spacing -->
+                <text x="160" y="25" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">INT4 (uniform spacing)</text>
+                <line x1="30" y1="55" x2="310" y2="55" stroke="var(--svg-arrow)" stroke-width="1"/>
+                <line x1="30" y1="50" x2="30" y2="60" stroke="var(--svg-red)" stroke-width="2"/>
+                <line x1="65" y1="50" x2="65" y2="60" stroke="var(--svg-red)" stroke-width="2"/>
+                <line x1="100" y1="50" x2="100" y2="60" stroke="var(--svg-red)" stroke-width="2"/>
+                <line x1="135" y1="50" x2="135" y2="60" stroke="var(--svg-red)" stroke-width="2"/>
+                <line x1="170" y1="50" x2="170" y2="60" stroke="var(--svg-red)" stroke-width="2"/>
+                <line x1="205" y1="50" x2="205" y2="60" stroke="var(--svg-red)" stroke-width="2"/>
+                <line x1="240" y1="50" x2="240" y2="60" stroke="var(--svg-red)" stroke-width="2"/>
+                <line x1="275" y1="50" x2="275" y2="60" stroke="var(--svg-red)" stroke-width="2"/>
+                <line x1="310" y1="50" x2="310" y2="60" stroke="var(--svg-red)" stroke-width="2"/>
+                <text x="160" y="80" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Equal spacing — wastes bins in tails where few weights live</text>
+
+                <!-- Bell curve sketch for NF4 -->
+                <text x="490" y="25" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">NF4 (quantile spacing)</text>
+                <line x1="340" y1="55" x2="640" y2="55" stroke="var(--svg-arrow)" stroke-width="1"/>
+                <!-- Denser near center, sparser at tails -->
+                <line x1="340" y1="50" x2="340" y2="60" stroke="var(--svg-green)" stroke-width="2"/>
+                <line x1="385" y1="50" x2="385" y2="60" stroke="var(--svg-green)" stroke-width="2"/>
+                <line x1="420" y1="50" x2="420" y2="60" stroke="var(--svg-green)" stroke-width="2"/>
+                <line x1="450" y1="50" x2="450" y2="60" stroke="var(--svg-green)" stroke-width="2"/>
+                <line x1="480" y1="50" x2="480" y2="60" stroke="var(--svg-green)" stroke-width="2"/>
+                <line x1="510" y1="50" x2="510" y2="60" stroke="var(--svg-green)" stroke-width="2"/>
+                <line x1="545" y1="50" x2="545" y2="60" stroke="var(--svg-green)" stroke-width="2"/>
+                <line x1="590" y1="50" x2="590" y2="60" stroke="var(--svg-green)" stroke-width="2"/>
+                <line x1="640" y1="50" x2="640" y2="60" stroke="var(--svg-green)" stroke-width="2"/>
+                <text x="490" y="80" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Denser near center where most weights cluster</text>
+
+                <!-- Bell curve -->
+                <path d="M350,170 Q400,165 430,140 Q460,100 490,90 Q520,100 540,130 Q570,165 630,170" fill="none" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="490" y="185" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Weight distribution (≈ normal)</text>
+
+                <!-- Uniform "missed" annotation -->
+                <path d="M40,170 Q60,168 80,160 Q120,120 170,100 Q210,120 250,160 Q280,168 300,170" fill="none" stroke="var(--svg-red)" stroke-width="1.5" opacity="0.5"/>
+                <text x="170" y="185" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Same distribution, poorly quantized</text>
+            </svg>
+            <div class="caption">Figure 5: INT4 vs NF4 quantization. INT4 spaces bins uniformly, wasting precision in the sparse tails. NF4 places bins at normal distribution quantiles — each bin holds the same number of weights, minimizing quantization error where it matters most.</div>
+        </div>
+
+        <p><strong>2. Double quantization.</strong> Each block of 64 weights shares a quantization constant (scale factor). These constants themselves take 32 bits each — adding up. Double quantization quantizes the quantization constants to 8 bits, saving an additional ~0.37 bits per parameter.</p>
+
+        <p><strong>3. Paged optimizers.</strong> Uses NVIDIA unified memory to automatically page optimizer states between GPU and CPU memory during gradient checkpointing. This prevents out-of-memory crashes during training spikes without manual memory management.</p>
+
+        <h3>5.2 The Compute Path</h3>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow5" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L8,3 L0,6" fill="var(--svg-arrow)"/>
+                    </marker>
+                </defs>
+
+                <!-- NF4 base model -->
+                <rect x="20" y="40" width="150" height="70" rx="6" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="95" y="65" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">Base Model</text>
+                <text x="95" y="82" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">NF4 quantized</text>
+                <text x="95" y="96" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Frozen 🔒</text>
+
+                <!-- Dequant arrow -->
+                <line x1="175" y1="75" x2="230" y2="75" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow5)"/>
+                <text x="203" y="67" text-anchor="middle" font-size="9" fill="var(--svg-arrow)">dequant</text>
+                <text x="203" y="93" text-anchor="middle" font-size="9" fill="var(--svg-arrow)">to BF16</text>
+
+                <!-- Forward pass -->
+                <rect x="240" y="40" width="120" height="70" rx="6" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="300" y="65" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">Forward</text>
+                <text x="300" y="82" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">BF16 compute</text>
+                <text x="300" y="96" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">W₀x + BAx</text>
+
+                <!-- Gradient arrow -->
+                <line x1="365" y1="75" x2="420" y2="75" stroke="var(--svg-highlight)" stroke-width="1.5" marker-end="url(#arrow5)"/>
+                <text x="393" y="67" text-anchor="middle" font-size="9" fill="var(--svg-highlight)">∇ only</text>
+                <text x="393" y="93" text-anchor="middle" font-size="9" fill="var(--svg-highlight)">for A, B</text>
+
+                <!-- LoRA adapters -->
+                <rect x="430" y="40" width="120" height="70" rx="6" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="490" y="65" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-highlight)">LoRA A, B</text>
+                <text x="490" y="82" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">BF16 precision</text>
+                <text x="490" y="96" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Trainable 🔓</text>
+
+                <!-- Update arrow -->
+                <line x1="555" y1="75" x2="610" y2="75" stroke="var(--svg-green)" stroke-width="1.5" marker-end="url(#arrow5)"/>
+
+                <!-- Updated -->
+                <rect x="620" y="50" width="65" height="50" rx="6" fill="var(--svg-box)" stroke="var(--svg-green)" stroke-width="1.5"/>
+                <text x="652" y="72" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-green)">Update</text>
+                <text x="652" y="88" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">A, B</text>
+
+                <!-- Memory labels -->
+                <text x="95" y="135" text-anchor="middle" font-size="10" fill="var(--svg-red)">~3.5 GB (7B model)</text>
+                <text x="490" y="135" text-anchor="middle" font-size="10" fill="var(--svg-highlight)">~20 MB</text>
+            </svg>
+            <div class="caption">Figure 6: QLoRA compute path. The base model is stored in NF4 (4-bit), dequantized to BF16 on-the-fly for the forward pass. Gradients only flow through the LoRA adapters (BF16). The 4-bit base model is never updated.</div>
+        </div>
+
+        <div class="callout callout-warn">
+            <div class="callout-title">⚠️ A common misconception</div>
+            <p>"Doesn't 4-bit quantization lose too much information?" — You're not <em>training</em> the quantized weights. The quantized base model is a frozen feature extractor. All learning happens in the full-precision LoRA adapters. The quantization error in the base model is a fixed approximation that the adapters can compensate for. Empirically, QLoRA matches 16-bit LoRA performance on standard benchmarks.</p>
+        </div>
+
+        <h3>5.3 Memory Comparison</h3>
+
+        <table>
+            <tr><th>Method</th><th>7B Model</th><th>13B Model</th><th>65B Model</th></tr>
+            <tr><td>Full fine-tuning (FP16)</td><td>~84 GB</td><td>~156 GB</td><td>~780 GB</td></tr>
+            <tr><td>LoRA (FP16 base)</td><td>~28 GB</td><td>~52 GB</td><td>~260 GB</td></tr>
+            <tr><td><strong>QLoRA (NF4 base)</strong></td><td><strong>~10 GB</strong></td><td><strong>~18 GB</strong></td><td><strong>~48 GB</strong></td></tr>
+        </table>
+
+        <p>QLoRA made it possible for researchers with a single consumer GPU to fine-tune models that previously required a cluster. This democratized large-model fine-tuning and is the basis for most open-source fine-tuning (Alpaca, Vicuna, etc.).</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 7 ===== -->
+        <h2>7. Adapter Layers</h2>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Parameter-Efficient Transfer Learning for NLP</span>
+                <span class="paper-authors">Houlsby et al. · ICML 2019 — Introduced adapter modules for transformers</span>
+            </div>
+        </div>
+
+        <p>Before LoRA, adapters were the leading parameter-efficient approach. The idea: insert small <strong>bottleneck modules</strong> after each attention and FFN sub-layer. Only the adapter parameters are trained; everything else is frozen.</p>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow6" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L8,3 L0,6" fill="var(--svg-arrow)"/>
+                    </marker>
+                </defs>
+
+                <!-- Standard transformer layer (left) -->
+                <text x="150" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">Standard Layer</text>
+                <rect x="60" y="35" width="180" height="40" rx="5" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="150" y="60" text-anchor="middle" font-size="11" fill="var(--svg-text)">Multi-Head Attention</text>
+                <line x1="150" y1="75" x2="150" y2="100" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow6)"/>
+                <rect x="60" y="105" width="180" height="30" rx="5" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="150" y="125" text-anchor="middle" font-size="11" fill="var(--svg-text)">Add & Norm</text>
+                <line x1="150" y1="135" x2="150" y2="160" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow6)"/>
+                <rect x="60" y="165" width="180" height="40" rx="5" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="150" y="190" text-anchor="middle" font-size="11" fill="var(--svg-text)">Feed-Forward Network</text>
+                <line x1="150" y1="205" x2="150" y2="230" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow6)"/>
+                <rect x="60" y="235" width="180" height="30" rx="5" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="150" y="255" text-anchor="middle" font-size="11" fill="var(--svg-text)">Add & Norm</text>
+
+                <!-- With adapters (right) -->
+                <text x="510" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">Layer + Adapters</text>
+                <rect x="420" y="35" width="180" height="35" rx="5" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="510" y="57" text-anchor="middle" font-size="11" fill="var(--svg-text)">Multi-Head Attention</text>
+                <line x1="510" y1="70" x2="510" y2="85" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow6)"/>
+
+                <!-- Adapter 1 -->
+                <rect x="440" y="90" width="140" height="48" rx="5" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="2"/>
+                <text x="510" y="108" text-anchor="middle" font-size="10" font-weight="600" fill="var(--svg-highlight)">Adapter</text>
+                <text x="510" y="125" text-anchor="middle" font-size="9" fill="var(--svg-arrow)">down → ReLU → up</text>
+
+                <line x1="510" y1="138" x2="510" y2="153" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow6)"/>
+                <rect x="420" y="158" width="180" height="25" rx="5" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="510" y="175" text-anchor="middle" font-size="11" fill="var(--svg-text)">Add & Norm</text>
+                <line x1="510" y1="183" x2="510" y2="198" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow6)"/>
+
+                <rect x="420" y="203" width="180" height="35" rx="5" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="510" y="225" text-anchor="middle" font-size="11" fill="var(--svg-text)">Feed-Forward Network</text>
+                <line x1="510" y1="238" x2="510" y2="253" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow6)"/>
+
+                <!-- Adapter 2 -->
+                <rect x="440" y="258" width="140" height="30" rx="5" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="2"/>
+                <text x="510" y="278" text-anchor="middle" font-size="10" font-weight="600" fill="var(--svg-highlight)">Adapter</text>
+
+                <line x1="510" y1="288" x2="510" y2="298" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow6)"/>
+                <rect x="420" y="295" width="180" height="20" rx="5" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="510" y="309" text-anchor="middle" font-size="10" fill="var(--svg-text)">Add & Norm</text>
+            </svg>
+            <div class="caption">Figure 7: Adapter insertion in a transformer layer. Two adapter modules are inserted — one after attention, one after FFN. Each adapter has a down-projection, nonlinearity, and up-projection, plus a residual connection (omitted for clarity). Only the blue adapter parameters are trained.</div>
+        </div>
+
+        <div class="math-block">
+            <div class="math-title">Adapter Forward Pass</div>
+            $$\text{Adapter}(h) = h + f(hW_{\text{down}})W_{\text{up}}$$
+            where \(W_{\text{down}} \in \mathbb{R}^{d \times m}\), \(W_{\text{up}} \in \mathbb{R}^{m \times d}\), \(m \ll d\) is the bottleneck dimension, and \(f\) is a nonlinearity (ReLU or GELU). The residual \(h + \ldots\) ensures the adapter starts as an identity function if \(W_{\text{up}}\) is initialized near zero.
+        </div>
+
+        <h3>6.1 Adapters vs. LoRA</h3>
+
+        <table>
+            <tr><th>Property</th><th>Adapters</th><th>LoRA</th></tr>
+            <tr><td><strong>Architecture change</strong></td><td>Adds new sequential layers</td><td>Modifies existing weights</td></tr>
+            <tr><td><strong>Inference latency</strong></td><td>Adds latency (extra layers in forward pass)</td><td><strong>Zero added latency</strong> (merge into weights)</td></tr>
+            <tr><td><strong>Merging</strong></td><td>Cannot merge into base model</td><td>Can merge: W' = W₀ + BA</td></tr>
+            <tr><td><strong>Multi-task</strong></td><td>Swap adapter modules per task</td><td>Swap small matrices per task</td></tr>
+            <tr><td><strong>Parameter efficiency</strong></td><td>~3.6% of original params</td><td>~0.1–1% of original params</td></tr>
+        </table>
+
+        <p>LoRA's ability to merge into the base weights at inference — eliminating any added latency — is the main reason it has largely replaced adapters in practice. Adapters are still relevant as historical context and appear in some multi-modal architectures (e.g., LLaVA uses a linear adapter to project vision features into the LLM's input space).</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 8 ===== -->
+        <h2>8. Prefix Tuning & Prompt Tuning</h2>
+
+        <p>Instead of modifying weights, these methods <strong>modify the input</strong> by prepending learnable continuous vectors — "virtual tokens" — that steer the model's behavior.</p>
+
+        <h3>7.1 Prefix Tuning</h3>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Prefix-Tuning: Optimizing Continuous Prompts for Generation</span>
+                <span class="paper-authors">Li & Liang · ACL 2021 — Learnable prefixes at every transformer layer</span>
+            </div>
+        </div>
+
+        <p>Prefix tuning prepends \(l\) learnable vectors to the <strong>key and value matrices at every layer</strong>. The model attends to these virtual tokens as if they were part of the input sequence, but they encode task-specific instructions in continuous embedding space.</p>
+
+        <div class="math-block">
+            <div class="math-title">Prefix Tuning</div>
+            $$K = [K_{\text{prefix}}; K_{\text{input}}], \quad V = [V_{\text{prefix}}; V_{\text{input}}]$$
+            where \(K_{\text{prefix}}, V_{\text{prefix}} \in \mathbb{R}^{l \times d}\) are learnable at every layer.
+            <br><br>
+            For a model with \(L\) layers and prefix length \(l\): total trainable params = \(2 \times L \times l \times d\).
+        </div>
+
+        <h3>7.2 Prompt Tuning</h3>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">The Power of Scale for Parameter-Efficient Prompt Tuning</span>
+                <span class="paper-authors">Lester et al. · EMNLP 2021 — Soft prompts at the input layer only</span>
+            </div>
+        </div>
+
+        <p>A simpler version: only prepend learnable embeddings at the <strong>input layer</strong>, not at every layer. These "soft prompts" are optimized through backpropagation to find the continuous embedding that best steers the model for your task.</p>
+
+        <div class="callout callout-insight">
+            <div class="callout-title">💡 How prompt tuning differs from prompt engineering</div>
+            <p>Prompt engineering searches over <strong>discrete tokens</strong> — you try different phrasings manually. Prompt tuning optimizes in <strong>continuous embedding space</strong> — gradient descent finds embeddings that may not correspond to any real token but are optimal for the task. The learned "soft prompt" is typically uninterpretable — it's a dense vector, not a readable sentence.</p>
+        </div>
+
+        <h3>7.3 When These Work</h3>
+
+        <p>Prompt tuning works surprisingly well for large models (>10B parameters), approaching full fine-tuning performance. For smaller models, it underperforms LoRA because there are fewer learnable parameters and the model has less capacity to be steered by input alone. The key finding from Lester et al.: as model size increases, the gap between prompt tuning and full fine-tuning shrinks to nearly zero.</p>
+
+        <table>
+            <tr><th>Method</th><th>Where it acts</th><th>Params</th><th>Best for</th></tr>
+            <tr><td><strong>Prefix tuning</strong></td><td>K, V at every layer</td><td>~0.1%</td><td>Generation tasks, medium models</td></tr>
+            <tr><td><strong>Prompt tuning</strong></td><td>Input embeddings only</td><td>~0.01%</td><td>Large models (10B+), simple tasks</td></tr>
+            <tr><td><strong>P-tuning v2</strong></td><td>Every layer (like prefix)</td><td>~0.1%</td><td>Smaller models, NLU tasks</td></tr>
+        </table>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 9 ===== -->
+        <h2>9. Contrastive Fine-Tuning for Embeddings</h2>
+
+        <p>All the methods above fine-tune for <strong>generative</strong> tasks — next-token prediction, classification, question answering. Embedding models require a fundamentally different approach: you're not generating text, you're <strong>shaping a vector space</strong> where similarity reflects relevance.</p>
+
+        <h3>8.1 Contrastive Loss (InfoNCE)</h3>
+
+        <div class="math-block">
+            <div class="math-title">InfoNCE Loss</div>
+            $$\mathcal{L} = -\log \frac{\exp(\text{sim}(q, d^+) / \tau)}{\exp(\text{sim}(q, d^+) / \tau) + \sum_{j=1}^{N} \exp(\text{sim}(q, d_j^-) / \tau)}$$
+            where \(q\) is the query, \(d^+\) is the positive document, \(d_j^-\) are negatives, \(\tau\) is the temperature, and sim is typically cosine similarity.
+        </div>
+
+        <p>The loss pulls the query and positive document embeddings together while pushing query and negative document embeddings apart. The <strong>denominator</strong> creates competition: the positive must score higher than <em>all</em> negatives, not just be "close enough."</p>
+
+        <h3>8.2 Temperature: The Most Important Hyperparameter</h3>
+
+        <div class="diagram">
+            <svg viewBox="0 0 650 200" xmlns="http://www.w3.org/2000/svg">
+                <!-- Low temp -->
+                <rect x="20" y="30" width="190" height="140" rx="8" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="115" y="55" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">Low τ (0.01–0.03)</text>
+                <text x="115" y="80" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Sharp softmax distribution</text>
+                <text x="115" y="100" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Gradients dominated by</text>
+                <text x="115" y="115" text-anchor="middle" font-size="10" fill="var(--svg-red)">hardest negatives</text>
+                <text x="115" y="140" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Risk: training instability</text>
+                <text x="115" y="155" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">from noisy hard negatives</text>
+
+                <!-- Medium temp -->
+                <rect x="230" y="30" width="190" height="140" rx="8" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="325" y="55" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-highlight)">Medium τ (0.05–0.1)</text>
+                <text x="325" y="80" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Balanced distribution</text>
+                <text x="325" y="100" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Good gradient signal from</text>
+                <text x="325" y="115" text-anchor="middle" font-size="10" fill="var(--svg-green)">both hard and easy negs</text>
+                <text x="325" y="140" text-anchor="middle" font-size="10" fill="var(--svg-highlight)">✓ Typical sweet spot</text>
+
+                <!-- High temp -->
+                <rect x="440" y="30" width="190" height="140" rx="8" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="535" y="55" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">High τ (0.5–1.0)</text>
+                <text x="535" y="80" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Near-uniform distribution</text>
+                <text x="535" y="100" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">All negatives contribute</text>
+                <text x="535" y="115" text-anchor="middle" font-size="10" fill="var(--svg-orange)">equally (weak signal)</text>
+                <text x="535" y="140" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Risk: slow convergence,</text>
+                <text x="535" y="155" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">poor discrimination</text>
+            </svg>
+            <div class="caption">Figure 8: Temperature controls the sharpness of the softmax in contrastive loss. Low temperature focuses learning on the hardest negatives; high temperature treats all negatives equally. The optimal temperature depends on negative quality — clean hard negatives benefit from low τ, noisy negatives need higher τ.</div>
+        </div>
+
+        <h3>8.3 Negative Sampling Strategies</h3>
+
+        <p><strong>In-batch negatives:</strong> In a batch of B query-document pairs, each document serves as a negative for all other queries. You get B−1 free negatives per query with no extra computation. The downside: popular items appear as negatives disproportionately, potentially learning to suppress them (popularity bias). Fix: logQ correction — subtract log(item frequency) from scores.</p>
+
+        <p><strong>Hard negative mining:</strong> Use the current model to find documents that score high but aren't relevant. These provide the strongest gradient signal — they're near the decision boundary. ANCE (Approximate Nearest Neighbor Negative Contrastive Estimation) mines hard negatives from the ANN index asynchronously. The risk: false negatives (the "hard negative" is actually relevant), which confuse training.</p>
+
+        <p><strong>Multi-stage training:</strong> The modern recipe used by E5, GTE, and most strong embedding models: Stage 1 — train with random/in-batch negatives for broad alignment. Stage 2 — mine hard negatives with the Stage 1 model and fine-tune for precision. This avoids the cold-start problem of hard negative mining (you need a reasonable model to find meaningful hard negatives).</p>
+
+        <h3>8.4 Contrastive Fine-Tuning + LoRA</h3>
+
+        <p>LoRA works well with contrastive fine-tuning — you apply LoRA to the encoder and train with contrastive loss instead of cross-entropy. This is exactly what's done in many production retrieval systems: take a pretrained encoder (e.g., E5-base), apply LoRA to the attention layers, and fine-tune with domain-specific query-document pairs using InfoNCE loss. The result is a domain-adapted embedding model at a fraction of the compute cost of full fine-tuning.</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 10 ===== -->
+        <h2>10. Knowledge Distillation</h2>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Distilling the Knowledge in a Neural Network</span>
+                <span class="paper-authors">Hinton, Vartol & Dean · NeurIPS Workshop 2015 — The foundational distillation paper</span>
+            </div>
+        </div>
+
+        <p>Knowledge distillation transfers the capabilities of a large <strong>teacher</strong> model into a smaller, faster <strong>student</strong> model. Unlike fine-tuning (which adapts a model's behavior), distillation creates a new, compact model that mimics the teacher — enabling deployment on devices where the teacher can't run.</p>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrowKD" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L8,3 L0,6" fill="var(--svg-arrow)"/>
+                    </marker>
+                </defs>
+
+                <!-- Teacher -->
+                <rect x="40" y="20" width="200" height="90" rx="8" fill="var(--svg-box)" stroke="var(--svg-purple)" stroke-width="1.5"/>
+                <text x="140" y="48" text-anchor="middle" font-size="13" font-weight="600" fill="var(--svg-purple)">Teacher (Large)</text>
+                <text x="140" y="68" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">e.g., LLaMA-3 8B</text>
+                <text x="140" y="85" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">High quality, high latency</text>
+
+                <!-- Soft labels arrow -->
+                <line x1="140" y1="115" x2="140" y2="155" stroke="var(--svg-purple)" stroke-width="1.5" marker-end="url(#arrowKD)"/>
+                <text x="190" y="138" font-size="10" fill="var(--svg-purple)">Soft labels (logits / T)</text>
+
+                <!-- Input -->
+                <rect x="310" y="45" width="100" height="40" rx="6" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="360" y="70" text-anchor="middle" font-size="11" fill="var(--svg-text)">Input x</text>
+
+                <line x1="360" y1="85" x2="360" y2="155" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowKD)"/>
+                <line x1="310" y1="65" x2="245" y2="65" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowKD)"/>
+
+                <!-- Student -->
+                <rect x="260" y="160" width="200" height="80" rx="8" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="360" y="185" text-anchor="middle" font-size="13" font-weight="600" fill="var(--svg-highlight)">Student (Small)</text>
+                <text x="360" y="205" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">e.g., MiniLM 6-layer</text>
+                <text x="360" y="222" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Learns from teacher's outputs</text>
+
+                <!-- Loss computation -->
+                <line x1="245" y1="190" x2="140" y2="190" stroke="var(--svg-arrow)" stroke-width="1"/>
+                <line x1="140" y1="155" x2="140" y2="190" stroke="var(--svg-purple)" stroke-width="1" stroke-dasharray="4,3"/>
+
+                <!-- Loss box -->
+                <rect x="510" y="130" width="170" height="100" rx="8" fill="var(--svg-box)" stroke="var(--svg-green)" stroke-width="1.5"/>
+                <text x="595" y="155" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-green)">Combined Loss</text>
+                <text x="595" y="177" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">α · L_distill(soft labels)</text>
+                <text x="595" y="195" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">+ (1−α) · L_task(hard labels)</text>
+                <text x="595" y="218" text-anchor="middle" font-size="9" fill="var(--svg-text)">α typically 0.5–0.9</text>
+
+                <line x1="465" y1="190" x2="505" y2="180" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowKD)"/>
+            </svg>
+            <div class="caption">Figure: Knowledge distillation. The teacher produces soft probability distributions (logits softened by temperature T). The student learns to match these soft labels (distillation loss) while also learning from ground-truth hard labels (task loss). The soft labels encode "dark knowledge" — relationships between classes that hard labels don't capture.</div>
+        </div>
+
+        <h3>10.1 Why Soft Labels Carry More Information</h3>
+
+        <p>A hard label says "this is class A." A teacher's soft prediction says "this is 90% class A, 7% class B, 2% class C, 1% class D." The 7% for class B is <strong>dark knowledge</strong> — it tells the student that B is more similar to A than D is. This structure in the label space provides a much richer training signal than one-hot labels, effectively giving the student more information per training example.</p>
+
+        <div class="math-block">
+            <div class="math-title">Distillation Loss</div>
+            $$\mathcal{L}_{\text{distill}} = T^2 \cdot D_{\text{KL}}\!\left(\text{softmax}\!\left(\frac{z_t}{T}\right) \;\Big\|\; \text{softmax}\!\left(\frac{z_s}{T}\right)\right)$$
+            where \(z_t, z_s\) are teacher and student logits, and \(T\) is the distillation temperature. The \(T^2\) scaling compensates for the reduced gradient magnitudes when temperature is high.
+        </div>
+
+        <h3>10.2 Temperature in Distillation</h3>
+
+        <p>Temperature \(T\) softens the probability distribution. At \(T=1\), you get the standard softmax — the teacher's top prediction dominates. At higher \(T\) (3–20), the distribution flattens, revealing more structure in the lower-probability classes. This is where the dark knowledge lives.</p>
+
+        <p><strong>Low T (1–3):</strong> Student focuses on matching the teacher's top predictions. Better when the teacher is highly confident and the task is well-defined.</p>
+
+        <p><strong>High T (5–20):</strong> Student learns more about inter-class relationships. Better for complex tasks where understanding similarity structure matters.</p>
+
+        <h3>10.3 Logit-Level vs. Feature-Level Distillation</h3>
+
+        <table>
+            <tr><th>Approach</th><th>What the student learns from</th><th>When to use</th></tr>
+            <tr><td><strong>Logit distillation</strong></td><td>Teacher's output probabilities</td><td>Classification, ranking — teacher and student can have different architectures</td></tr>
+            <tr><td><strong>Feature distillation</strong></td><td>Teacher's intermediate representations</td><td>When teacher and student share similar architecture; captures richer internal structure</td></tr>
+            <tr><td><strong>Attention distillation</strong></td><td>Teacher's attention patterns</td><td>Transformer-to-transformer; preserves learned attention behaviors</td></tr>
+        </table>
+
+        <p><strong>Feature-level distillation</strong> aligns intermediate representations between teacher and student layers: \(\mathcal{L}_{\text{feat}} = \|f_s(h_s) - h_t\|^2\), where \(f_s\) is a learned projection to match dimensions. TinyBERT uses both attention and feature distillation to compress BERT into a 4-layer model with minimal quality loss.</p>
+
+        <h3>10.4 Distillation for Retrieval & Ranking</h3>
+
+        <p>This is where distillation is most relevant to production search systems — and to your work:</p>
+
+        <p><strong>Cross-encoder → Bi-encoder:</strong> Train a high-quality cross-encoder teacher (which processes query-document pairs jointly), then distill into a bi-encoder student (which encodes them independently). The student learns the teacher's relevance scores as soft labels. This is exactly what Pinterest, eBay, and Walmart use — a large LLM teacher produces 5-scale relevance labels offline, distilled into a lightweight model that runs online.</p>
+
+        <p><strong>LLM-as-judge:</strong> Use a large LLM (e.g., GPT-4, LLaMA 8B) to label query-document relevance with chain-of-thought reasoning. These labels become soft targets for a smaller student ranker. The LLM never runs at inference — its knowledge is captured in the student.</p>
+
+        <div class="callout callout-insight">
+            <div class="callout-title">💡 Why distillation matters for Apple</div>
+            <p>Apple's on-device models (3B parameters) can't match cloud models in raw capability. Distillation is how Apple transfers knowledge from large server-side models into on-device models — maintaining quality while meeting strict latency, memory, and privacy constraints. The Apple Intelligence Foundation Language Models report describes a multi-stage distillation pipeline from larger to smaller models. Being able to design a distillation pipeline is a critical skill for Apple ML roles.</p>
+        </div>
+
+        <h3>10.5 Self-Distillation and Progressive Distillation</h3>
+
+        <p><strong>Self-distillation:</strong> The model distills from itself — use the model's predictions from a previous training stage as soft labels for the next stage. Surprisingly effective as a regularization technique even when not compressing the model.</p>
+
+        <p><strong>Progressive distillation:</strong> Instead of distilling directly from a large teacher to a tiny student (which can be too large a gap), use intermediate-sized models: 70B → 13B → 3B → 1B. Each step is easier because the capacity gap is smaller.</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 11 ===== -->
+        <h2>11. Instruction Tuning</h2>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Scaling Instruction-Finetuned Language Models (Flan-PaLM)</span>
+                <span class="paper-authors">Chung et al. · JMLR 2024 — Showed instruction tuning generalizes to unseen tasks</span>
+            </div>
+        </div>
+
+        <p>Instruction tuning is a specific form of SFT where the training data is formatted as <strong>(instruction, response)</strong> pairs across diverse tasks. The key finding: models trained on instructions for task A generalize to completely unseen task B — they learn to <em>follow instructions</em>, not just perform specific tasks.</p>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 170" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrowIT" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L8,3 L0,6" fill="var(--svg-arrow)"/>
+                    </marker>
+                </defs>
+
+                <!-- Training tasks -->
+                <rect x="20" y="25" width="220" height="120" rx="8" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="130" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">Training Tasks</text>
+                <text x="130" y="70" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">"Summarize this article: ..."</text>
+                <text x="130" y="87" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">"Translate to French: ..."</text>
+                <text x="130" y="104" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">"Is this review positive? ..."</text>
+                <text x="130" y="121" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">"Write code to sort a list"</text>
+
+                <line x1="245" y1="85" x2="300" y2="85" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowIT)"/>
+                <text x="273" y="78" text-anchor="middle" font-size="9" fill="var(--svg-arrow)">SFT</text>
+
+                <!-- Model -->
+                <rect x="305" y="50" width="120" height="70" rx="8" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="365" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-highlight)">Instruction-</text>
+                <text x="365" y="95" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-highlight)">Tuned Model</text>
+
+                <line x1="430" y1="85" x2="480" y2="85" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowIT)"/>
+
+                <!-- Unseen tasks -->
+                <rect x="485" y="25" width="200" height="120" rx="8" fill="var(--svg-box)" stroke="var(--svg-green)" stroke-width="1.5"/>
+                <text x="585" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-green)">Generalizes to Unseen</text>
+                <text x="585" y="70" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">"Explain quantum computing"</text>
+                <text x="585" y="87" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">"Debug this Python error"</text>
+                <text x="585" y="104" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">"Compare A and B"</text>
+                <text x="585" y="121" text-anchor="middle" font-size="10" fill="var(--svg-green)">Zero-shot generalization ✓</text>
+            </svg>
+            <div class="caption">Figure: Instruction tuning trains on diverse (instruction, response) pairs. The model learns to follow the format and intent of instructions, enabling generalization to unseen tasks at inference — the key capability behind chat models like ChatGPT and Claude.</div>
+        </div>
+
+        <h3>11.1 What Makes Good Instruction Data</h3>
+
+        <p><strong>Diversity over volume.</strong> FLAN used 1,800+ tasks; Alpaca showed 52K examples across diverse instructions suffice for a strong chat model. The LIMA paper demonstrated that <strong>1,000 carefully curated examples</strong> can produce a competitive model — confirming that instruction tuning is about teaching format and intent, not memorizing answers.</p>
+
+        <p><strong>Quality signals:</strong> Well-structured instructions with clear expectations, responses that are helpful and accurate, and coverage of diverse task types (open-ended generation, classification, extraction, reasoning, coding). Synthetic data from stronger models (Alpaca's GPT-3.5 generations, Vicuna's ShareGPT data) works well as a starting point but has a quality ceiling bounded by the source model.</p>
+
+        <h3>11.2 Instruction Tuning vs. Standard SFT</h3>
+
+        <p>Standard SFT trains on a single task's data (e.g., NLI pairs for entailment classification). Instruction tuning trains on <em>many tasks unified by an instruction format</em>. The critical difference: instruction-tuned models can follow novel instructions at inference ("Explain X as if I'm five years old"), while standard SFT models only perform the specific task they were trained on. Instruction tuning is the bridge between "a language model that predicts next tokens" and "an assistant that follows user requests."</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 12 ===== -->
+        <h2>12. RLHF & Preference-Based Fine-Tuning</h2>
+
+        <p>Standard fine-tuning optimizes for <strong>matching a reference output</strong> — the model learns to predict the next token given a context. But for chat models, there's no single "correct" output. Instead, we want models that produce outputs humans <em>prefer</em>. This requires a fundamentally different objective.</p>
+
+        <h3>9.1 The RLHF Pipeline</h3>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 170" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow9" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L8,3 L0,6" fill="var(--svg-arrow)"/>
+                    </marker>
+                </defs>
+
+                <!-- Stage 1: SFT -->
+                <rect x="10" y="35" width="150" height="95" rx="8" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="85" y="58" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-text)">Stage 1: SFT</text>
+                <text x="85" y="78" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Supervised fine-tune</text>
+                <text x="85" y="93" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">on demonstration data</text>
+                <text x="85" y="113" text-anchor="middle" font-size="9" fill="var(--svg-text)">(prompt, good_response)</text>
+
+                <line x1="165" y1="82" x2="195" y2="82" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow9)"/>
+
+                <!-- Stage 2: Reward Model -->
+                <rect x="200" y="35" width="170" height="95" rx="8" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="285" y="58" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-highlight)">Stage 2: Reward Model</text>
+                <text x="285" y="78" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Train on preference pairs</text>
+                <text x="285" y="93" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">(chosen > rejected)</text>
+                <text x="285" y="113" text-anchor="middle" font-size="9" fill="var(--svg-text)">r(prompt, response) → scalar</text>
+
+                <line x1="375" y1="82" x2="405" y2="82" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow9)"/>
+
+                <!-- Stage 3: PPO -->
+                <rect x="410" y="35" width="170" height="95" rx="8" fill="var(--svg-box)" stroke="var(--svg-green)" stroke-width="1.5"/>
+                <text x="495" y="58" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-green)">Stage 3: PPO</text>
+                <text x="495" y="78" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">RL optimization</text>
+                <text x="495" y="93" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Maximize reward</text>
+                <text x="495" y="113" text-anchor="middle" font-size="9" fill="var(--svg-text)">with KL penalty to SFT</text>
+
+                <line x1="585" y1="82" x2="615" y2="82" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrow9)"/>
+
+                <!-- Output -->
+                <rect x="620" y="50" width="70" height="65" rx="8" fill="var(--svg-box)" stroke="var(--svg-purple)" stroke-width="1.5"/>
+                <text x="655" y="78" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-purple)">Aligned</text>
+                <text x="655" y="96" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-purple)">Model</text>
+            </svg>
+            <div class="caption">Figure 9: The three-stage RLHF pipeline. SFT creates a reasonable starting model. The reward model learns human preferences. PPO optimizes the policy against the reward model while staying close to SFT (KL penalty prevents reward hacking).</div>
+        </div>
+
+        <p><strong>Stage 1 — SFT:</strong> Supervised fine-tuning on high-quality demonstrations. This teaches the model the desired output format and establishes a baseline behavior. The SFT model becomes the reference policy \(\pi_{\text{ref}}\) for the RL stage.</p>
+
+        <p><strong>Stage 2 — Reward model:</strong> Train a model on human preference pairs: given the same prompt and two responses, which does the human prefer? The reward model learns to assign a scalar score to any (prompt, response) pair.</p>
+
+        <div class="math-block">
+            <div class="math-title">Reward Model Loss (Bradley-Terry)</div>
+            $$\mathcal{L}_{\text{RM}} = -\log \sigma\big(r(x, y_w) - r(x, y_l)\big)$$
+            where \(y_w\) is the preferred response, \(y_l\) is the rejected response, and \(r\) is the reward model's score. This is the same as binary cross-entropy on "which response is better?"
+        </div>
+
+        <p><strong>Stage 3 — PPO:</strong> Use the reward model to provide reward signal for reinforcement learning. The policy (LLM) generates responses, the reward model scores them, and PPO updates the policy to maximize reward while staying close to the SFT model via a KL divergence penalty:</p>
+
+        <div class="math-block">
+            <div class="math-title">PPO Objective</div>
+            $$\max_{\pi} \; \mathbb{E}_{x, y \sim \pi}\big[r(x, y)\big] - \beta \cdot D_{\text{KL}}[\pi \| \pi_{\text{ref}}]$$
+            The KL penalty prevents <strong>reward hacking</strong> — without it, the model finds degenerate outputs that exploit the reward model's weaknesses (e.g., generating verbose, repetitive text that scores high on the reward model but is low quality).
+        </div>
+
+        <h3>9.2 DPO: Skipping the Reward Model</h3>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Direct Preference Optimization: Your Language Model Is Secretly a Reward Model</span>
+                <span class="paper-authors">Rafailov et al. · NeurIPS 2023 — Eliminates the reward model and RL loop entirely</span>
+            </div>
+        </div>
+
+        <p>DPO's key insight: the optimal policy under the RLHF objective has a <strong>closed-form relationship</strong> with the reward function. This means you can reparameterize the reward in terms of the policy itself and optimize directly on preference pairs — no separate reward model, no PPO, no RL instabilities.</p>
+
+        <div class="math-block">
+            <div class="math-title">DPO Loss</div>
+            $$\mathcal{L}_{\text{DPO}} = -\log \sigma\!\left(\beta \log \frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)}\right)$$
+            The implicit reward is \(r(x,y) = \beta \log \frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}\). The policy <em>is</em> the reward model.
+        </div>
+
+        <p><strong>Why DPO is increasingly preferred:</strong> simpler pipeline (two stages instead of three), more stable training (no RL), lower compute cost (no reward model inference during training), and competitive or better performance in practice. The main limitation: DPO can be less robust when preference data is noisy or conflicting, because it has no explicit reward model to smooth over inconsistencies.</p>
+
+        <h3>9.3 Newer Alternatives</h3>
+
+        <p><strong>SimPO</strong> — simplifies DPO further by using the average log probability as an implicit reward (no reference model needed). <strong>ORPO</strong> — combines SFT and preference optimization into a single stage using an odds ratio penalty. <strong>KTO</strong> — works with binary feedback (good/bad) instead of paired comparisons, which is easier to collect. All share the goal of making alignment simpler and more stable than RLHF.</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 13 ===== -->
+        <h2>13. Model Compression: Pruning, Quantization & Beyond</h2>
+
+        <p>Fine-tuning adapts <em>what</em> a model does; compression adapts <em>where</em> it can run. For Apple — where models must execute on-device under tight latency, memory, and power budgets — compression is as important as fine-tuning itself.</p>
+
+        <h3>13.1 Pruning</h3>
+
+        <p>Remove weights or structures from the model to reduce size and computation:</p>
+
+        <p><strong>Unstructured pruning</strong> zeros out individual weights based on magnitude (smallest weights → least important). Achieves high sparsity (90%+) with minimal accuracy loss, but sparse matrices don't map well to GPU hardware — you need specialized sparse kernels to get actual speedups. The lottery ticket hypothesis (Frankle & Carlin, 2019) showed that dense networks contain sparse subnetworks that can match full performance.</p>
+
+        <p><strong>Structured pruning</strong> removes entire neurons, attention heads, or layers. The result is a standard dense model (just smaller), so you get real speedups on any hardware. Less aggressive compression ratios than unstructured, but immediately deployable. Pruning entire attention heads that contribute little to downstream tasks is a common technique.</p>
+
+        <p><strong>Movement pruning</strong> (Sanh et al., 2020): Instead of pruning by weight magnitude, prune by how much weights <em>change</em> during fine-tuning. Weights that don't move are less important for the task — a more principled criterion for task-specific pruning.</p>
+
+        <h3>13.2 Quantization</h3>
+
+        <table>
+            <tr><th>Approach</th><th>When it happens</th><th>Quality impact</th><th>Use case</th></tr>
+            <tr><td><strong>Post-Training Quantization (PTQ)</strong></td><td>After training, no retraining</td><td>Slight degradation</td><td>Quick deployment; INT8 is nearly lossless</td></tr>
+            <tr><td><strong>Quantization-Aware Training (QAT)</strong></td><td>During training with simulated quantization</td><td>Minimal degradation</td><td>INT4/INT8 deployment where PTQ quality drops</td></tr>
+            <tr><td><strong>GPTQ</strong></td><td>Post-training, layer-by-layer optimal</td><td>Good at 4-bit</td><td>LLM deployment (used by most 4-bit models)</td></tr>
+            <tr><td><strong>AWQ (Activation-Aware)</strong></td><td>Post-training, preserves salient weights</td><td>Better than GPTQ at 4-bit</td><td>Production LLM serving</td></tr>
+        </table>
+
+        <p><strong>QAT</strong> inserts fake quantization nodes during training — the forward pass simulates INT8/INT4, but gradients flow through in full precision using the straight-through estimator. The model learns to be robust to quantization during training, producing higher quality than applying quantization after the fact.</p>
+
+        <h3>13.3 Compression Pipeline for On-Device</h3>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 110" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrowC" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                        <path d="M0,0 L8,3 L0,6" fill="var(--svg-arrow)"/>
+                    </marker>
+                </defs>
+
+                <rect x="10" y="25" width="120" height="60" rx="6" fill="var(--svg-box)" stroke="var(--svg-purple)" stroke-width="1.5"/>
+                <text x="70" y="48" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-purple)">Large Teacher</text>
+                <text x="70" y="68" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">70B server model</text>
+
+                <line x1="135" y1="55" x2="165" y2="55" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowC)"/>
+                <text x="150" y="47" text-anchor="middle" font-size="8" fill="var(--svg-arrow)">distill</text>
+
+                <rect x="170" y="25" width="120" height="60" rx="6" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="230" y="48" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-highlight)">Small Student</text>
+                <text x="230" y="68" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">3B model</text>
+
+                <line x1="295" y1="55" x2="325" y2="55" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowC)"/>
+                <text x="310" y="47" text-anchor="middle" font-size="8" fill="var(--svg-arrow)">prune</text>
+
+                <rect x="330" y="25" width="120" height="60" rx="6" fill="var(--svg-box)" stroke="var(--svg-orange)" stroke-width="1.5"/>
+                <text x="390" y="48" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-orange)">Pruned</text>
+                <text x="390" y="68" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">Remove heads/layers</text>
+
+                <line x1="455" y1="55" x2="485" y2="55" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowC)"/>
+                <text x="470" y="47" text-anchor="middle" font-size="8" fill="var(--svg-arrow)">quantize</text>
+
+                <rect x="490" y="25" width="100" height="60" rx="6" fill="var(--svg-box)" stroke="var(--svg-red)" stroke-width="1.5"/>
+                <text x="540" y="48" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-red)">INT4/INT8</text>
+                <text x="540" y="68" text-anchor="middle" font-size="10" fill="var(--svg-arrow)">GPTQ / AWQ</text>
+
+                <line x1="595" y1="55" x2="625" y2="55" stroke="var(--svg-arrow)" stroke-width="1.5" marker-end="url(#arrowC)"/>
+
+                <rect x="630" y="30" width="60" height="50" rx="6" fill="var(--svg-box)" stroke="var(--svg-green)" stroke-width="1.5"/>
+                <text x="660" y="52" text-anchor="middle" font-size="10" font-weight="600" fill="var(--svg-green)">On-</text>
+                <text x="660" y="67" text-anchor="middle" font-size="10" font-weight="600" fill="var(--svg-green)">Device</text>
+            </svg>
+            <div class="caption">Figure: Typical compression pipeline for on-device deployment. Distill from a large teacher, structurally prune the student, then quantize to INT4/INT8. Each step trades a small amount of quality for a large reduction in model size and latency.</div>
+        </div>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Section 14 ===== -->
+        <h2>14. Practical Considerations</h2>
+
+        <h3>14.1 How to Choose a Method</h3>
+
+        <div class="diagram">
+            <svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg">
+                <!-- Decision tree -->
+                <rect x="240" y="10" width="220" height="35" rx="6" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="350" y="33" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">How much data do you have?</text>
+
+                <!-- Left branch: little data -->
+                <line x1="300" y1="45" x2="150" y2="80" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <text x="210" y="62" font-size="10" fill="var(--svg-arrow)">&lt; 1K examples</text>
+                <rect x="50" y="80" width="200" height="35" rx="6" fill="var(--svg-box)" stroke="var(--border)" stroke-width="1.5"/>
+                <text x="150" y="103" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-text)">Prompt tuning / Few-shot</text>
+
+                <!-- Right branch: more data -->
+                <line x1="400" y1="45" x2="500" y2="80" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <text x="460" y="62" font-size="10" fill="var(--svg-arrow)">1K+ examples</text>
+                <rect x="400" y="80" width="230" height="35" rx="6" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="515" y="103" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">How much compute?</text>
+
+                <!-- Limited compute -->
+                <line x1="470" y1="115" x2="350" y2="155" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <text x="390" y="137" font-size="10" fill="var(--svg-arrow)">Limited (1–2 GPUs)</text>
+                <rect x="235" y="155" width="230" height="35" rx="6" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="350" y="178" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">Model size?</text>
+
+                <!-- Small model, limited compute -->
+                <line x1="300" y1="190" x2="200" y2="225" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <text x="240" y="210" font-size="10" fill="var(--svg-arrow)">&lt; 7B</text>
+                <rect x="100" y="225" width="200" height="30" rx="6" fill="var(--svg-box)" stroke="var(--svg-green)" stroke-width="1.5"/>
+                <text x="200" y="245" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-green)">LoRA (FP16)</text>
+
+                <!-- Large model, limited compute -->
+                <line x1="400" y1="190" x2="470" y2="225" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <text x="445" y="210" font-size="10" fill="var(--svg-arrow)">7B+</text>
+                <rect x="370" y="225" width="200" height="30" rx="6" fill="var(--svg-box)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="470" y="245" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-highlight)">QLoRA</text>
+
+                <!-- Ample compute -->
+                <line x1="560" y1="115" x2="600" y2="155" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <text x="595" y="137" font-size="10" fill="var(--svg-arrow)">Ample</text>
+                <rect x="530" y="155" width="160" height="35" rx="6" fill="var(--svg-box-accent)" stroke="var(--svg-highlight)" stroke-width="1.5"/>
+                <text x="610" y="178" text-anchor="middle" font-size="12" font-weight="600" fill="var(--svg-text)">Domain shift?</text>
+
+                <!-- Small shift -->
+                <line x1="580" y1="190" x2="520" y2="225" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <text x="540" y="210" font-size="10" fill="var(--svg-arrow)">Small</text>
+                <rect x="420" y="280" width="200" height="30" rx="6" fill="var(--svg-box)" stroke="var(--svg-green)" stroke-width="1.5"/>
+                <text x="520" y="300" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-green)">LoRA (higher rank)</text>
+
+                <!-- Large shift -->
+                <line x1="640" y1="190" x2="640" y2="280" stroke="var(--svg-arrow)" stroke-width="1.5"/>
+                <text x="660" y="240" font-size="10" fill="var(--svg-arrow)">Large</text>
+                <rect x="570" y="280" width="130" height="30" rx="6" fill="var(--svg-box)" stroke="var(--svg-orange)" stroke-width="1.5"/>
+                <text x="635" y="300" text-anchor="middle" font-size="11" font-weight="600" fill="var(--svg-orange)">Full fine-tuning</text>
+            </svg>
+            <div class="caption">Figure 10: Decision tree for choosing a fine-tuning method. Start with data volume, then consider compute constraints, model size, and domain shift. In practice, LoRA is the default starting point — only move to full fine-tuning if LoRA underperforms and you have the compute budget.</div>
+        </div>
+
+        <h3>14.2 Mixed Precision Training</h3>
+
+        <p>Modern fine-tuning almost always uses <strong>mixed precision</strong> — different numerical formats for different operations:</p>
+
+        <table>
+            <tr><th>Format</th><th>Bits</th><th>Range</th><th>Used for</th></tr>
+            <tr><td><strong>FP32</strong></td><td>32</td><td>±3.4 × 10³⁸</td><td>Master weights, optimizer states, loss scaling</td></tr>
+            <tr><td><strong>FP16</strong></td><td>16</td><td>±65,504</td><td>Forward/backward pass (with loss scaling)</td></tr>
+            <tr><td><strong>BF16</strong></td><td>16</td><td>±3.4 × 10³⁸</td><td>Forward/backward pass (preferred for transformers)</td></tr>
+        </table>
+
+        <p><strong>Why BF16 over FP16 for transformers:</strong> FP16 has higher precision (more mantissa bits) but a tiny dynamic range — attention logits and loss values can overflow, causing NaN. BF16 matches FP32's range (same exponent bits) with less precision, which is almost always a better tradeoff for LLM training. If you see NaN losses during fine-tuning with FP16, switching to BF16 often fixes it.</p>
+
+        <p><strong>Loss scaling (FP16 only):</strong> Small gradients can underflow to zero in FP16. Loss scaling multiplies the loss by a large factor (e.g., 1024) before backprop to keep gradients in representable range, then divides the gradients by the same factor before the optimizer step. Dynamic loss scaling automatically adjusts the scale factor. BF16 doesn't need loss scaling because its range matches FP32.</p>
+
+        <h3>14.3 Gradient Accumulation</h3>
+
+        <p>When your GPU can only fit a micro-batch of 2–4 examples but you need an effective batch size of 32–64 for stable training:</p>
+
+        <div class="math-block">
+            <div class="math-title">Gradient Accumulation</div>
+            $$\text{Effective batch size} = \text{micro\_batch\_size} \times \text{accumulation\_steps} \times \text{num\_GPUs}$$
+            Accumulate gradients over N forward/backward passes, then call <code>optimizer.step()</code> once. Mathematically equivalent to a large batch (ignoring batch norm, which uses per-micro-batch stats).
+        </div>
+
+        <p>This is essential for QLoRA — you're fine-tuning on a single GPU with limited memory, but contrastive learning and instruction tuning benefit from larger effective batch sizes. Set accumulation steps to achieve your target batch size without exceeding GPU memory. The tradeoff: training is N× slower per step (N forward passes per update), but each update is higher quality.</p>
+
+        <h3>14.4 Data Quality Over Quantity</h3>
+
+        <p>For fine-tuning, data quality matters far more than quantity. A few thousand high-quality, carefully curated examples often outperform millions of noisy ones. The LIMA paper showed that fine-tuning Llama-65B on just <strong>1,000 carefully selected examples</strong> produced a competitive chat model — demonstrating that alignment is primarily about quality, not scale.</p>
+
+        <h3>14.5 When Fine-Tuning Hurts</h3>
+
+        <div class="callout callout-warn">
+            <div class="callout-title">⚠️ The alignment tax</div>
+            <p>Fine-tuning on task-specific data can <strong>degrade general capabilities</strong>. A model fine-tuned for legal document analysis might become worse at math or coding. This is the "alignment tax" — and it's why modern practice uses LoRA (constrains the update subspace) or carefully blends task data with general instruction data during fine-tuning.</p>
+        </div>
+
+        <h3>14.6 Learning Rate and Scheduler</h3>
+
+        <p>Fine-tuning typically uses <strong>10–100× smaller learning rates</strong> than pretraining, with cosine decay and a short warmup (5–10% of total steps). For LoRA specifically, slightly higher learning rates work (1e-4 to 3e-4) because the adapter parameters are initialized from scratch and need to move more than pretrained weights would.</p>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== Interview Questions ===== -->
+        <h2>15. Interview Questions</h2>
+
+        <details>
+            <summary>Q1 — Why does LoRA work? What's the theoretical justification?</summary>
+            <div class="answer">
+                <p>Aghajanyan et al. (2021) showed that pretrained models have a low <strong>intrinsic dimensionality</strong> — the meaningful optimization during fine-tuning happens in a subspace far smaller than the full parameter space. LoRA exploits this by constraining the update to a rank-r subspace: ΔW = BA where B ∈ ℝ^(d×r) and A ∈ ℝ^(r×d). Since the true update is approximately low-rank, this decomposition captures most of the fine-tuning signal with orders of magnitude fewer parameters. Intuitively, pretraining already places the model near a good solution; fine-tuning makes a small, structured adjustment — and small adjustments in high-dimensional spaces tend to be low-rank.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q2 — How do you choose the rank r in LoRA?</summary>
+            <div class="answer">
+                <p>Rank controls the capacity of the adapter — higher rank = more expressiveness but with diminishing returns. Rules of thumb: r=4–8 for simple tasks (sentiment, classification), r=16 for moderate complexity, r=32–64 for complex tasks or large domain shifts. Empirically, performance improves steeply from r=1 to r=8, then plateaus. The right approach is to sweep over r={4, 8, 16, 32} and pick the smallest that matches your performance target — smaller rank means faster training, less memory, and easier multi-task serving. Also consider the task: if the task requires learning new factual knowledge (which lives in FFN layers), higher rank helps more than for tasks that only need to redirect existing capabilities.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q3 — Explain QLoRA. Why doesn't 4-bit quantization hurt quality?</summary>
+            <div class="answer">
+                <p>QLoRA stores the base model in 4-bit NormalFloat precision while keeping LoRA adapters in BF16. The key insight: you're not training the quantized weights — the base model is frozen. All learning happens in the full-precision adapters. The quantized base model acts as a fixed feature extractor; the quantization error is a constant approximation that the adapters compensate for. NF4 specifically places quantization levels at the quantiles of the normal distribution (which pretrained weights approximately follow), minimizing information loss. Additionally, double quantization compresses the quantization constants themselves, and paged optimizers handle memory spikes. The result: fine-tune a 65B model on a single 48GB GPU with no observable quality loss vs. 16-bit LoRA.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q4 — LoRA vs. adapters — why did LoRA win?</summary>
+            <div class="answer">
+                <p>The critical difference is <strong>inference latency</strong>. Adapters insert new sequential layers into the forward pass — every forward pass goes through extra bottleneck modules, adding latency. LoRA modifies existing weight matrices: at inference, compute W' = W₀ + BA once and replace the original weight. The model is architecturally identical to the original — zero added latency. Additionally, LoRA is more parameter-efficient (~0.1–1% vs. adapters' ~3.6%), and the merge-and-deploy story is simpler. Adapters still appear in some architectures (e.g., LLaVA's vision-language connector), but for standard fine-tuning, LoRA is the default.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q5 — How does the temperature parameter affect contrastive learning?</summary>
+            <div class="answer">
+                <p>Temperature τ controls the sharpness of the softmax in the InfoNCE loss. <strong>Low τ</strong> (0.01–0.03): the softmax becomes very peaked — gradients are dominated by the hardest negatives (those closest to the query). This gives strong learning signal but is sensitive to noisy/false negatives. <strong>High τ</strong> (0.5–1.0): the softmax is nearly uniform — all negatives contribute equally, giving weak but stable signal. Slow convergence, poor discrimination. The <strong>sweet spot</strong> (0.05–0.1): balanced signal from both hard and easy negatives. The optimal value depends on negative quality — if you have clean hard negatives (from a good mining pipeline), lower τ works well. If negatives are noisy (in-batch), higher τ adds robustness. Temperature can also be learned as a trainable parameter (as in CLIP).</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q6 — Explain DPO. Why is it preferred over RLHF?</summary>
+            <div class="answer">
+                <p>DPO observes that the optimal policy under the RLHF objective has a closed-form relationship with the reward function: r(x,y) = β·log(π_θ(y|x)/π_ref(y|x)). This means you can directly optimize on preference pairs without training a separate reward model or running PPO. The loss pushes up the probability of preferred responses and down the probability of rejected ones, relative to the reference policy. <strong>Advantages:</strong> simpler pipeline (2 stages vs. 3), more stable training (no RL instabilities), lower compute (no reward model inference during training), and competitive or better performance. <strong>Limitation:</strong> DPO can be less robust with noisy preferences because it has no explicit reward model to smooth over inconsistencies — each preference pair directly updates the policy.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q7 — You're fine-tuning an embedding model for enterprise search. Walk through your approach.</summary>
+            <div class="answer">
+                <p>Start with a pretrained encoder (e.g., E5-base or a multilingual model). Apply LoRA to the attention layers (W_Q, W_V) with r=16. <strong>Data:</strong> Construct query-document pairs from click logs, user tickets, and LLM-generated synthetic queries for coverage. Use confidence-weighted positives (completed tickets > brief views). <strong>Negatives:</strong> Two-stage approach — first train with in-batch negatives (with logQ correction for popularity bias), then mine hard negatives from the ANN index and fine-tune a second stage. <strong>Loss:</strong> InfoNCE with temperature 0.05, in-batch negatives. <strong>Evaluation:</strong> Recall@50 offline on held-out queries, then A/B test measuring click-through rate and citation rate. <strong>Why LoRA over full fine-tuning:</strong> multiple connector types need separate adapters (ADO, JIRA, ServiceNow) — LoRA lets us share one base model and swap lightweight adapters per connector type.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q8 — What is catastrophic forgetting and how do different methods address it?</summary>
+            <div class="answer">
+                <p>Catastrophic forgetting occurs when gradient updates for a new task overwrite representations learned during pretraining. A model fine-tuned on medical text might lose its ability to do math. Different methods address it differently: <strong>Full fine-tuning</strong> — most susceptible; mitigate with small learning rate, short training, or mixing task data with general data. <strong>LoRA</strong> — constrains updates to a low-rank subspace, limiting how much the model can deviate from pretrained weights. The frozen base model is always intact. <strong>Adapters</strong> — similar benefit; frozen backbone preserves pretraining. <strong>Prefix/prompt tuning</strong> — doesn't modify any weights at all, only adds virtual tokens. Zero forgetting by construction, but limited expressiveness. The general principle: the more parameters you freeze, the less forgetting risk but the less adaptation capacity.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q9 — When would you choose full fine-tuning over LoRA?</summary>
+            <div class="answer">
+                <p>Full fine-tuning when: (1) <strong>large domain shift</strong> — target domain is fundamentally different from pretraining (e.g., a specialized scientific or legal domain with unique vocabulary and reasoning patterns), (2) <strong>abundant high-quality data</strong> — 50K+ examples, enough to update all parameters without overfitting, (3) <strong>sufficient compute</strong> — you can afford multi-GPU training with full optimizer states, (4) <strong>single task</strong> — you only need one model, so storing a full copy is fine, (5) <strong>LoRA underperforms</strong> — you've tried LoRA with high rank and it doesn't match the quality you need. In practice, always try LoRA first — it's cheaper, faster, and often sufficient. Move to full fine-tuning only when you've verified the quality gap is real and worth the compute cost.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q10 — How does AdamW differ from L2 regularization with Adam? Why does it matter for fine-tuning?</summary>
+            <div class="answer">
+                <p>Standard L2 adds the weight penalty to the loss: ∇(L + λ||w||²). The gradient of the penalty (2λw) flows through Adam's adaptive moment estimates — Adam's per-parameter scaling can <em>suppress</em> the regularization effect for parameters with large gradients. <strong>AdamW decouples weight decay</strong>: it subtracts λw directly from weights after the Adam step, bypassing the adaptive scaling. This means every parameter decays at the same rate regardless of gradient magnitude. For fine-tuning specifically, this matters because you want consistent regularization across all parameters to prevent the model from drifting too far from pretrained weights — AdamW's decoupled decay gives you that uniform pull toward smaller weights.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q11 — Walk through how you'd design a distillation pipeline for on-device search ranking.</summary>
+            <div class="answer">
+                <p><strong>Teacher:</strong> Train a cross-encoder teacher (e.g., 8B LLM) that jointly encodes query-document pairs for maximum relevance quality. Run the teacher offline on a large corpus of query-document pairs to produce graded relevance scores (1–5 scale). <strong>Student:</strong> A lightweight model (bi-encoder or late-interaction, ~100M params) that must run in <10ms on-device. <strong>Distillation:</strong> Train the student to match the teacher's relevance scores using MSE or KL divergence on the score distributions. Also include hard label cross-entropy loss on click data for grounding. <strong>Compression:</strong> After distillation, apply structured pruning (remove low-contribution attention heads), then quantize to INT8 using QAT (quantization-aware training during the final training stage). <strong>Evaluation:</strong> Compare student vs. teacher on offline NDCG@10, then A/B test online measuring latency, CTR, and user satisfaction. Target: within 95% of teacher quality at 100× throughput.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q12 — When would you use domain-adaptive pretraining vs. going straight to task fine-tuning?</summary>
+            <div class="answer">
+                <p>Use DAPT when the target domain has <strong>specialized vocabulary, conventions, or reasoning patterns</strong> poorly represented in the base model's pretraining data — legal, medical, scientific, enterprise IT. Gururangan et al. (2020) showed DAPT consistently improves downstream performance even for domains that seem well-covered by web text. Skip DAPT when: (1) the domain is well-represented in pretraining (general web Q&A, common topics), (2) you don't have access to enough domain text (DAPT needs at least a few million tokens to be effective), or (3) the model is already domain-adapted (using BioBERT for biomedical tasks). A practical signal: if your model makes basic vocabulary errors on domain text (misunderstanding abbreviations, jargon, domain-specific phrasing), DAPT will help. DAPT is also cheap — it's unsupervised, so you only need raw domain text, not labels.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q13 — Explain the difference between post-training quantization and quantization-aware training.</summary>
+            <div class="answer">
+                <p><strong>PTQ</strong> quantizes a fully-trained FP32/FP16 model to INT8/INT4 after training is complete. No retraining needed — just calibrate quantization ranges using a small representative dataset. Fast and simple, but quality can degrade at aggressive quantization (INT4). Works well for INT8, which is nearly lossless for most models. <strong>QAT</strong> inserts simulated quantization operations into the training graph. During forward pass, weights and activations are quantized and dequantized (using the straight-through estimator for gradients). The model learns to produce outputs that are robust to quantization noise. Higher quality than PTQ at the same bit width, especially at INT4, but requires retraining and is more complex. <strong>When to use which:</strong> PTQ for quick INT8 deployment. QAT when PTQ quality at your target bit width is unacceptable, or for INT4 deployment where quality matters.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q14 — Why is BF16 preferred over FP16 for transformer training?</summary>
+            <div class="answer">
+                <p>BF16 and FP16 both use 16 bits, but allocate them differently. FP16 has 5 exponent bits and 10 mantissa bits — high precision but a small dynamic range (max ~65K). BF16 has 8 exponent bits and 7 mantissa bits — less precision but the same dynamic range as FP32 (max ~3.4×10³⁸). In transformers, attention logits and loss values can grow large (especially with long sequences or early unstable training), overflowing FP16's range and producing NaN. BF16's larger range handles this naturally without loss scaling. The reduced precision (7 vs. 10 mantissa bits) rarely matters — transformer training is more sensitive to range than precision. That's why BF16 is the default for training on A100/H100 GPUs, and FP16 requires careful loss scaling to avoid numerical issues.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Q15 — What is instruction tuning and why does it enable zero-shot generalization?</summary>
+            <div class="answer">
+                <p>Instruction tuning fine-tunes a model on diverse (instruction, response) pairs across many tasks — summarization, translation, QA, coding, reasoning — all formatted with natural language instructions. The key insight: the model doesn't just learn each task individually; it learns <strong>to follow the instruction format itself</strong>. This meta-learning effect means it can generalize to unseen tasks described in the same instruction format. FLAN showed this at scale: training on 1,800+ tasks significantly improved performance on held-out tasks the model never saw during training. The LIMA paper then showed quality matters more than quantity — 1,000 carefully curated examples can produce a competitive instruction-following model, suggesting that instruction tuning teaches format compliance and intent recognition, not task-specific knowledge.</p>
+            </div>
+        </details>
+
+        <div class="divider">· · ·</div>
+
+        <!-- ===== References ===== -->
+        <h2>16. Key Paper References</h2>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">LoRA: Low-Rank Adaptation of Large Language Models</span>
+                <span class="paper-authors">Hu et al. · ICLR 2022</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">QLoRA: Efficient Finetuning of Quantized Language Models</span>
+                <span class="paper-authors">Dettmers et al. · NeurIPS 2023</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Parameter-Efficient Transfer Learning for NLP</span>
+                <span class="paper-authors">Houlsby et al. · ICML 2019 — Adapter layers</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Prefix-Tuning: Optimizing Continuous Prompts for Generation</span>
+                <span class="paper-authors">Li & Liang · ACL 2021</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">The Power of Scale for Parameter-Efficient Prompt Tuning</span>
+                <span class="paper-authors">Lester et al. · EMNLP 2021</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning</span>
+                <span class="paper-authors">Aghajanyan et al. · ACL 2021</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Direct Preference Optimization: Your Language Model Is Secretly a Reward Model</span>
+                <span class="paper-authors">Rafailov et al. · NeurIPS 2023</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Universal Language Model Fine-tuning for Text Classification (ULMFiT)</span>
+                <span class="paper-authors">Howard & Ruder · ACL 2018</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">LIMA: Less Is More for Alignment</span>
+                <span class="paper-authors">Zhou et al. · NeurIPS 2023</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Distilling the Knowledge in a Neural Network</span>
+                <span class="paper-authors">Hinton, Vartol & Dean · NeurIPS Workshop 2015 — Knowledge distillation</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Don't Stop Pretraining: Adapt Language Models to Domains and Tasks</span>
+                <span class="paper-authors">Gururangan et al. · ACL 2020 — DAPT and TAPT</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Scaling Instruction-Finetuned Language Models (Flan-PaLM)</span>
+                <span class="paper-authors">Chung et al. · JMLR 2024 — Instruction tuning at scale</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">Movement Pruning: Adaptive Sparsity during Fine-Tuning</span>
+                <span class="paper-authors">Sanh et al. · NeurIPS 2020 — Task-specific pruning by weight movement</span>
+            </div>
+        </div>
+
+        <div class="paper-ref">
+            <span class="paper-icon">📄</span>
+            <div class="paper-content">
+                <span class="paper-title">The Lottery Ticket Hypothesis</span>
+                <span class="paper-authors">Frankle & Carlin · ICLR 2019 — Sparse subnetworks that match dense performance</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            ML Deep Dives · Pratiksha
+        </div>
+
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        // Load saved theme or detect system preference
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved) {
+                document.documentElement.setAttribute('data-theme', saved);
+            } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+
+</body>
+</html>
