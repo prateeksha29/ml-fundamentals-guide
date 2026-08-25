@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Residuals, Normalization, and Training Stability</title>
+<script>
+  MathJax = {
+    tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$'], ['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg: #0F1419;
+    --card: #1A2029;
+    --ink: #E8EDF2;
+    --ink-2: #9AA6B2;
+    --ink-3: #5A6672;
+    --rule: #2A323C;
+    --accent: #5CE0BF;
+    --amber: #FFC46B;
+    --danger: #F87171;
+    --link: #7DD3FC;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+    --serif: Georgia, "Iowan Old Style", serif;
+    --mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --radius: 4px;
+    --maxw: 780px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.65; margin: 0; padding: 40px 20px 120px; }
+  main { max-width: var(--maxw); margin: 0 auto; }
+  h1 { font-family: var(--serif); font-size: 38px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 12px; color: #fff; }
+  h2 { font-family: var(--serif); font-size: 26px; letter-spacing: -0.01em; margin: 56px 0 14px; color: #fff; border-top: 1px solid var(--rule); padding-top: 40px; }
+  h3 { font-family: var(--sans); font-size: 18px; font-weight: 600; margin: 32px 0 10px; color: var(--accent); letter-spacing: 0.01em; }
+  h4 { font-family: var(--sans); font-size: 15px; font-weight: 600; margin: 22px 0 8px; color: var(--amber); text-transform: uppercase; letter-spacing: 0.06em; }
+  p { margin: 0 0 16px; }
+  a { color: var(--link); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.15s; }
+  a:hover { border-bottom-color: var(--link); }
+  strong { color: #fff; font-weight: 600; }
+  code { font-family: var(--mono); font-size: 13.5px; background: #232B36; padding: 1px 6px; border-radius: 3px; color: var(--amber); }
+  pre { background: #232B36; padding: 14px 16px; border-radius: var(--radius); overflow-x: auto; font-size: 13px; }
+  pre code { background: none; padding: 0; color: var(--ink); }
+  .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .subtitle { font-family: var(--sans); font-size: 17px; color: var(--ink-2); line-height: 1.5; margin: 8px 0 40px; max-width: 620px; }
+  ul, ol { margin: 0 0 18px; padding-left: 24px; }
+  li { margin-bottom: 6px; }
+  .callout { background: var(--card); border-left: 3px solid var(--accent); padding: 16px 20px; margin: 24px 0; border-radius: 0 var(--radius) var(--radius) 0; }
+  .callout.warn { border-left-color: var(--amber); }
+  .callout.danger { border-left-color: var(--danger); }
+  .callout .clabel { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 8px; }
+  .callout.warn .clabel { color: var(--amber); }
+  .callout.danger .clabel { color: var(--danger); }
+  .callout p:last-child { margin-bottom: 0; }
+  .iq { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; }
+  .iq .qlabel { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--amber); margin-bottom: 8px; }
+  .iq .qtext { font-family: var(--serif); font-size: 17px; line-height: 1.45; color: #fff; margin-bottom: 14px; }
+  .iq .qans { font-size: 15px; color: var(--ink); line-height: 1.6; }
+  .iq .qans p:last-child { margin-bottom: 0; }
+  .diagram { background: var(--card); border-radius: var(--radius); padding: 20px 16px 12px; margin: 24px 0; text-align: center; }
+  .diagram svg { max-width: 100%; height: auto; }
+  .diagram .caption { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); margin-top: 10px; letter-spacing: 0.04em; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); border-bottom: 1px solid var(--ink-3); }
+  .toc { background: var(--card); border-radius: var(--radius); padding: 18px 22px; margin: 32px 0 48px; }
+  .toc .tlabel { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); margin-bottom: 10px; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin-bottom: 3px; font-size: 15px; }
+  .qbank-header { font-family: var(--serif); font-size: 30px; letter-spacing: -0.01em; margin: 80px 0 8px; color: #fff; padding-top: 40px; border-top: 1px solid var(--rule); }
+  .math-display { margin: 14px 0; overflow-x: auto; }
+  @media (max-width: 620px) { body { padding: 24px 16px 80px; font-size: 15.5px; } h1 { font-size: 30px; } h2 { font-size: 22px; margin-top: 44px; padding-top: 30px; } .subtitle { font-size: 16px; } }
+</style>
+</head>
+<body>
+<main>
+
+<div class="meta">Training Dynamics · Deep dive · 40 min read</div>
+<h1>Residuals, Normalization, and Training Stability</h1>
+<p class="subtitle">Why deep networks train at all: the mathematics of residual connections, BatchNorm vs LayerNorm vs RMSNorm, the pre-norm/post-norm split that shaped modern LLMs, weight initialization, warmup, gradient clipping, and mixed-precision failure modes.</p>
+
+<div class="toc">
+  <div class="tlabel">Contents</div>
+  <ol>
+    <li><a href="#problem">The training stability problem</a></li>
+    <li><a href="#residual">Residual connections: gradient highways</a></li>
+    <li><a href="#batchnorm">BatchNorm — the original, and its failure modes</a></li>
+    <li><a href="#layernorm">LayerNorm — the transformer's answer</a></li>
+    <li><a href="#rmsnorm">RMSNorm — the modern simplification</a></li>
+    <li><a href="#norm-comparison">GroupNorm, InstanceNorm, and picking the right one</a></li>
+    <li><a href="#prepost">Pre-norm vs post-norm — the pivotal choice</a></li>
+    <li><a href="#deepnorm">DeepNorm and training 1000-layer transformers</a></li>
+    <li><a href="#init">Weight initialization from first principles</a></li>
+    <li><a href="#tfixup">T-Fixup and Admin — training transformers without warmup</a></li>
+    <li><a href="#warmup">Why Adam needs warmup — the RAdam explanation</a></li>
+    <li><a href="#clipping">Gradient clipping — norm vs value</a></li>
+    <li><a href="#attention-collapse">Attention collapse and rank collapse</a></li>
+    <li><a href="#mixed-precision">Mixed precision — FP16 underflow, BF16, and loss scaling</a></li>
+    <li><a href="#nan-debug">A NaN debugging playbook</a></li>
+    <li><a href="#qbank">Interview question bank</a></li>
+  </ol>
+</div>
+
+<h2 id="problem">1. The training stability problem</h2>
+
+<p>A neural network with $L$ layers is a composition $f = f_L \circ f_{L-1} \circ \cdots \circ f_1$. Two things happen when you make $L$ large.</p>
+
+<p><strong>Forward pass.</strong> Activations pass through many transformations. If each layer scales its output by roughly a factor $\alpha$, then after $L$ layers the signal has been scaled by $\alpha^L$. For $\alpha > 1$, activations blow up; for $\alpha < 1$, they vanish. Only $\alpha \approx 1$ keeps the signal in a useful range across depth.</p>
+
+<p><strong>Backward pass.</strong> The gradient of the loss with respect to an early-layer parameter is a product of Jacobians:</p>
+
+<div class="math-display">
+$$\frac{\partial \mathcal{L}}{\partial \theta_1} = \frac{\partial \mathcal{L}}{\partial h_L} \cdot \frac{\partial h_L}{\partial h_{L-1}} \cdot \frac{\partial h_{L-1}}{\partial h_{L-2}} \cdots \frac{\partial h_2}{\partial h_1} \cdot \frac{\partial h_1}{\partial \theta_1}$$
+</div>
+
+<p>If each Jacobian's operator norm is $\beta$, the gradient magnitude is roughly $\beta^L$. This is the <strong>vanishing/exploding gradient problem</strong>: for $\beta < 1$, gradients to early layers become numerically zero, and those layers stop learning; for $\beta > 1$, they blow up and the model NaNs.</p>
+
+<p>Everything in this article is a response to this problem. Residual connections give the gradient an alternate path that doesn't shrink with depth. Normalization keeps activations in a bounded range. Careful initialization sets the initial Jacobian norms near $1$. Warmup and clipping bound the impact of early-training instabilities. When these tools work together, you can train a 96-layer transformer. When any one fails, you get NaNs at step 500.</p>
+
+<h2 id="residual">2. Residual connections: gradient highways</h2>
+
+<p>Introduced in ResNet (He et al., 2015). Instead of computing $h_{l+1} = F_l(h_l)$, compute:</p>
+
+<div class="math-display">
+$$h_{l+1} = h_l + F_l(h_l)$$
+</div>
+
+<p>where $F_l$ is the "residual function" — the transformation the layer would have computed without the skip connection. The change looks minor. Its consequences for training deep networks are enormous.</p>
+
+<h3>The forward argument: identity is easy</h3>
+
+<p>A residual layer can trivially represent the identity by learning $F_l = 0$. A non-residual layer cannot — it has to actively learn the identity, which requires exactly the right weights. In the limit of adding infinitely many layers, a residual network can preserve information across depth for free; a plain network must fight to preserve it.</p>
+
+<p>Empirically, this is why ResNet made 50- and 152-layer networks trainable in 2015. Prior networks (VGG, AlexNet) topped out around 20 layers because deeper plain stacks were harder to optimize than shallow ones — a paradox called <em>degradation</em>: more layers = worse training loss. Residuals fixed this.</p>
+
+<h3>The backward argument: gradient highways</h3>
+
+<p>Take the gradient of the loss with respect to a layer's input:</p>
+
+<div class="math-display">
+$$\frac{\partial \mathcal{L}}{\partial h_l} = \frac{\partial \mathcal{L}}{\partial h_{l+1}} \cdot \frac{\partial h_{l+1}}{\partial h_l} = \frac{\partial \mathcal{L}}{\partial h_{l+1}} \cdot \left(I + \frac{\partial F_l}{\partial h_l}\right)$$
+</div>
+
+<p>The Jacobian is <strong>$I$ plus something</strong>. Even if the residual function's Jacobian is tiny (near zero), the gradient still flows through the identity term unchanged. Contrast with the plain-network case where the Jacobian is just $\partial h_{l+1}/\partial h_l$ — if that Jacobian is small, the gradient shrinks; over $L$ layers, it shrinks exponentially.</p>
+
+<div class="diagram">
+<svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#5CE0BF"/>
+    </marker>
+    <marker id="ar2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#FFC46B"/>
+    </marker>
+  </defs>
+
+  <text x="160" y="20" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="12">plain</text>
+  <text x="480" y="20" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="12">residual</text>
+
+  <!-- Plain -->
+  <circle cx="60" cy="110" r="18" fill="#232B36" stroke="#5A6672"/>
+  <text x="60" y="115" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="11">h</text>
+  <rect x="110" y="90" width="80" height="40" rx="4" fill="#1A2029" stroke="#5A6672"/>
+  <text x="150" y="115" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="12">F(h)</text>
+  <line x1="78" y1="110" x2="105" y2="110" stroke="#5CE0BF" stroke-width="2" marker-end="url(#ar1)"/>
+  <line x1="190" y1="110" x2="240" y2="110" stroke="#5CE0BF" stroke-width="2" marker-end="url(#ar1)"/>
+  <circle cx="258" cy="110" r="18" fill="#232B36" stroke="#5A6672"/>
+  <text x="258" y="115" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="11">h'</text>
+  <text x="160" y="170" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">grad ← F'(h) only</text>
+
+  <!-- Residual -->
+  <circle cx="380" cy="110" r="18" fill="#232B36" stroke="#5A6672"/>
+  <text x="380" y="115" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="11">h</text>
+  <rect x="430" y="90" width="80" height="40" rx="4" fill="#1A2029" stroke="#5A6672"/>
+  <text x="470" y="115" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="12">F(h)</text>
+  <line x1="398" y1="110" x2="425" y2="110" stroke="#5CE0BF" stroke-width="2" marker-end="url(#ar1)"/>
+  <line x1="510" y1="110" x2="555" y2="110" stroke="#5CE0BF" stroke-width="2" marker-end="url(#ar1)"/>
+  <circle cx="572" cy="110" r="18" fill="#232B36" stroke="#5A6672"/>
+  <text x="572" y="115" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="11">h'</text>
+  <!-- Skip -->
+  <path d="M 380 92 Q 380 45 470 45 Q 572 45 572 92" stroke="#FFC46B" stroke-width="2" fill="none" marker-end="url(#ar2)"/>
+  <text x="470" y="35" text-anchor="middle" fill="#FFC46B" font-family="SF Mono, monospace" font-size="11">skip (identity)</text>
+  <text x="470" y="170" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">grad ← I + F'(h)  — identity term guarantees flow</text>
+</svg>
+<div class="caption">The residual connection adds an identity path. Gradient flows through it even if F's gradient is zero.</div>
+</div>
+
+<h3>Interpretation: layers learn adjustments, not transformations</h3>
+
+<p>Because the identity path is always available, each layer's job becomes: <em>refine</em> what came before, not compute from scratch. Layer $l$ learns a small correction $F_l$ to add to $h_l$, rather than a full transformation from $h_l$ to $h_{l+1}$. This makes optimization easier because the target function (identity + small adjustment) is closer to what a randomly initialized layer produces than an arbitrary transformation is.</p>
+
+<p>You can see this in trained transformers: the residual stream is a working memory that each layer reads from and writes to, with most layers making incremental edits rather than replacing the representation wholesale. This intuition comes from mechanistic interpretability work (Elhage et al. 2021, "A Mathematical Framework for Transformer Circuits").</p>
+
+<h3>The residual stream in transformers</h3>
+
+<p>Every transformer block has two residual connections:</p>
+
+<div class="math-display">
+$$h' = h + \text{Attention}(\text{Norm}(h))$$
+$$h'' = h' + \text{FFN}(\text{Norm}(h'))$$
+</div>
+
+<p>(This is the pre-norm variant — we'll get to that in §7.) Attention writes an update; FFN writes an update; the running sum is the residual stream. A 96-layer decoder has 192 residual connections, and every one of them is a gradient highway back to the embedding.</p>
+
+<h2 id="batchnorm">3. BatchNorm — the original, and its failure modes</h2>
+
+<p>BatchNorm (Ioffe &amp; Szegedy, 2015) was the first normalization technique to become standard in deep learning. It works by normalizing activations <em>across the batch dimension</em> for each feature independently.</p>
+
+<h3>The formula</h3>
+
+<p>For a mini-batch of size $B$ and a specific feature channel, let $\{x_1, \ldots, x_B\}$ be the activations at that channel. Compute the batch statistics:</p>
+
+<div class="math-display">
+$$\mu_B = \frac{1}{B} \sum_{i=1}^B x_i, \quad \sigma_B^2 = \frac{1}{B} \sum_{i=1}^B (x_i - \mu_B)^2$$
+</div>
+
+<p>Normalize each element:</p>
+
+<div class="math-display">
+$$\hat{x}_i = \frac{x_i - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}$$
+</div>
+
+<p>Then apply a learned affine transformation with per-channel parameters $\gamma$ (scale) and $\beta$ (shift):</p>
+
+<div class="math-display">
+$$y_i = \gamma \hat{x}_i + \beta$$
+</div>
+
+<p>The $\gamma$ and $\beta$ preserve the model's ability to represent any distribution — if the network needs the un-normalized activations, it can learn $\gamma = \sigma_B$ and $\beta = \mu_B$ and undo the normalization. In practice, it doesn't undo it, but the flexibility matters.</p>
+
+<h3>Train vs eval mode: the running statistics</h3>
+
+<p>At inference time, you often want to score a single example — no batch, no batch statistics. BatchNorm handles this by maintaining running averages of $\mu$ and $\sigma^2$ during training:</p>
+
+<div class="math-display">
+$$\bar{\mu} \leftarrow (1-m)\bar{\mu} + m\mu_B, \quad \bar{\sigma}^2 \leftarrow (1-m)\bar{\sigma}^2 + m\sigma_B^2$$
+</div>
+
+<p>with momentum $m \approx 0.1$. At eval time, use $\bar{\mu}$ and $\bar{\sigma}^2$ instead of computing batch statistics. This creates a subtle train/eval discrepancy: the model sees slightly different normalized activations in each mode. The <code>model.eval()</code> / <code>model.train()</code> distinction in PyTorch exists largely because of this.</p>
+
+<div class="callout warn">
+  <div class="clabel">The most common BatchNorm bug in production</div>
+  <p>Forgetting to call <code>model.eval()</code> before inference. In train mode, BatchNorm uses batch statistics — so an inference on a batch of size 1 has $\mu = x$ and $\sigma^2 = 0$, and the output is entirely determined by $\beta$ (plus a $\gamma \cdot x/\sqrt{\epsilon}$ term dominated by $\epsilon$). You get near-constant outputs. This is famously easy to miss because your training loop looks fine and only the deployment breaks.</p>
+</div>
+
+<h3>Where BatchNorm shines: CNNs on images</h3>
+
+<p>BatchNorm has been transformative for computer vision. Batches are usually large (32-512 images), each image is one sample of a well-defined distribution, and different examples in the batch are IID. Batch statistics are meaningful estimators of the population statistics. Modern vision architectures (ResNet, EfficientNet) rely on BatchNorm and don't work as well with alternatives.</p>
+
+<h3>Where BatchNorm fails</h3>
+
+<p>Three failure modes limit BatchNorm's applicability:</p>
+
+<p><strong>Small batches.</strong> When $B$ is small (1-4), batch statistics are noisy estimates of population statistics. The normalized activations vary wildly from step to step, destabilizing training. This is a real issue for high-resolution vision, large-model training where memory forces small batch sizes, and any online-learning setup. GroupNorm was introduced specifically to fix this.</p>
+
+<p><strong>Sequential data.</strong> For RNNs and Transformers, "the batch" is a stack of sequences of different lengths and different token positions. Normalizing across the batch dimension mixes information across totally unrelated positions and sequences — the batch mean at token position 47 has no coherent meaning. You could normalize per-position but padding tokens contaminate the statistics.</p>
+
+<p><strong>Train/eval distribution shift.</strong> The running averages $\bar{\mu}, \bar{\sigma}^2$ are computed on training data. If the deployment distribution differs (users type different queries than your training corpus, images come from a different camera), the running statistics are wrong and normalized outputs are off. LayerNorm sidesteps this entirely — it computes per-example statistics at both train and eval time, so there's no distribution to track.</p>
+
+<h2 id="layernorm">4. LayerNorm — the transformer's answer</h2>
+
+<p>LayerNorm (Ba, Kiros, Hinton 2016) fixes BatchNorm's sequence-model problems by normalizing <em>across features for each example independently</em> — no dependence on batch statistics.</p>
+
+<h3>The formula</h3>
+
+<p>For a single example with feature vector $x \in \mathbb{R}^d$:</p>
+
+<div class="math-display">
+$$\mu = \frac{1}{d} \sum_{j=1}^d x_j, \quad \sigma^2 = \frac{1}{d} \sum_{j=1}^d (x_j - \mu)^2$$
+</div>
+
+<div class="math-display">
+$$\hat{x}_j = \frac{x_j - \mu}{\sqrt{\sigma^2 + \epsilon}}, \quad y_j = \gamma_j \hat{x}_j + \beta_j$$
+</div>
+
+<p>The $\gamma, \beta$ are per-feature (length $d$) as in BatchNorm, but the statistics $\mu$ and $\sigma$ are per-example — computed from the $d$ features of a single token's embedding.</p>
+
+<h3>What's different</h3>
+
+<table>
+<thead><tr><th>Aspect</th><th>BatchNorm</th><th>LayerNorm</th></tr></thead>
+<tbody>
+<tr><td>Reduce axis</td><td>batch (across samples)</td><td>features (across dims)</td></tr>
+<tr><td>Depends on batch size</td><td>Yes</td><td>No</td></tr>
+<tr><td>Needs running stats for eval</td><td>Yes</td><td>No</td></tr>
+<tr><td>Handles variable sequence length</td><td>Poorly (mixed positions)</td><td>Naturally (per-token)</td></tr>
+<tr><td>Standard in</td><td>CNNs (vision)</td><td>Transformers, RNNs</td></tr>
+</tbody>
+</table>
+
+<p>The critical property for transformers: LayerNorm is a per-token operation. Token at position 47 of sequence A gets its statistics from its own 768-dim vector; token at position 47 of sequence B gets its statistics from its own 768-dim vector. No cross-example contamination. No dependence on sequence length or batch composition.</p>
+
+<h3>The gradient of LayerNorm</h3>
+
+<p>The backward pass is one of the more involved derivations in modern deep learning, because $\hat{x}_j$ depends on <em>all</em> the $x_k$'s through $\mu$ and $\sigma$. Let $y_j = \hat{x}_j$ (ignoring $\gamma, \beta$ for now, since they're straightforward). The gradient is:</p>
+
+<div class="math-display">
+$$\frac{\partial \hat{x}_j}{\partial x_i} = \frac{1}{\sigma}\left[\delta_{ij} - \frac{1}{d} - \frac{\hat{x}_i \hat{x}_j}{d}\right]$$
+</div>
+
+<p>The three terms come from: (1) the direct dependence of $\hat{x}_j$ on $x_j$ (Kronecker delta $\delta_{ij}$), (2) the dependence through the mean $\mu$ (the $-1/d$ term), and (3) the dependence through the variance $\sigma^2$ (the $-\hat{x}_i \hat{x}_j / d$ term).</p>
+
+<p>Two consequences for training:</p>
+
+<ol>
+  <li>The gradient at each position depends on <em>every other feature</em> at that position through the mean and variance terms. LayerNorm couples features within an example.</li>
+  <li>The $1/\sigma$ prefactor means: when activations have high variance ($\sigma$ large), the gradient through LayerNorm is <em>smaller</em>. When activations have low variance, the gradient is <em>larger</em>. This is a self-regulating mechanism — LayerNorm dampens gradients when activations are large and amplifies them when small, keeping the effective step size stable.</li>
+</ol>
+
+<h2 id="rmsnorm">5. RMSNorm — the modern simplification</h2>
+
+<p>RMSNorm (Zhang &amp; Sennrich, 2019) drops the mean-subtraction step of LayerNorm. Only the root-mean-square is used for scaling:</p>
+
+<div class="math-display">
+$$\text{RMS}(x) = \sqrt{\frac{1}{d}\sum_{j=1}^d x_j^2}, \quad y_j = \frac{x_j}{\text{RMS}(x) + \epsilon} \cdot \gamma_j$$
+</div>
+
+<p>No mean, no shift parameter $\beta$. That's it.</p>
+
+<p>The motivation is a mix of empirical and computational. Empirically: the mean-centering in LayerNorm was hypothesized to matter for stability, but ablations across many models showed it contributes little to performance. Computationally: RMSNorm saves the computation of the mean, one subtraction per feature, and skips the $\beta$ parameter — a small but non-trivial speedup and memory saving at large scale.</p>
+
+<h3>Why RMSNorm won for LLMs</h3>
+
+<p>LLaMA-1 (Meta, 2023) used RMSNorm. LLaMA-2, LLaMA-3, Mistral, Mixtral, Gemma, and most 2023+ open-weight models followed. At training runs of $10^{25}$ FLOPs, saving a few percent of the normalization compute compounds into meaningful wall-clock time. And the quality is at least as good as LayerNorm on every reported comparison.</p>
+
+<p>If you're describing a modern LLM architecture in an interview and say "LayerNorm," you're technically correct historically but not for LLaMA-family models. RMSNorm is worth naming.</p>
+
+<div class="callout">
+  <div class="clabel">Why the mean might not matter</div>
+  <p>The intuition (not a proof): in a well-trained deep network, the embedding at each token position is a superposition of many features across dimensions. The mean of that vector is a global "DC offset" that carries little information — the signal is in the deviations from the mean. Rescaling by RMS handles the magnitude; the mean-subtraction is doing redundant work. This is consistent with the empirical observation that LayerNorm's $\gamma$ ends up doing most of the useful work; the shift parameter $\beta$ ends up small and its removal doesn't hurt.</p>
+</div>
+
+<h2 id="norm-comparison">6. GroupNorm, InstanceNorm, and picking the right one</h2>
+
+<p>Two more norms are worth naming so you can slot them into a comparison.</p>
+
+<p><strong>InstanceNorm</strong> (Ulyanov et al., 2016). Normalize per-channel per-example, but not across the channels. Used in style transfer where you want to remove per-image style information. Rarely used elsewhere.</p>
+
+<p><strong>GroupNorm</strong> (Wu &amp; He, 2018). Divide the channels into $G$ groups; normalize within each group per-example (no batch dependence). LayerNorm is the case $G = 1$; InstanceNorm is $G = C$ (each channel its own group). GroupNorm was designed for computer vision at small batch sizes: it's a batch-independent alternative to BatchNorm that keeps some of the cross-channel structure.</p>
+
+<div class="diagram">
+<svg viewBox="0 0 640 250" xmlns="http://www.w3.org/2000/svg">
+  <text x="80" y="20" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="11">BatchNorm</text>
+  <text x="220" y="20" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="11">LayerNorm</text>
+  <text x="360" y="20" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="11">InstanceNorm</text>
+  <text x="500" y="20" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="11">GroupNorm</text>
+
+  <!-- Each: N=3 batch, C=6 channels; highlight what's normalized together -->
+  <g transform="translate(20,40)">
+    <text x="60" y="180" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">across batch,</text>
+    <text x="60" y="195" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">per-channel</text>
+    <!-- 3 examples, 6 channels -->
+    <g><rect x="0" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="20" y="0" width="18" height="18" fill="#2A323C"/><rect x="40" y="0" width="18" height="18" fill="#2A323C"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+    <g transform="translate(0,45)"><rect x="0" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="20" y="0" width="18" height="18" fill="#2A323C"/><rect x="40" y="0" width="18" height="18" fill="#2A323C"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+    <g transform="translate(0,90)"><rect x="0" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="20" y="0" width="18" height="18" fill="#2A323C"/><rect x="40" y="0" width="18" height="18" fill="#2A323C"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+  </g>
+
+  <g transform="translate(160,40)">
+    <text x="60" y="180" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">across channels,</text>
+    <text x="60" y="195" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">per-example</text>
+    <g><rect x="0" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="20" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="40" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="60" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="80" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="100" y="0" width="18" height="18" fill="#5CE0BF"/></g>
+    <g transform="translate(0,45)"><rect x="0" y="0" width="18" height="18" fill="#2A323C"/><rect x="20" y="0" width="18" height="18" fill="#2A323C"/><rect x="40" y="0" width="18" height="18" fill="#2A323C"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+    <g transform="translate(0,90)"><rect x="0" y="0" width="18" height="18" fill="#2A323C"/><rect x="20" y="0" width="18" height="18" fill="#2A323C"/><rect x="40" y="0" width="18" height="18" fill="#2A323C"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+  </g>
+
+  <g transform="translate(300,40)">
+    <text x="60" y="180" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">per channel,</text>
+    <text x="60" y="195" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">per-example</text>
+    <g><rect x="0" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="20" y="0" width="18" height="18" fill="#2A323C"/><rect x="40" y="0" width="18" height="18" fill="#2A323C"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+    <g transform="translate(0,45)"><rect x="0" y="0" width="18" height="18" fill="#2A323C"/><rect x="20" y="0" width="18" height="18" fill="#2A323C"/><rect x="40" y="0" width="18" height="18" fill="#2A323C"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+    <g transform="translate(0,90)"><rect x="0" y="0" width="18" height="18" fill="#2A323C"/><rect x="20" y="0" width="18" height="18" fill="#2A323C"/><rect x="40" y="0" width="18" height="18" fill="#2A323C"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+  </g>
+
+  <g transform="translate(440,40)">
+    <text x="60" y="180" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">per group,</text>
+    <text x="60" y="195" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">per-example (G=2)</text>
+    <g><rect x="0" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="20" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="40" y="0" width="18" height="18" fill="#5CE0BF"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+    <g transform="translate(0,45)"><rect x="0" y="0" width="18" height="18" fill="#2A323C"/><rect x="20" y="0" width="18" height="18" fill="#2A323C"/><rect x="40" y="0" width="18" height="18" fill="#2A323C"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+    <g transform="translate(0,90)"><rect x="0" y="0" width="18" height="18" fill="#2A323C"/><rect x="20" y="0" width="18" height="18" fill="#2A323C"/><rect x="40" y="0" width="18" height="18" fill="#2A323C"/><rect x="60" y="0" width="18" height="18" fill="#2A323C"/><rect x="80" y="0" width="18" height="18" fill="#2A323C"/><rect x="100" y="0" width="18" height="18" fill="#2A323C"/></g>
+  </g>
+
+  <text x="320" y="240" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="11">rows = batch examples, cols = channels; green = normalized together</text>
+</svg>
+<div class="caption">The four normalizations, colored by what gets pooled to compute the statistics.</div>
+</div>
+
+<h2 id="prepost">7. Pre-norm vs post-norm — the pivotal choice</h2>
+
+<p>The original Transformer paper (2017) placed the normalization layer <em>after</em> the residual connection:</p>
+
+<div class="math-display">
+$$h_{l+1} = \text{Norm}(h_l + F_l(h_l)) \quad \text{(post-norm)}$$
+</div>
+
+<p>Every subsequent big transformer (GPT-2 onwards, BERT variants, T5, LLaMA) moved it <em>before</em>:</p>
+
+<div class="math-display">
+$$h_{l+1} = h_l + F_l(\text{Norm}(h_l)) \quad \text{(pre-norm)}$$
+</div>
+
+<p>This one choice — moving where the norm goes relative to the residual — is one of the highest-impact design decisions in modern deep learning. Understanding why is essential.</p>
+
+<h3>The forward propagation argument</h3>
+
+<p>In <strong>post-norm</strong>, the residual stream is normalized at every layer. Whatever the layer produced (potentially large activations if $F_l$ is doing meaningful work), it gets renormalized on the way out. The magnitude of the residual stream is bounded across depth.</p>
+
+<p>In <strong>pre-norm</strong>, only the <em>input to $F_l$</em> is normalized. The residual stream itself is never renormalized — each layer adds its (small) update to the running sum. Over $L$ layers, the residual stream magnitude grows roughly as $\sqrt{L}$ because each layer contributes an approximately independent, unit-magnitude update, and independent contributions sum in variance.</p>
+
+<p>This has a subtle consequence: in a very deep pre-norm network, the residual stream grows so large that new updates become relatively small compared to it. Late layers effectively see $h + \text{small update}$ which is barely different from $h$. This is called <em>output collapse</em> or <em>vanishing update</em>. It's a mild issue for 12-24 layer models but becomes serious at 100+ layers.</p>
+
+<h3>The gradient argument</h3>
+
+<p>Consider the gradient flowing from the loss back through a residual block. Post-norm has:</p>
+
+<div class="math-display">
+$$\frac{\partial \mathcal{L}}{\partial h_l} = \frac{\partial \mathcal{L}}{\partial h_{l+1}} \cdot \text{Norm}'(\cdot) \cdot (I + F'_l(h_l))$$
+</div>
+
+<p>The gradient has to pass through the normalization Jacobian $\text{Norm}'$, whose norm depends on the current activation statistics. If activations are large, $\text{Norm}'$ has a small operator norm and the gradient shrinks. Over many layers, this shrinkage compounds — you get vanishing gradients despite the residual connection.</p>
+
+<p>Pre-norm has:</p>
+
+<div class="math-display">
+$$\frac{\partial \mathcal{L}}{\partial h_l} = \frac{\partial \mathcal{L}}{\partial h_{l+1}} \cdot (I + F'_l(\text{Norm}(h_l)) \cdot \text{Norm}'(h_l))$$
+</div>
+
+<p>The identity path is unmediated — the gradient flows through it without going through any normalization. The residual $F$ contribution is smaller and passes through Norm, but the identity is preserved. This is why pre-norm trains stably at depths (24, 48, 96 layers) where post-norm requires careful warmup or fails entirely.</p>
+
+<h3>The empirical tradeoff</h3>
+
+<p>Pre-norm is <em>easier to train</em> — it removes the need for careful learning rate warmup, works at large depths, tolerates higher initial LRs. Post-norm often produces <em>slightly better final performance</em> at the same depth if you can get it to train — because normalizing the residual stream at every layer prevents output collapse.</p>
+
+<p>The industry consensus since 2020 has been: use pre-norm because trainability trumps small quality gains, and if you need very deep models, use one of the extensions (DeepNorm, next section) that fixes post-norm's stability without giving up its representational advantages.</p>
+
+<div class="callout warn">
+  <div class="clabel">A common interview question</div>
+  <p>"BERT uses post-norm, GPT-2 uses pre-norm. Why did the field switch?" The compressed answer: post-norm requires learning rate warmup and doesn't scale to deep decoders. GPT-2 needed to train stably at 24 layers with high learning rates; pre-norm was the enabler. Every large decoder since (GPT-3, LLaMA, PaLM) has been pre-norm.</p>
+</div>
+
+<h2 id="deepnorm">8. DeepNorm and training 1000-layer transformers</h2>
+
+<p>DeepNorm (Wang et al., Microsoft 2022) is a scaling of post-norm designed to fix its instability while keeping its representational advantages. The formula:</p>
+
+<div class="math-display">
+$$h_{l+1} = \text{LayerNorm}(\alpha \cdot h_l + F_l(h_l))$$
+</div>
+
+<p>with a scaling constant $\alpha$ chosen based on depth: for an $N$-layer encoder, $\alpha = (2N)^{1/4}$; for a decoder, $\alpha = (3N)^{1/4}$. Combined with initialization scaling of $F_l$'s weights by $\beta = (8N)^{-1/4}$, this keeps the update magnitudes stable across depth.</p>
+
+<p>The result: the Microsoft paper trained a <strong>1000-layer</strong> transformer stably. Pre-norm equivalents typically top out around 200 layers before output collapse becomes prohibitive. DeepNorm gives you post-norm's normalization discipline with pre-norm's trainability.</p>
+
+<p>DeepNorm is used in some Microsoft research models but hasn't broadly displaced pre-norm because most production transformers don't need $>$100 layers. Naming it in an interview shows you're aware of the tradeoff space beyond the pre/post binary.</p>
+
+<h2 id="init">9. Weight initialization from first principles</h2>
+
+<p>Initialization is not just "don't start at zero." It's the choice of a distribution such that activations neither vanish nor explode <em>at the first forward pass</em>, before any learning has happened. Get it wrong and the network is dead before step 1.</p>
+
+<h3>The symmetry-breaking problem</h3>
+
+<p>If you initialize all weights to the same value (say zero), every neuron in a layer computes the same output, gets the same gradient, and updates identically forever. The network has effectively one neuron per layer regardless of width. This is called the <em>symmetry problem</em> and is the reason zero initialization is fatal.</p>
+
+<p>Random initialization breaks the symmetry. But the <em>scale</em> of the random values matters — this is what Xavier and He initialization are about.</p>
+
+<h3>The variance-preservation principle</h3>
+
+<p>The core idea: choose the initialization variance so that the variance of activations is preserved across layers. If $\text{Var}(h_l) \approx \text{Var}(h_{l+1})$, then over $L$ layers the activation variance is stable — no exploding, no vanishing.</p>
+
+<p>Consider a linear layer $y = Wx$ where $x \in \mathbb{R}^{d_{\text{in}}}$, $W \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$, and each $W_{ij}$ is IID with mean 0 and variance $\sigma_W^2$. Assume $x$ has IID entries with mean 0 and variance $\sigma_x^2$. Then each $y_i = \sum_j W_{ij} x_j$ has:</p>
+
+<div class="math-display">
+$$\text{Var}(y_i) = \sum_j \text{Var}(W_{ij} x_j) = d_{\text{in}} \cdot \sigma_W^2 \cdot \sigma_x^2$$
+</div>
+
+<p>For variance preservation ($\text{Var}(y) = \text{Var}(x)$), we need:</p>
+
+<div class="math-display">
+$$\sigma_W^2 = \frac{1}{d_{\text{in}}}$$
+</div>
+
+<h3>Xavier / Glorot initialization</h3>
+
+<p>Xavier init (Glorot &amp; Bengio, 2010) balances the forward pass (variance preservation) with the backward pass (gradient variance preservation). The backward analysis is symmetric: gradient variance is preserved if $\sigma_W^2 = 1/d_{\text{out}}$.</p>
+
+<p>Xavier compromises with the harmonic mean:</p>
+
+<div class="math-display">
+$$\sigma_W^2 = \frac{2}{d_{\text{in}} + d_{\text{out}}}$$
+</div>
+
+<p>Works well for linear layers with sigmoid or tanh activations (which are approximately linear near zero, so the analysis holds).</p>
+
+<h3>He initialization</h3>
+
+<p>Xavier's analysis assumed the activation function was linear near zero. ReLU is not — it zeros out half its input. The activations after ReLU have roughly half the variance of the pre-activations, because $\mathbb{E}[\text{ReLU}(x)^2] = \frac{1}{2}\mathbb{E}[x^2]$ for zero-mean symmetric $x$.</p>
+
+<p>He init (He et al., 2015) accounts for this by doubling the variance:</p>
+
+<div class="math-display">
+$$\sigma_W^2 = \frac{2}{d_{\text{in}}}$$
+</div>
+
+<p>Rule of thumb: <strong>Xavier for sigmoid/tanh, He for ReLU-family activations</strong>. Getting this wrong doesn't kill the network — the network is robust enough to compensate through the optimizer — but it can slow initial convergence dramatically.</p>
+
+<h3>Biases</h3>
+
+<p>Biases are typically initialized to zero. The symmetry problem doesn't apply to biases because each bias is a separate parameter serving a separate neuron, not shared like weights. Zero initialization is fine and is the default.</p>
+
+<h2 id="tfixup">10. T-Fixup and Admin — training transformers without warmup</h2>
+
+<p>Standard transformer training requires learning rate warmup — a few thousand steps where the LR ramps from ~0 to the peak value — to avoid divergence. This is a real annoyance: it wastes the first few percent of training on small updates, and makes hyperparameter tuning fiddly.</p>
+
+<p>T-Fixup (Huang et al., 2020) and Admin (Liu et al., 2020) are initialization schemes that let you skip warmup entirely by initializing transformers such that the initial dynamics are stable.</p>
+
+<h3>The T-Fixup recipe</h3>
+
+<p>The core idea: initialize the model so that <em>the update after one gradient step</em> has the right magnitude, not just the activations.</p>
+
+<p>Concretely, T-Fixup: initialize the input embeddings to standard variance, apply Xavier to all weights, then <em>scale down</em> the output weights of attention and FFN by a factor $(9N)^{-1/4}$ for an $N$-layer decoder. This ensures that the residual updates $F_l(h_l)$ have controlled magnitude at initialization, so the first few gradient steps don't overshoot.</p>
+
+<p>The effect: T-Fixup transformers train stably from step 0 without warmup, and reach the same final performance as warmup'd baselines. Admin extends this to encoder-decoder transformers with additional per-branch scaling.</p>
+
+<p>Neither has fully displaced warmup — warmup is dead simple, well-understood, and works. But T-Fixup / Admin are important research contributions and worth naming as evidence that warmup is a workaround for initialization pathology, not a fundamental necessity.</p>
+
+<h2 id="warmup">11. Why Adam needs warmup — the RAdam explanation</h2>
+
+<p>Warmup is empirical folklore in the deep learning community: "you always need warmup with Adam on transformers." But <em>why</em>?</p>
+
+<p>The compelling explanation comes from Liu et al. (2020, RAdam paper). Adam's update rule is:</p>
+
+<div class="math-display">
+$$w_{t+1} = w_t - \eta \cdot \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}$$
+</div>
+
+<p>where $\hat{m}_t$ is the bias-corrected first moment (running average of gradients) and $\hat{v}_t$ is the bias-corrected second moment (running average of squared gradients). The effective step size is scaled by $1/\sqrt{\hat{v}_t}$.</p>
+
+<h3>The problem at early steps</h3>
+
+<p>At step $t=1$, $\hat{v}_1$ is a bias-corrected estimate from a single sample. The <em>variance</em> of $\hat{v}_1$ is enormous — a single squared-gradient sample is a terrible estimator of the true expected squared gradient. The bias correction fixes the <em>mean</em> to be right but does nothing for the variance.</p>
+
+<p>This means: at early steps, $\hat{v}_t$ can be way off in either direction. If it's much smaller than the true value, $1/\sqrt{\hat{v}_t}$ is huge and Adam takes a massive step. If that step happens in a bad direction (also likely early), the model diverges.</p>
+
+<h3>Warmup as variance reduction</h3>
+
+<p>Warmup effectively reduces the learning rate at exactly the steps when $\hat{v}_t$ has high variance. By step 1000 (a typical warmup length), $\hat{v}_t$ is an average over 1000 samples and has much lower variance — you can safely use the peak LR.</p>
+
+<h3>RAdam</h3>
+
+<p>The RAdam paper proposes a principled fix: compute the exact variance of $\hat{v}_t$ at each step and use a rectification term that automatically dials down the LR when the variance is high. In practice this reproduces warmup automatically without a hand-tuned schedule.</p>
+
+<p>RAdam is a real optimizer with real users but hasn't broadly displaced AdamW + warmup. The reason is largely inertia — warmup works, everyone knows how to tune it, and switching optimizers is expensive. But the <em>explanation</em> of why warmup is needed is one of the cleaner insights of modern optimization theory.</p>
+
+<h2 id="clipping">12. Gradient clipping — norm vs value</h2>
+
+<p>Even with all the above, gradients can occasionally spike — an unusual batch, a numerical anomaly — and blow up the model's weights. Gradient clipping is a safety valve.</p>
+
+<h3>Value clipping</h3>
+
+<p>Clip each element of the gradient tensor to a fixed range:</p>
+
+<div class="math-display">
+$$g_i \leftarrow \min(\max(g_i, -c), c)$$
+</div>
+
+<p>Simple and cheap, but distorts the direction of the gradient — some elements clip, others don't, and the result is not proportional to the original gradient. Rarely the right choice for large models.</p>
+
+<h3>Norm clipping</h3>
+
+<p>Compute the global norm of the gradient (across <em>all</em> parameters), and if it exceeds a threshold $C$, scale the whole gradient down proportionally:</p>
+
+<div class="math-display">
+$$g \leftarrow g \cdot \min\left(1, \frac{C}{\|g\|_2}\right)$$
+</div>
+
+<p>The direction of the update is preserved; only the magnitude is capped. Standard values: $C = 1.0$ for transformer training. This is what PyTorch's <code>clip_grad_norm_</code> does.</p>
+
+<h3>Per-parameter norm clipping</h3>
+
+<p>Compute the norm per-parameter-group (or per-layer) rather than globally. Prevents a single layer's spike from cannibalizing the LR budget of all other layers. Used in LAMB and some very-large-model training pipelines.</p>
+
+<div class="callout warn">
+  <div class="clabel">A practical calibration</div>
+  <p>Log the global gradient norm each step. If it rarely spikes above your clip threshold, the threshold is doing nothing (harmless). If it clips at nearly every step, your threshold is too tight and you're systematically reducing your effective LR — either raise the threshold or investigate why gradients are large. A healthy training run clips maybe 1-5% of steps, mostly early.</p>
+</div>
+
+<h2 id="attention-collapse">13. Attention collapse and rank collapse</h2>
+
+<p>Two failure modes specific to transformers deserve dedicated attention.</p>
+
+<h3>Attention entropy collapse</h3>
+
+<p>In some layers, the attention distribution can collapse to a single token per query — the softmax puts nearly all its mass on one key. When this happens, the attention output is essentially selecting that one token's value and ignoring the rest. The layer degenerates to a lookup.</p>
+
+<p>Diagnose by monitoring the <em>attention entropy</em>: $-\sum_j p_{ij} \log p_{ij}$ averaged over query positions $i$. Healthy entropy is a moderate number (well above 0, below uniform's $\log T$). Entropy near 0 means collapse.</p>
+
+<p>Causes: overly sharp softmax due to large logits (missing the $\sqrt{d_k}$ scaling, or that scaling being insufficient at very large $d_k$); training instability in early layers; a small number of "attention sink" tokens getting all the mass.</p>
+
+<p>Fixes: stronger scaling (some very-large models use $1/\log(d_k)$ or learned temperature); explicit attention regularization; StableAttention variants; adding dedicated sink tokens (attention sinks work, Xiao et al. 2023).</p>
+
+<h3>Rank collapse in deep transformers</h3>
+
+<p>Dong et al. (2021) proved that pure attention (no FFN, no residual) collapses to rank-1 exponentially fast: over $L$ layers, all tokens' representations converge to the same vector. The residual connection and the FFN are what keep this from happening in practice.</p>
+
+<p>The key insight: <em>the FFN and residual connections aren't just for training stability — they're structurally necessary to prevent representational degeneration</em>. A transformer without them is not a transformer, it's a very expensive averaging operator.</p>
+
+<h2 id="mixed-precision">14. Mixed precision — FP16 underflow, BF16, and loss scaling</h2>
+
+<p>Training in FP32 is expensive; training in FP16 halves memory and roughly doubles throughput on modern GPUs. But FP16 has half the exponent range of FP32:</p>
+
+<table>
+<thead><tr><th>Format</th><th>Sign</th><th>Exponent</th><th>Mantissa</th><th>Range (approx)</th></tr></thead>
+<tbody>
+<tr><td>FP32</td><td>1</td><td>8</td><td>23</td><td>$\pm 10^{\pm 38}$</td></tr>
+<tr><td>FP16</td><td>1</td><td>5</td><td>10</td><td>$\pm 6 \times 10^{\pm 4}$</td></tr>
+<tr><td>BF16</td><td>1</td><td>8</td><td>7</td><td>$\pm 10^{\pm 38}$ (as FP32)</td></tr>
+</tbody>
+</table>
+
+<h3>The FP16 underflow problem</h3>
+
+<p>The smallest normal FP16 value is about $6 \times 10^{-5}$. Gradients in deep transformers routinely drop below this, especially in early layers. Anything below $6 \times 10^{-5}$ underflows to zero — those parameters stop learning.</p>
+
+<p><strong>Loss scaling</strong> fixes this. Multiply the loss by a large factor $S$ (typically $2^{15}$ or dynamically tuned) before the backward pass. Gradients are scaled by $S$ too, moving them out of the underflow region. Divide them by $S$ before the optimizer step to recover true magnitudes.</p>
+
+<p>Automatic mixed precision (AMP) in PyTorch does this transparently: <code>GradScaler</code> automatically finds the largest loss scale that doesn't cause overflow, and adjusts it dynamically when overflow is detected.</p>
+
+<h3>BF16: the modern default</h3>
+
+<p>BF16 (BFloat16, introduced by Google for TPUs) has the same 8-bit exponent as FP32, so it has the same range — no underflow issues. It sacrifices mantissa precision (7 bits vs FP16's 10), which affects fine numerical distinctions but is fine for training.</p>
+
+<p>Since Ampere GPUs (A100, 2020) support BF16 in hardware, most large-model training has moved from FP16-with-loss-scaling to plain BF16. Simpler, no scaling to tune, no under/overflow monitoring. Some models still use FP16 for inference where the tighter precision matters more.</p>
+
+<h2 id="nan-debug">15. A NaN debugging playbook</h2>
+
+<p>Your loss hit NaN at step 3,247. What do you do?</p>
+
+<ol>
+  <li><strong>Check gradient norms.</strong> Add a hook that logs the global gradient norm each step. NaN in the gradient before NaN in the loss means an exploding gradient — increase clip threshold aggressiveness, lower LR, or check for a specific batch with pathological data.</li>
+  <li><strong>Check activation norms per layer.</strong> Add forward hooks that log the max absolute value of each layer's output. If activation norms are exploding across depth, you have a normalization or residual scaling issue — pre-norm might help; check that Norm layers are actually placed correctly.</li>
+  <li><strong>Check for divide-by-zero.</strong> Any $\sqrt{\sigma^2 + \epsilon}$ with too-small $\epsilon$ can NaN. Standard $\epsilon = 10^{-5}$ in LayerNorm; if you've customized it, check. Also check any $\log$ or $1/x$ in the model.</li>
+  <li><strong>Check for FP16 overflow.</strong> If you're in mixed precision, an overflow in a specific op (softmax on large logits is a classic) produces inf → NaN. Cast the offending op to FP32.</li>
+  <li><strong>Check the specific batch.</strong> If NaN reliably hits at step $N$ from a fixed seed, isolate that batch. It might contain a pathological example (all-zero sequence, malformed input, extreme token count) that triggers a specific edge case.</li>
+  <li><strong>Check for BatchNorm on batch size 1.</strong> BatchNorm on a batch with only one example has $\sigma^2 = 0$, so the normalized activation is $0/\epsilon$ — controlled by numerics of $\epsilon$. Not always NaN but can be zeros propagating unhelpfully.</li>
+  <li><strong>Roll back to the last stable checkpoint.</strong> Not just as a workaround — check what changed. Sometimes the bug is a specific interaction that only manifests once you cross a certain step count.</li>
+</ol>
+
+<p>The one-line summary: <strong>monitor gradient norms and activation norms from step 1</strong>. Every serious training run has these logged. A NaN debug that starts from "let me instrument this now" is much harder than one that starts from "look at the metrics dashboard."</p>
+
+<h1 class="qbank-header" id="qbank">Interview question bank</h1>
+<p style="color: var(--ink-2); margin-bottom: 40px;">These probe both the mathematical foundations and the practical intuition. The pre/post-norm and BatchNorm/LayerNorm comparisons are near-universal in modern deep-learning interviews.</p>
+
+<div class="iq">
+  <div class="qlabel">Question 1 · Fundamentals</div>
+  <div class="qtext">Why do residual connections help train deep networks?</div>
+  <div class="qans">
+    <p>Two arguments. <strong>Forward:</strong> a residual layer can trivially represent the identity by learning $F = 0$, so adding a layer to a residual network can never make the training loss worse. A plain layer must actively learn the identity, which is fragile. This eliminates the "degradation" problem that made pre-2015 deep networks harder to train than shallow ones.</p>
+    <p><strong>Backward:</strong> the Jacobian of a residual layer $h + F(h)$ w.r.t. $h$ is $I + F'(h)$. Even if $F'$ has small operator norm, the identity term guarantees the gradient flows through — it never vanishes to zero. Without residuals, gradient magnitude is a product of Jacobians and shrinks (or explodes) exponentially over depth. With residuals, gradient has a highway back to any layer regardless of what the intermediate Jacobians do.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 2 · Comparison</div>
+  <div class="qtext">What's the difference between BatchNorm and LayerNorm? Why do transformers use LayerNorm?</div>
+  <div class="qans">
+    <p>BatchNorm normalizes across the batch dimension for each feature independently — you compute $\mu$ and $\sigma$ from the $B$ examples of the batch. LayerNorm normalizes across the feature dimension for each example independently — you compute $\mu$ and $\sigma$ from the $d$ features of a single token.</p>
+    <p>Transformers use LayerNorm for three reasons. First, sequential inputs have variable length and padding; BatchNorm across positions mixes information from unrelated tokens or from padding, giving meaningless statistics. Second, BatchNorm needs running statistics for eval-time normalization; LayerNorm is per-example at all times, so there's no train/eval discrepancy and no distribution-shift issue. Third, BatchNorm is unstable at small batch sizes (noisy statistics); large transformers often train with batch size 1-8 per device due to memory constraints, which would kill BatchNorm.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 3 · Modern architecture</div>
+  <div class="qtext">What is RMSNorm and why does LLaMA use it instead of LayerNorm?</div>
+  <div class="qans">
+    <p>RMSNorm drops the mean-subtraction step of LayerNorm. Only the root-mean-square is used for scaling: $y = x / \text{RMS}(x) \cdot \gamma$, with no $\beta$ shift parameter.</p>
+    <p>The motivation is empirical + computational. Empirically, ablations show mean-centering contributes little to performance — the useful work of normalization is the magnitude scaling, not the centering. Computationally, you save one subtraction per element and one parameter per feature (no $\beta$). At LLM training scales of $10^{25}$ FLOPs, single-digit percent speedups compound into meaningful wall-clock savings.</p>
+    <p>LLaMA-1 adopted RMSNorm; LLaMA-2, LLaMA-3, Mistral, Mixtral, Gemma, and most 2023+ open-weight models followed. Modern LLM architecture spec: "RMSNorm" not "LayerNorm."</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 4 · The core question</div>
+  <div class="qtext">Pre-norm vs post-norm — what's the difference and why did the field switch?</div>
+  <div class="qans">
+    <p>Post-norm (original Transformer 2017): $h_{l+1} = \text{Norm}(h_l + F(h_l))$. The normalization happens after the residual add.</p>
+    <p>Pre-norm (GPT-2 onwards): $h_{l+1} = h_l + F(\text{Norm}(h_l))$. Only the input to $F$ is normalized; the residual stream is not.</p>
+    <p>The field switched because pre-norm is much easier to train at depth. In post-norm, the gradient has to pass through the LayerNorm Jacobian at every layer, whose norm depends on activation magnitude and can shrink the gradient. Over 24+ layers, this causes vanishing gradients and requires careful LR warmup to avoid divergence.</p>
+    <p>In pre-norm, the identity path in the residual is unmediated — gradient flows through it without passing through Norm. Training is stable at 12, 24, 96 layers with much less tuning. The tradeoff is a slight quality loss (pre-norm's residual stream isn't renormalized so grows across depth, causing "output collapse" in very deep models), but for practical model sizes this is minor.</p>
+    <p>DeepNorm (Microsoft 2022) is a modified post-norm that adds a depth-dependent scaling factor $\alpha = (2N)^{1/4}$, which makes post-norm trainable at 1000+ layers. But most production models don't need that depth; pre-norm is the standard.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 5 · Initialization</div>
+  <div class="qtext">Derive Xavier initialization. Why is He initialization different?</div>
+  <div class="qans">
+    <p>Assume a linear layer $y = Wx$ with $W \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$, weights IID with variance $\sigma_W^2$, and input $x$ IID with variance $\sigma_x^2$. Each output entry is $y_i = \sum_j W_{ij} x_j$, so $\text{Var}(y_i) = d_{\text{in}} \sigma_W^2 \sigma_x^2$.</p>
+    <p>For variance preservation ($\text{Var}(y) = \text{Var}(x)$), we need $\sigma_W^2 = 1/d_{\text{in}}$. The symmetric backward-pass analysis gives $\sigma_W^2 = 1/d_{\text{out}}$. Xavier compromises with the harmonic mean: $\sigma_W^2 = 2/(d_{\text{in}} + d_{\text{out}})$.</p>
+    <p>Xavier assumed the activation function was approximately linear near zero (true for tanh, roughly for sigmoid). ReLU is not — it zeros out half its input, so $\mathbb{E}[\text{ReLU}(x)^2] = \frac{1}{2}\mathbb{E}[x^2]$ for zero-mean symmetric $x$. To compensate for the halving of variance across each ReLU, He init doubles the weight variance: $\sigma_W^2 = 2/d_{\text{in}}$.</p>
+    <p>Rule of thumb: Xavier for tanh/sigmoid, He for ReLU-family. Getting it wrong doesn't kill training but slows initial convergence and can make deep networks harder to optimize.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 6 · Optimization</div>
+  <div class="qtext">Why does Adam need learning rate warmup?</div>
+  <div class="qans">
+    <p>The RAdam paper (Liu et al. 2020) gives the cleanest explanation. Adam's update is $\eta \cdot \hat{m}_t / \sqrt{\hat{v}_t}$, where $\hat{v}_t$ is a running average of squared gradients. At early steps, $\hat{v}_t$ is estimated from very few samples and has enormous variance — the bias correction fixes its mean but not its variance.</p>
+    <p>When $\hat{v}_t$ is much smaller than the true expected squared gradient by chance, $1/\sqrt{\hat{v}_t}$ is huge and Adam takes a massive step. If that step is in a bad direction (likely, since the model is barely trained), the model can diverge. Warmup fixes this by keeping the LR small during the exact steps when $\hat{v}_t$'s variance is high; by step 1000, $\hat{v}_t$ is averaged over 1000 samples and its variance is manageable.</p>
+    <p>RAdam derives an explicit variance-rectification term that automatically dials down the LR when $\hat{v}_t$ variance is high — reproducing warmup automatically. In practice, most production training still uses AdamW + hand-tuned warmup because it's simpler and well-understood.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 7 · Practical</div>
+  <div class="qtext">Your training loss suddenly explodes to NaN at step 5000. Walk me through debugging.</div>
+  <div class="qans">
+    <p>Standard playbook, roughly in order of likelihood:</p>
+    <p>(1) <strong>Log gradient norms.</strong> If gradient norm was spiking before NaN, it's an exploding gradient. Tighten gradient clipping (try $C=0.5$ from $C=1.0$), lower LR, or investigate whether a specific batch is pathological.</p>
+    <p>(2) <strong>Log per-layer activation norms.</strong> If activations exploded across depth, there's a normalization/residual scaling issue — check pre-norm vs post-norm placement, check that scaling factors are correct.</p>
+    <p>(3) <strong>Check for FP16 overflow.</strong> If in mixed precision, softmax on large logits or exponentiation somewhere can overflow to inf → NaN. Cast the offending op to FP32 or switch to BF16 (which has FP32's range).</p>
+    <p>(4) <strong>Check the specific batch.</strong> With a fixed seed, isolate the batch at step 5000. It might have an anomalous input (all-zero sequence, extreme sequence length, malformed tokens).</p>
+    <p>(5) <strong>Roll back to the last stable checkpoint</strong> and inspect what changed if this is a repeatable failure.</p>
+    <p>The meta-point: monitoring gradient and activation norms from step 1 makes NaN debugging tractable. Adding instrumentation after the failure is much harder.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 8 · Depth</div>
+  <div class="qtext">Explain the LayerNorm gradient. Why does it couple features within an example?</div>
+  <div class="qans">
+    <p>For $\hat{x}_j = (x_j - \mu) / \sigma$ with $\mu, \sigma$ computed from the same feature vector:</p>
+    <p>$\frac{\partial \hat{x}_j}{\partial x_i} = \frac{1}{\sigma}\left[\delta_{ij} - \frac{1}{d} - \frac{\hat{x}_i \hat{x}_j}{d}\right]$</p>
+    <p>The three terms are: (1) the direct dependence — Kronecker delta $\delta_{ij}$; (2) the dependence through $\mu$ (the $-1/d$ term, present for all $i,j$); (3) the dependence through $\sigma^2$ (the $-\hat{x}_i \hat{x}_j/d$ term).</p>
+    <p>Because terms (2) and (3) are nonzero for all $i \neq j$, changing $x_i$ changes $\hat{x}_j$ even when $j \neq i$. Features within an example are coupled through the shared statistics. In contrast, BatchNorm's coupling is <em>across the batch dimension</em>, not across features — different failure mode.</p>
+    <p>The $1/\sigma$ prefactor is self-regulating: when activations have high variance, the gradient through LayerNorm is smaller (dampening the update). When variance is low, gradient is larger. This keeps effective step size stable across training.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 9 · Advanced</div>
+  <div class="qtext">What is attention collapse and how do you diagnose it?</div>
+  <div class="qans">
+    <p>Two related but distinct failures.</p>
+    <p><strong>Attention entropy collapse</strong>: the softmax over keys concentrates all its mass on one (or very few) tokens. The attention output becomes a lookup rather than a weighted combination, and the layer's expressive capacity collapses. Diagnose by monitoring $-\sum_j p_{ij} \log p_{ij}$ averaged over queries; healthy entropy is moderate, collapse is near zero. Common cause: missing or insufficient $\sqrt{d_k}$ scaling; fix is stronger scaling (some very-large models use learned temperature) or attention sink tokens.</p>
+    <p><strong>Rank collapse</strong> (Dong et al. 2021): in pure attention (no FFN, no residual), token representations converge to the same vector exponentially fast across depth. This is a proof, not just an empirical observation. The residual connections and FFN are what prevent it in practice — they're not just training tricks but structurally necessary for the transformer to produce diverse representations. Diagnose by computing the effective rank of the token-representation matrix; healthy transformers keep it high, degenerate ones collapse to rank ~1.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 10 · Mixed precision</div>
+  <div class="qtext">Explain FP16 vs BF16 for training. When would you pick each?</div>
+  <div class="qans">
+    <p>FP16 has 5 exponent bits (range $\pm 6 \times 10^{\pm 4}$) and 10 mantissa bits (precision). BF16 has 8 exponent bits (range $\pm 10^{\pm 38}$, same as FP32) and 7 mantissa bits (worse precision than FP16). Both are 16-bit total.</p>
+    <p><strong>FP16</strong>: higher precision but narrow range. Gradients in deep transformers routinely underflow the FP16 minimum ($6 \times 10^{-5}$), so you need loss scaling — multiply the loss by a factor (e.g., $2^{15}$) before backward, divide gradients by the same factor before optimizer step. PyTorch's <code>GradScaler</code> automates this with dynamic scaling.</p>
+    <p><strong>BF16</strong>: same range as FP32 (no underflow issues), lower precision. Simpler to use — no loss scaling needed. Standard on TPUs since inception, and on Ampere GPUs and later (A100, H100). Some fine-grained numerical operations (very small parameter updates) can suffer from the lower mantissa precision, but most training is fine.</p>
+    <p>Pick BF16 if your hardware supports it (which it does for any modern training) — simpler pipeline, no scaling to tune, no under/overflow to monitor. FP16 is still used for inference on older hardware or when the extra precision matters more than range.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 11 · Practical</div>
+  <div class="qtext">What's the difference between clip_grad_norm and clip_grad_value? Which do you use?</div>
+  <div class="qans">
+    <p><strong>Value clipping</strong> clamps each gradient element to $[-c, c]$ independently. Distorts the gradient direction because different elements are clipped differently. Simple but rarely the right choice.</p>
+    <p><strong>Norm clipping</strong> computes the global $L_2$ norm of all gradients concatenated, and if it exceeds a threshold $C$, scales the entire gradient down by $C / \|g\|$. Preserves the direction of the update; only bounds the magnitude. Standard choice for transformer training with $C = 1.0$.</p>
+    <p>Practical calibration: log the global gradient norm each step. It should mostly stay below the threshold and rarely clip (maybe 1-5% of steps, mostly early in training). If it never clips, the threshold is doing nothing but is harmless. If it clips on nearly every step, the threshold is too aggressive and you're systematically reducing your effective LR — either raise the threshold or investigate why gradients are so large.</p>
+    <p>Per-parameter or per-layer norm clipping (used in LAMB, some very-large training pipelines) applies the same idea but per-group, preventing one layer's gradient spike from cannibalizing the LR budget of all others.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 12 · Reasoning</div>
+  <div class="qtext">Why does BatchNorm on a batch of size 1 produce constant output?</div>
+  <div class="qans">
+    <p>With batch size 1, the batch has only one sample per feature. The batch mean $\mu_B = x$ (the single value itself), and the batch variance $\sigma_B^2 = 0$ (zero variance across one sample). The normalized activation is $(x - x) / \sqrt{0 + \epsilon} = 0$.</p>
+    <p>After the learned affine, the output is $\gamma \cdot 0 + \beta = \beta$ — constant, independent of the input. The BN layer becomes a lookup table returning the bias.</p>
+    <p>This is why <code>model.eval()</code> matters at inference time: it switches BN to use running statistics (computed during training) instead of batch statistics. Forgetting to switch modes and running inference with batch size 1 gives you constant output that has nothing to do with the input — a very common production bug.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 13 · Modern context</div>
+  <div class="qtext">If you were designing a new large transformer today, what normalization and residual scheme would you use, and why?</div>
+  <div class="qans">
+    <p>For a typical production LLM (7B-70B):</p>
+    <p><strong>Normalization:</strong> RMSNorm. Small compute win over LayerNorm, no quality loss reported, and it's what all the LLaMA-family and Mistral-family models use so tooling and pretrained weights are well-supported.</p>
+    <p><strong>Placement:</strong> Pre-norm. Trainable without extensive warmup tuning, robust to depth, aligns with all modern open-weight models.</p>
+    <p><strong>Residuals:</strong> Standard $h + F(h)$, no fancy scaling — pre-norm makes that unnecessary at typical depths.</p>
+    <p><strong>Initialization:</strong> Truncated normal with variance $\sim 1/d_{\text{model}}$; sometimes scale down output projections of attention and FFN by $1/\sqrt{2N}$ (a partial T-Fixup-like adjustment) to keep residual updates small at init.</p>
+    <p><strong>Precision:</strong> BF16 for training end-to-end. No loss scaling needed. FP32 for the master weights held by the optimizer (standard mixed-precision practice).</p>
+    <p><strong>Optimizer:</strong> AdamW with linear warmup for 2000 steps, then cosine decay. Gradient norm clipping at 1.0.</p>
+    <p>I'd only deviate from this stack if I had a specific reason — training a 500-layer research model (consider DeepNorm), or an especially long-context model where activation-magnitude drift in the residual stream is an issue.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 14 · Depth</div>
+  <div class="qtext">Why does pre-norm cause "output collapse" in very deep models?</div>
+  <div class="qans">
+    <p>In pre-norm, the residual stream $h_l$ is never renormalized — each layer adds an update but the running sum grows. If each layer adds an approximately unit-variance update independent of others, the residual stream magnitude grows as $\sqrt{L}$ over $L$ layers (variances of independent contributions sum).</p>
+    <p>By late layers, $\|h_l\|$ is large. The layer sees $\text{Norm}(h_l)$ — normalized to unit scale — and produces an update $F(\text{Norm}(h_l))$ of unit-ish scale. Adding this unit-scale update to a large $h_l$ is a <em>small relative change</em>. Late layers effectively write barely-noticeable updates to the stream.</p>
+    <p>This is called <strong>output collapse</strong> or the vanishing update problem. It's why post-norm ends up with better representations if you can train it — post-norm renormalizes at every layer, so each layer contributes at the same effective scale. It's the reason DeepNorm exists: keep post-norm's magnitude discipline while fixing its trainability.</p>
+    <p>At practical model depths (12-96 layers), pre-norm's output collapse is a minor issue and doesn't matter for quality. At 200+ layers, it becomes serious — which is why 1000-layer transformers use DeepNorm, not naive pre-norm.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 15 · Cross-cutting</div>
+  <div class="qtext">Your team is training a 24-layer transformer and losses diverge at step 200. Give me your first three checks.</div>
+  <div class="qans">
+    <p>(1) <strong>Warmup schedule.</strong> Divergence in the first few hundred steps is almost always insufficient warmup with Adam. Increase warmup steps (500-2000 is typical for 24-layer models) and/or lower the peak LR. This is the single most common cause.</p>
+    <p>(2) <strong>Post-norm vs pre-norm.</strong> If the model is post-norm without a stability scheme like DeepNorm, 24 layers is right at the edge of where it becomes flaky. Switch to pre-norm or add DeepNorm scaling. If the codebase claims pre-norm, verify — misplaced norm ops are surprisingly common.</p>
+    <p>(3) <strong>Gradient norm.</strong> Log it from step 0. If it's spiking above your clip threshold at step 200, that's the divergence signature — pathological batch or too-hot LR. Tighten clipping to $C=0.5$ and see if the divergence smooths out; if yes, investigate the input at the divergent step; if no, the issue is elsewhere.</p>
+    <p>Ancillary checks: initialization scale (too-large init combined with Adam and no warmup is a classic recipe), FP16 without loss scaling, a wrong-dtype cast somewhere in the model, LayerNorm $\epsilon$ that's been set too small.</p>
+  </div>
+</div>
+
+<h2>Further reading</h2>
+<ul>
+  <li>He et al. (2015). "Deep Residual Learning for Image Recognition." The original ResNet.</li>
+  <li>Ioffe &amp; Szegedy (2015). "Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift."</li>
+  <li>Ba, Kiros, Hinton (2016). "Layer Normalization."</li>
+  <li>Zhang &amp; Sennrich (2019). "Root Mean Square Layer Normalization" — RMSNorm.</li>
+  <li>Wu &amp; He (2018). "Group Normalization."</li>
+  <li>Xiong et al. (2020). "On Layer Normalization in the Transformer Architecture" — the pre-norm vs post-norm analysis.</li>
+  <li>Wang et al. (2022). "DeepNet: Scaling Transformers to 1,000 Layers" — DeepNorm.</li>
+  <li>Glorot &amp; Bengio (2010). "Understanding the Difficulty of Training Deep Feedforward Neural Networks" — Xavier init.</li>
+  <li>He et al. (2015). "Delving Deep into Rectifiers" — He init.</li>
+  <li>Huang et al. (2020). "Improving Transformer Optimization Through Better Initialization" — T-Fixup.</li>
+  <li>Liu et al. (2020). "Understanding the Difficulty of Training Transformers" — Admin, and the RAdam paper explaining warmup.</li>
+  <li>Dong et al. (2021). "Attention Is Not All You Need: Pure Attention Loses Rank Doubly Exponentially with Depth."</li>
+  <li>Xiao et al. (2023). "Efficient Streaming Language Models with Attention Sinks."</li>
+  <li>Micikevicius et al. (2018). "Mixed Precision Training" — the FP16 loss-scaling paper.</li>
+  <li>Elhage et al. (2021). "A Mathematical Framework for Transformer Circuits" — residual stream as working memory.</li>
+</ul>
+
+</main>
+</body>
+</html>

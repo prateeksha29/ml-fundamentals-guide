@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BERT, GPT, and the Encoder–Decoder Question</title>
+<script>
+  MathJax = {
+    tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$'], ['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg: #0F1419;
+    --card: #1A2029;
+    --ink: #E8EDF2;
+    --ink-2: #9AA6B2;
+    --ink-3: #5A6672;
+    --rule: #2A323C;
+    --accent: #5CE0BF;
+    --amber: #FFC46B;
+    --danger: #F87171;
+    --link: #7DD3FC;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+    --serif: Georgia, "Iowan Old Style", serif;
+    --mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --radius: 4px;
+    --maxw: 780px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.65; margin: 0; padding: 40px 20px 120px; }
+  main { max-width: var(--maxw); margin: 0 auto; }
+  h1 { font-family: var(--serif); font-size: 38px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 12px; color: #fff; }
+  h2 { font-family: var(--serif); font-size: 26px; letter-spacing: -0.01em; margin: 56px 0 14px; color: #fff; border-top: 1px solid var(--rule); padding-top: 40px; }
+  h3 { font-family: var(--sans); font-size: 18px; font-weight: 600; margin: 32px 0 10px; color: var(--accent); letter-spacing: 0.01em; }
+  h4 { font-family: var(--sans); font-size: 15px; font-weight: 600; margin: 22px 0 8px; color: var(--amber); text-transform: uppercase; letter-spacing: 0.06em; }
+  p { margin: 0 0 16px; }
+  a { color: var(--link); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.15s; }
+  a:hover { border-bottom-color: var(--link); }
+  strong { color: #fff; font-weight: 600; }
+  code { font-family: var(--mono); font-size: 13.5px; background: #232B36; padding: 1px 6px; border-radius: 3px; color: var(--amber); }
+  .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .subtitle { font-family: var(--sans); font-size: 17px; color: var(--ink-2); line-height: 1.5; margin: 8px 0 40px; max-width: 620px; }
+  ul, ol { margin: 0 0 18px; padding-left: 24px; }
+  li { margin-bottom: 6px; }
+  .callout { background: var(--card); border-left: 3px solid var(--accent); padding: 16px 20px; margin: 24px 0; border-radius: 0 var(--radius) var(--radius) 0; }
+  .callout.warn { border-left-color: var(--amber); }
+  .callout.danger { border-left-color: var(--danger); }
+  .callout .clabel { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 8px; }
+  .callout.warn .clabel { color: var(--amber); }
+  .callout.danger .clabel { color: var(--danger); }
+  .callout p:last-child { margin-bottom: 0; }
+  .iq { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; }
+  .iq .qlabel { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--amber); margin-bottom: 8px; }
+  .iq .qtext { font-family: var(--serif); font-size: 17px; line-height: 1.45; color: #fff; margin-bottom: 14px; }
+  .iq .qans { font-size: 15px; color: var(--ink); line-height: 1.6; }
+  .iq .qans p:last-child { margin-bottom: 0; }
+  .diagram { background: var(--card); border-radius: var(--radius); padding: 20px 16px 12px; margin: 24px 0; text-align: center; }
+  .diagram svg { max-width: 100%; height: auto; }
+  .diagram .caption { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); margin-top: 10px; letter-spacing: 0.04em; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); border-bottom: 1px solid var(--ink-3); }
+  .toc { background: var(--card); border-radius: var(--radius); padding: 18px 22px; margin: 32px 0 48px; }
+  .toc .tlabel { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); margin-bottom: 10px; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin-bottom: 3px; font-size: 15px; }
+  .qbank-header { font-family: var(--serif); font-size: 30px; letter-spacing: -0.01em; margin: 80px 0 8px; color: #fff; padding-top: 40px; border-top: 1px solid var(--rule); }
+  .math-display { margin: 14px 0; overflow-x: auto; }
+  @media (max-width: 620px) { body { padding: 24px 16px 80px; font-size: 15.5px; } h1 { font-size: 30px; } h2 { font-size: 22px; margin-top: 44px; padding-top: 30px; } .subtitle { font-size: 16px; } }
+</style>
+</head>
+<body>
+<main>
+
+<div class="meta">Architecture · Deep dive · 25 min read</div>
+<h1>BERT, GPT, and the Encoder–Decoder Question</h1>
+<p class="subtitle">MLM's 80/10/10 rule, why RoBERTa dropped NSP, the causal-vs-bidirectional split, and why decoder-only models eventually took over.</p>
+
+<div class="toc">
+  <div class="tlabel">Contents</div>
+  <ol>
+    <li><a href="#three-families">The three transformer families</a></li>
+    <li><a href="#bert-arch">BERT — the architecture</a></li>
+    <li><a href="#mlm">Masked language modeling and the 80/10/10 rule</a></li>
+    <li><a href="#nsp">Next sentence prediction and why RoBERTa dropped it</a></li>
+    <li><a href="#finetune">Fine-tuning vs feature extraction</a></li>
+    <li><a href="#gpt">GPT and the causal attention pattern</a></li>
+    <li><a href="#encdec">Encoder-decoder (T5, BART, original transformer)</a></li>
+    <li><a href="#why-decoder-won">Why decoder-only eventually won</a></li>
+    <li><a href="#modern">Where things stand now (E5-Mistral, GritLM, unified models)</a></li>
+    <li><a href="#qbank">Interview question bank</a></li>
+  </ol>
+</div>
+
+<h2 id="three-families">1. The three transformer families</h2>
+
+<p>Every large language model in production today descends from one of three architectural families, all originating from the 2017 <em>Attention Is All You Need</em> paper. The difference lies entirely in <strong>which tokens are allowed to attend to which</strong> — the attention mask — and the pretraining objective that mask makes possible.</p>
+
+<div class="diagram">
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg">
+  <text x="107" y="20" text-anchor="middle" fill="#5CE0BF" font-family="SF Mono, monospace" font-size="12">Encoder-only</text>
+  <text x="320" y="20" text-anchor="middle" fill="#FFC46B" font-family="SF Mono, monospace" font-size="12">Decoder-only</text>
+  <text x="533" y="20" text-anchor="middle" fill="#F87171" font-family="SF Mono, monospace" font-size="12">Encoder-decoder</text>
+
+  <!-- Encoder mask: all-visible 4x4 -->
+  <g transform="translate(40, 40)">
+    <rect x="0" y="0" width="30" height="30" fill="#5CE0BF"/><rect x="35" y="0" width="30" height="30" fill="#5CE0BF"/><rect x="70" y="0" width="30" height="30" fill="#5CE0BF"/><rect x="105" y="0" width="30" height="30" fill="#5CE0BF"/>
+    <rect x="0" y="35" width="30" height="30" fill="#5CE0BF"/><rect x="35" y="35" width="30" height="30" fill="#5CE0BF"/><rect x="70" y="35" width="30" height="30" fill="#5CE0BF"/><rect x="105" y="35" width="30" height="30" fill="#5CE0BF"/>
+    <rect x="0" y="70" width="30" height="30" fill="#5CE0BF"/><rect x="35" y="70" width="30" height="30" fill="#5CE0BF"/><rect x="70" y="70" width="30" height="30" fill="#5CE0BF"/><rect x="105" y="70" width="30" height="30" fill="#5CE0BF"/>
+    <rect x="0" y="105" width="30" height="30" fill="#5CE0BF"/><rect x="35" y="105" width="30" height="30" fill="#5CE0BF"/><rect x="70" y="105" width="30" height="30" fill="#5CE0BF"/><rect x="105" y="105" width="30" height="30" fill="#5CE0BF"/>
+  </g>
+  <text x="107" y="200" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="11">every token sees</text>
+  <text x="107" y="215" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="11">every other token</text>
+  <text x="107" y="240" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">BERT, RoBERTa</text>
+
+  <!-- Decoder mask: causal lower triangle -->
+  <g transform="translate(253, 40)">
+    <rect x="0" y="0" width="30" height="30" fill="#FFC46B"/><rect x="35" y="0" width="30" height="30" fill="#2A323C"/><rect x="70" y="0" width="30" height="30" fill="#2A323C"/><rect x="105" y="0" width="30" height="30" fill="#2A323C"/>
+    <rect x="0" y="35" width="30" height="30" fill="#FFC46B"/><rect x="35" y="35" width="30" height="30" fill="#FFC46B"/><rect x="70" y="35" width="30" height="30" fill="#2A323C"/><rect x="105" y="35" width="30" height="30" fill="#2A323C"/>
+    <rect x="0" y="70" width="30" height="30" fill="#FFC46B"/><rect x="35" y="70" width="30" height="30" fill="#FFC46B"/><rect x="70" y="70" width="30" height="30" fill="#FFC46B"/><rect x="105" y="70" width="30" height="30" fill="#2A323C"/>
+    <rect x="0" y="105" width="30" height="30" fill="#FFC46B"/><rect x="35" y="105" width="30" height="30" fill="#FFC46B"/><rect x="70" y="105" width="30" height="30" fill="#FFC46B"/><rect x="105" y="105" width="30" height="30" fill="#FFC46B"/>
+  </g>
+  <text x="320" y="200" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="11">each token sees only</text>
+  <text x="320" y="215" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="11">itself and prior tokens</text>
+  <text x="320" y="240" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">GPT, LLaMA, Mistral</text>
+
+  <!-- Encoder-decoder: full encoder + causal decoder + cross -->
+  <g transform="translate(466, 40)">
+    <rect x="0" y="0" width="30" height="30" fill="#F87171"/><rect x="35" y="0" width="30" height="30" fill="#F87171"/>
+    <rect x="0" y="35" width="30" height="30" fill="#F87171"/><rect x="35" y="35" width="30" height="30" fill="#F87171"/>
+    <rect x="70" y="70" width="30" height="30" fill="#F87171"/><rect x="105" y="70" width="30" height="30" fill="#2A323C"/>
+    <rect x="70" y="105" width="30" height="30" fill="#F87171"/><rect x="105" y="105" width="30" height="30" fill="#F87171"/>
+    <!-- cross arrows shown as small marks -->
+    <text x="52" y="90" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="10">→</text>
+    <text x="52" y="120" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="10">→</text>
+  </g>
+  <text x="533" y="200" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="11">encoder is full-visible,</text>
+  <text x="533" y="215" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="11">decoder is causal + attends to enc</text>
+  <text x="533" y="240" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">T5, BART, original Transformer</text>
+</svg>
+<div class="caption">Attention masks for the three families. Row = query token; column = key token. Coloured cell means "attend."</div>
+</div>
+
+<p>Once you understand these three masks, most architectural choices in the field become derivations from them. The rest of this article is that derivation.</p>
+
+<h2 id="bert-arch">2. BERT — the architecture</h2>
+
+<p>BERT (Devlin et al., 2018) is a stack of Transformer <em>encoder</em> blocks — nothing more. The details:</p>
+
+<ul>
+  <li><strong>BERT-base:</strong> 12 layers, 12 attention heads, hidden size 768, feed-forward size 3072, 110M parameters.</li>
+  <li><strong>BERT-large:</strong> 24 layers, 16 heads, hidden size 1024, feed-forward size 4096, 340M parameters.</li>
+  <li>Max sequence length 512 tokens, learned positional embeddings.</li>
+  <li>WordPiece tokenizer, 30K vocabulary.</li>
+  <li>Two special tokens injected into every input: <code>[CLS]</code> at position 0 (sentence-level aggregator) and <code>[SEP]</code> as a separator between segments.</li>
+</ul>
+
+<p>Every block is the standard: multi-head self-attention → residual + LayerNorm → position-wise feed-forward → residual + LayerNorm. Post-norm placement (Norm after the residual add) — this matters and we'll come back to it in a later post on training stability.</p>
+
+<p>The critical property is <strong>bidirectional attention</strong>: every token attends to every other token, in both directions, at every layer. This is what "encoder" means. A token at position 5 sees what's at position 100 and vice versa, from layer 1 all the way through.</p>
+
+<p>Bidirectional attention gives you rich representations — the meaning of a word depends on both its left and right context, which matches how humans actually parse language. But it makes autoregressive text generation <em>impossible</em>: to generate token $t+1$, you'd need to look at token $t+1$'s future tokens, which don't exist yet. This is why BERT is not a generative model.</p>
+
+<h2 id="mlm">3. Masked language modeling and the 80/10/10 rule</h2>
+
+<p>BERT can't be trained with next-token prediction — the bidirectional attention would leak the answer through the graph. Devlin et al. proposed <strong>masked language modeling (MLM)</strong>: randomly hide some tokens, and ask the model to predict what they were, using the full bidirectional context.</p>
+
+<p>Concretely: for each training example, pick 15% of the tokens uniformly at random. For each selected token, apply one of three transformations:</p>
+
+<div class="callout">
+  <div class="clabel">The 80/10/10 rule</div>
+  <p>Of the 15% of tokens selected for prediction:</p>
+  <ul style="margin-top: 8px;">
+    <li><strong>80%</strong> are replaced with the special <code>[MASK]</code> token.</li>
+    <li><strong>10%</strong> are replaced with a random token from the vocabulary.</li>
+    <li><strong>10%</strong> are left unchanged.</li>
+  </ul>
+  <p style="margin-top: 8px;">In all three cases, the model must predict the <em>original</em> token at that position. The loss is cross-entropy over the vocabulary, computed only at the 15% of positions that were selected.</p>
+</div>
+
+<h3>Why not just always mask?</h3>
+
+<p>The 80/10/10 mix looks like an arbitrary hyperparameter, but it addresses a specific problem: <em>train-test mismatch</em>. At pretraining time, if we always replaced selected tokens with <code>[MASK]</code>, the model would only ever see <code>[MASK]</code> in the special "predict this" position. But at downstream fine-tuning time, there is no <code>[MASK]</code> token in real inputs — the model has to produce useful representations for every position of a normal sentence. If it has only ever been trained to produce useful representations at masked positions, it fails to generalize.</p>
+
+<p>The three-way split fixes this in two ways:</p>
+
+<ol>
+  <li><strong>The 10% "random token" swap</strong> forces the model to actually attend to the surrounding context to decide whether the token at each position is correct — because any token, not just <code>[MASK]</code>, might have been swapped and need to be corrected. This makes the model robust to noise and prevents it from copying its input.</li>
+  <li><strong>The 10% "unchanged" case</strong> ensures the model produces sensible representations at unmodified positions, since those are what it will see at inference time.</li>
+</ol>
+
+<p>Empirically, ablations in the BERT paper showed that always masking (100% <code>[MASK]</code>) gave slightly worse fine-tuning performance. The 80/10/10 mix was chosen from these ablations, not from theory.</p>
+
+<h3>Why 15%?</h3>
+
+<p>Also empirical. Mask too little (e.g. 5%) and the model has too few prediction targets per example — training is inefficient because you burn compute on a full forward pass and only supervise 5% of positions. Mask too much (e.g. 50%) and the remaining context is too sparse to reliably predict the missing tokens; the model can't learn coherent representations because the input becomes noise. 15% was the sweet spot on their benchmarks.</p>
+
+<p>Interestingly, follow-up work (Wettig et al. 2022, "Should You Mask 15% in Masked Language Modeling?") showed that for <em>larger</em> models with sufficient compute, higher masking rates (up to 40%) actually work better. The 15% number is not universal — it's tied to BERT's scale.</p>
+
+<h3>The MLM loss formally</h3>
+
+<p>Let $x = (x_1, \ldots, x_T)$ be the input sequence. Let $\mathcal{M} \subset \{1, \ldots, T\}$ be the set of positions selected for masking. Let $\tilde{x}$ be the corrupted input (with the 80/10/10 rule applied at each position in $\mathcal{M}$). The MLM loss is:</p>
+
+<div class="math-display">
+$$\mathcal{L}_{\text{MLM}} = -\sum_{i \in \mathcal{M}} \log P_\theta(x_i \mid \tilde{x})$$
+</div>
+
+<p>where $P_\theta(x_i \mid \tilde{x})$ is the softmax output at position $i$ from the BERT model with parameters $\theta$, evaluated at the true (original) token $x_i$. Positions outside $\mathcal{M}$ do not contribute to the loss even though the model produces predictions there.</p>
+
+<h2 id="nsp">4. Next sentence prediction and why RoBERTa dropped it</h2>
+
+<p>The BERT paper introduced a second pretraining objective: <strong>next sentence prediction (NSP)</strong>. For each training example, sample two sentences $A$ and $B$. With 50% probability, $B$ is the sentence that actually follows $A$ in the source document (label: <code>IsNext</code>). With 50% probability, $B$ is a random sentence from a random document (label: <code>NotNext</code>). Concatenate them as <code>[CLS] A [SEP] B [SEP]</code> and train a binary classifier on the final <code>[CLS]</code> representation.</p>
+
+<p>The stated goal was to learn sentence-level relationships that MLM alone wouldn't capture — useful for downstream tasks like question answering and natural language inference where the model needs to reason across sentence pairs.</p>
+
+<h3>Why RoBERTa (and everyone since) dropped NSP</h3>
+
+<p>Liu et al. (2019) published RoBERTa — "Robustly optimized BERT approach" — which trained BERT more carefully and studied each of its components. Their finding on NSP was blunt: <strong>NSP hurts, or at best does nothing</strong>. Removing it and instead training on longer contiguous spans of text produced better downstream performance across the board.</p>
+
+<p>Why did NSP not work?</p>
+
+<ol>
+  <li><strong>The task is trivially easy in the wrong way.</strong> A random sentence from a random document usually differs from $A$ in <em>topic</em> — not just in "does this actually follow $A$." A classifier can solve most NSP examples by detecting topical mismatch, which is a much weaker skill than actually understanding sentence continuity. The signal is contaminated.</li>
+  <li><strong>It competes with MLM for capacity.</strong> NSP takes model capacity that could go to better MLM. Since MLM is already doing sentence-level modeling implicitly (via the full context), NSP is largely redundant.</li>
+  <li><strong>It halves effective context length.</strong> NSP requires two shorter segments (each fitting in half the max seq length) instead of one full-length contiguous span. Longer contiguous training text is empirically more valuable than paired segments.</li>
+</ol>
+
+<p>Later work (ALBERT, 2019) replaced NSP with <strong>sentence-order prediction (SOP)</strong>: same setup but the negative is $B$ then $A$ (swapped order from the true continuation), so the model can't cheat via topic. SOP worked better than NSP. But the field's consensus is that pure MLM on long contiguous spans is enough, and neither NSP nor SOP is used in modern encoder pretraining.</p>
+
+<h2 id="finetune">5. Fine-tuning vs feature extraction</h2>
+
+<p>Once BERT is pretrained, there are two ways to use it for a downstream task:</p>
+
+<h3>Fine-tuning</h3>
+
+<p>Add a small task-specific head (typically a single linear layer) on top of BERT's output. For classification, take the <code>[CLS]</code> representation and pass it through the head. For token-level tasks (NER, extractive QA), pass every token's final-layer representation through a per-token head. Train the entire network — BERT weights and the head — end-to-end on the downstream task with a small learning rate (typically 2e-5 to 5e-5) for a few epochs (3-5 is standard).</p>
+
+<p>Fine-tuning is the default approach in the BERT paper and gives the best downstream performance in most cases. The cost is that you produce a separate 110M-parameter model per task — expensive to store and serve.</p>
+
+<h3>Feature extraction</h3>
+
+<p>Treat BERT as a frozen embedding model. Run each input through BERT, extract representations (typically from the last hidden layer, or a concatenation of the last four), and train a small downstream model on those features. BERT itself is never updated.</p>
+
+<p>This gives up 1-3 points of downstream accuracy compared to fine-tuning but has real advantages: one BERT model serves all tasks, features can be precomputed and cached, and you don't need to store per-task fine-tuned copies. This is the approach used in most production embedding-based retrieval systems — you fine-tune BERT once (usually with contrastive learning), then use it as a fixed feature extractor.</p>
+
+<h3>Modern middle ground: parameter-efficient fine-tuning</h3>
+
+<p>LoRA, adapters, prefix tuning, and prompt tuning let you fine-tune with a small number of additional parameters per task while keeping the base model frozen. For BERT-scale models, full fine-tuning is often the simpler choice. For very large models (7B+), parameter-efficient methods are the norm because full fine-tuning is prohibitive.</p>
+
+<h2 id="gpt">6. GPT and the causal attention pattern</h2>
+
+<p>GPT (Radford et al., 2018) predates BERT by a few months and takes the opposite architectural choice: stack Transformer <em>decoder</em> blocks (without the cross-attention layers of the original Transformer decoder, which had none to attend to), and use a <strong>causal attention mask</strong>.</p>
+
+<p>The causal mask restricts each token to attend only to itself and earlier positions. Concretely, in the attention computation $\text{softmax}(QK^\top / \sqrt{d})V$, the matrix $QK^\top$ is masked by setting all entries above the diagonal to $-\infty$ before the softmax:</p>
+
+<div class="math-display">
+$$\text{mask}_{ij} = \begin{cases} 0 & \text{if } j \leq i \\ -\infty & \text{if } j > i \end{cases}$$
+</div>
+
+<p>After the softmax, all "future" attention weights become zero. This makes the attention computation strictly left-to-right — position $i$ never sees position $j > i$.</p>
+
+<p>The pretraining objective is standard next-token prediction (also called causal language modeling, CLM):</p>
+
+<div class="math-display">
+$$\mathcal{L}_{\text{CLM}} = -\sum_{t=1}^{T} \log P_\theta(x_t \mid x_{<t})$$
+</div>
+
+<p>Every position of the sequence contributes to the loss simultaneously (because the causal mask ensures that the prediction at position $t$ doesn't leak $x_t$ itself). This is a large training efficiency win over MLM, which only supervises 15% of positions.</p>
+
+<h3>What the causal mask costs</h3>
+
+<p>The causal mask cuts representation quality per parameter. A bidirectional encoder can use both left and right context to represent a token's meaning; a causal decoder can only use left context. Empirically, at equal parameter count, an encoder tends to produce more useful features for classification/retrieval tasks (this is the "encoder advantage" that made BERT dominant for a long time).</p>
+
+<h3>What the causal mask buys</h3>
+
+<p>Generation. Because each position only depends on earlier positions, you can generate tokens autoregressively: sample $x_1$, feed it back, sample $x_2$ conditional on $x_1$, and so on. And crucially, you can generate the entire training loss for a sequence in a <em>single forward pass</em> — all $T$ predictions happen in parallel because the causal mask prevents leakage. This is why decoder-only models can be trained on huge amounts of unfiltered text efficiently.</p>
+
+<h2 id="encdec">7. Encoder-decoder (T5, BART, original transformer)</h2>
+
+<p>The original 2017 Transformer was neither encoder-only nor decoder-only — it was a translation model, so it had both. The encoder processed the source sentence with full bidirectional attention; the decoder generated the target sentence with causal self-attention plus <em>cross-attention</em> to the encoder's output.</p>
+
+<p>Cross-attention is the key extra mechanism: in the decoder, after each causal self-attention layer, there's an additional attention layer whose queries come from the decoder and whose keys/values come from the encoder. This lets each decoder position attend to any encoder position — bidirectionally, since the encoder mask is unrestricted.</p>
+
+<div class="diagram">
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#F87171"/>
+    </marker>
+  </defs>
+
+  <rect x="40" y="30" width="200" height="30" rx="4" fill="#232B36" stroke="#5CE0BF"/>
+  <text x="140" y="50" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="12">source: "the cat sat"</text>
+
+  <rect x="40" y="90" width="200" height="70" rx="4" fill="#1A2029" stroke="#5CE0BF"/>
+  <text x="140" y="115" text-anchor="middle" fill="#5CE0BF" font-family="SF Mono, monospace" font-size="12">encoder stack</text>
+  <text x="140" y="135" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">bidirectional attention</text>
+  <text x="140" y="150" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">no mask</text>
+
+  <rect x="60" y="185" width="160" height="30" rx="4" fill="#5CE0BF"/>
+  <text x="140" y="205" text-anchor="middle" fill="#0F1419" font-family="SF Mono, monospace" font-size="11">encoder outputs (K, V)</text>
+
+  <rect x="400" y="30" width="200" height="30" rx="4" fill="#232B36" stroke="#FFC46B"/>
+  <text x="500" y="50" text-anchor="middle" fill="#E8EDF2" font-family="SF Mono, monospace" font-size="12">target: "le chat s'est assis"</text>
+
+  <rect x="400" y="90" width="200" height="100" rx="4" fill="#1A2029" stroke="#FFC46B"/>
+  <text x="500" y="115" text-anchor="middle" fill="#FFC46B" font-family="SF Mono, monospace" font-size="12">decoder stack</text>
+  <text x="500" y="135" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">1. causal self-attention</text>
+  <text x="500" y="150" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">2. cross-attn to encoder</text>
+  <text x="500" y="165" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">3. FFN</text>
+
+  <rect x="420" y="215" width="160" height="25" rx="4" fill="#FFC46B"/>
+  <text x="500" y="232" text-anchor="middle" fill="#0F1419" font-family="SF Mono, monospace" font-size="11">next-token predictions</text>
+
+  <!-- cross-attn arrow -->
+  <path d="M 220 200 Q 320 200 400 145" stroke="#F87171" stroke-width="2" fill="none" marker-end="url(#ar3)"/>
+  <text x="315" y="185" text-anchor="middle" fill="#F87171" font-family="SF Mono, monospace" font-size="10">cross-attn</text>
+</svg>
+<div class="caption">Encoder-decoder: source is encoded bidirectionally, decoder attends to it causally.</div>
+</div>
+
+<p><strong>T5</strong> (Raffel et al., 2020) took this architecture and generalized it: reformulate every NLP task as text-to-text ("translate English to German: ...", "summarize: ..."), train one encoder-decoder model to do everything. Pretraining used a "span corruption" variant of MLM: mask contiguous spans (not individual tokens), replace each span with a single sentinel token, and train the decoder to output the missing spans in order.</p>
+
+<p><strong>BART</strong> (Lewis et al., 2019) is similar in spirit: encoder-decoder trained with a denoising objective (shuffle, mask, delete tokens; reconstruct the original).</p>
+
+<h3>When encoder-decoder makes sense</h3>
+
+<p>Sequence-to-sequence problems where input and output have <em>different structure</em>: translation, summarization, structured output generation (semantic parsing, code from text). The clean separation between "understanding the input" (encoder) and "generating the output" (decoder) matches the task shape.</p>
+
+<p>For plain autoregressive generation (chat, story completion, code completion), an encoder-decoder is architectural overhead — a decoder-only can prepend the input to its context and continue generating, achieving the same effect with half the parameter budget devoted to a single stack.</p>
+
+<h2 id="why-decoder-won">8. Why decoder-only eventually won</h2>
+
+<p>For a period from 2019 to about 2022, the field was split. BERT-family encoders dominated classification and retrieval; T5-family encoder-decoders dominated seq2seq; GPT-family decoders dominated open-ended generation. The current situation is very different: nearly every frontier LLM (GPT-4, Claude, Gemini, LLaMA, Mistral) is decoder-only, and this has trickled down into embedding models too (E5-Mistral, NV-Embed, GritLM all use decoder backbones).</p>
+
+<p>Why the consolidation?</p>
+
+<h3>Training efficiency at scale</h3>
+
+<p>Decoder-only CLM supervises every token in every example. Encoder MLM supervises 15%. When you're training on trillions of tokens, that 6-7× difference in supervision efficiency compounds — decoder training simply extracts more gradient signal per token processed.</p>
+
+<h3>The unified interface</h3>
+
+<p>Any task can be posed as "given this prompt, generate the answer." Classification: "Is this review positive or negative? Review: ... Answer:". Retrieval: "What is a good passage to answer this question? Question: ... Passage:". Translation: "Translate to French: ...". This "everything is text generation" framing simplifies infrastructure — one model, one inference path, one training pipeline — and eliminates the need for task-specific heads.</p>
+
+<h3>In-context learning emerges from scale</h3>
+
+<p>GPT-3 showed that at sufficient scale, decoder-only models learn to perform tasks from examples in the prompt without gradient updates. This capability appears less strongly in encoder-only or encoder-decoder models at equivalent scales. The exact reason is still debated, but the practical consequence is enormous: one pretrained model can be applied to millions of tasks without any fine-tuning.</p>
+
+<h3>Long context extrapolation</h3>
+
+<p>Encoder models with learned positional embeddings are hard-limited to their training-time max sequence length (512 for BERT). Decoder models with modern positional schemes — RoPE, ALiBi — extrapolate beyond training length. Combined with sliding window attention and other tricks, decoders now handle contexts of 100K+ tokens routinely. This matters enormously for retrieval and agent applications.</p>
+
+<h3>Better representations at very large scale</h3>
+
+<p>Historically encoders were considered better feature extractors at equal parameter count. But at 7B+ parameters, decoder models trained on trillions of tokens produce embeddings that beat carefully-tuned encoders on the MTEB benchmark. E5-Mistral-7B and NV-Embed showed that a decoder LLM plus a small amount of contrastive fine-tuning yields SOTA embeddings. The scale of pretraining compensates for the causal-mask handicap.</p>
+
+<div class="callout warn">
+  <div class="clabel">The nuance for retrieval interviews</div>
+  <p>The decoder-embedding shift is real but not universal. BERT-base (110M) is still the right choice for many production retrieval systems because it's cheap, well-understood, and adequate. Decoder-based embedders (7B) win on MTEB but cost 60× more to serve. Which one is appropriate depends on the latency budget and the quality-per-dollar target of the specific application. A LinkedIn interviewer will probably want to hear you name both regimes and explain when each is right.</p>
+</div>
+
+<h2 id="modern">9. Where things stand now</h2>
+
+<p>A few converging trends worth naming in an interview:</p>
+
+<h3>Unified generative + embedding models</h3>
+
+<p>GritLM (Muennighoff et al., 2024) trains a single decoder-only model to do <em>both</em> instruction-following generation and embedding, controlled by an "embedding mode" or "generative mode" flag. This started as a research curiosity but has become a production pattern — one model, two capabilities, shared infrastructure.</p>
+
+<h3>Decoder LLMs as offline judges / labelers</h3>
+
+<p>Even when the serving model is a small encoder, the training labels increasingly come from large LLMs used offline. Pinterest, LinkedIn (MixLM), Walmart, eBay have all published on distillation from LLM teachers. Encoder models remain the deployed system; decoders are the label factories.</p>
+
+<h3>MixLM and hybrid online architectures</h3>
+
+<p>LinkedIn's MixLM keeps a decoder LLM online for ranking but has it operate on precomputed embedding tokens (1-2 per candidate) rather than raw text. This is a specific answer to the encoder/decoder question: use the decoder's cross-attention over a short compressed sequence, not over the full item text. Recovers most of the quality of a full cross-encoder at bi-encoder-like throughput.</p>
+
+<h3>Encoder-decoder is the shrinking middle</h3>
+
+<p>T5 was a great research idea and is still used in some production systems (Google's T5X, some translation systems). But it's a minority. New model families are almost never encoder-decoder — decoder-only has eaten most of that ground because "prepend the input to the context" is architecturally simpler and, at scale, works just as well.</p>
+
+<h1 class="qbank-header" id="qbank">Interview question bank</h1>
+<p style="color: var(--ink-2); margin-bottom: 40px;">These questions test the specific claims BERT-related interviews probe on. The "why RoBERTa dropped NSP" and "explain the 80/10/10 rule" questions come up almost verbatim in LinkedIn ML loops.</p>
+
+<div class="iq">
+  <div class="qlabel">Question 1 · Fundamentals</div>
+  <div class="qtext">What is BERT? Walk me through the architecture.</div>
+  <div class="qans">
+    <p>BERT (Bidirectional Encoder Representations from Transformers) is a stack of Transformer encoder blocks — bidirectional self-attention, no causal masking. BERT-base has 12 layers, 12 heads, hidden size 768, ~110M params. Max sequence 512 tokens with learned positional embeddings. Two special tokens: <code>[CLS]</code> at position 0 for sentence-level aggregation, <code>[SEP]</code> as a separator between segments. Every encoder block is standard: multi-head self-attention → residual + LayerNorm → position-wise FFN → residual + LayerNorm, post-norm placement.</p>
+    <p>Pretraining uses masked language modeling (MLM) on unlabeled text, optionally with next sentence prediction (NSP) — though NSP is now known to hurt and modern encoders drop it. Fine-tuned by adding a small task head and training end-to-end.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 2 · MLM</div>
+  <div class="qtext">Explain the 80/10/10 masking rule. Why not just always use [MASK]?</div>
+  <div class="qans">
+    <p>For each training example, 15% of tokens are selected for prediction. Of those: 80% are replaced with <code>[MASK]</code>, 10% are replaced with a random vocabulary token, 10% are left unchanged. In all three cases the model must predict the <em>original</em> token.</p>
+    <p>The reason not to always mask is <strong>train-test mismatch</strong>. At pretraining time, if the model only ever saw <code>[MASK]</code> in predict-this positions, it would produce useful representations only for <code>[MASK]</code> tokens. But downstream inputs at fine-tuning and inference time have <em>no</em> <code>[MASK]</code> tokens — the model needs to produce useful representations for every position of a normal sentence.</p>
+    <p>The 10% random-swap serves an additional purpose: it forces the model to actually attend to context to check whether each token is correct, because any token might have been swapped. This regularizes against the model just copying its input at unmasked positions.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 3 · MLM</div>
+  <div class="qtext">Why 15%? Would a higher masking rate work better?</div>
+  <div class="qans">
+    <p>15% was chosen empirically in the BERT paper as a sweet spot between two failure modes: too little masking wastes compute (a full forward pass is expensive; supervising only 5% of positions gives few training signals), and too much masking leaves too-sparse context to reliably predict from (the input becomes noise).</p>
+    <p>Interestingly, Wettig et al. (2022) showed that for <em>larger</em> models with more compute, higher masking rates (up to 40%) actually work better. The intuition is that a larger model can extract information from sparser context, and the compute-per-example savings dominate. So 15% is BERT-specific, not universal — modern encoders often use higher rates.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 4 · NSP</div>
+  <div class="qtext">What is next sentence prediction? Why did RoBERTa drop it?</div>
+  <div class="qans">
+    <p>NSP is a binary classification task added to BERT's pretraining. Two segments $A$ and $B$ are concatenated as <code>[CLS] A [SEP] B [SEP]</code>. Half the time, $B$ is the sentence that actually follows $A$ in the source document (<code>IsNext</code>). Half the time, $B$ is a random sentence from a random document (<code>NotNext</code>). A classifier is trained on the <code>[CLS]</code> representation to predict which case it is.</p>
+    <p>RoBERTa (Liu et al. 2019) systematically ablated BERT's components and found NSP was actively hurting downstream performance. Three reasons:</p>
+    <p>(1) The task is trivially solvable via <em>topic detection</em> — a random sentence from a random document usually differs from $A$ in topic, so the model learns to detect topical mismatch rather than sentence continuity. The signal is contaminated.</p>
+    <p>(2) NSP competes with MLM for model capacity, and MLM was already doing sentence-level modeling implicitly.</p>
+    <p>(3) NSP requires two segments each fitting in half the max sequence length, effectively halving contiguous context. Training on longer contiguous spans of text is empirically more valuable.</p>
+    <p>ALBERT later proposed sentence-order prediction (SOP) as a fix — same setup but the negative is $B$ then $A$ (swapped), so topic detection can't cheat. SOP works better than NSP, but the modern consensus is pure MLM on long contiguous spans is enough.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 5 · Architecture</div>
+  <div class="qtext">What's the difference between BERT and GPT architecturally?</div>
+  <div class="qans">
+    <p>Same underlying block (multi-head self-attention → residual + LayerNorm → FFN → residual + LayerNorm). The difference is the <strong>attention mask</strong>. BERT is <em>bidirectional</em> — every token attends to every other token in both directions. GPT is <em>causal</em> — each token attends only to itself and prior tokens; future positions are masked out with $-\infty$ before the softmax.</p>
+    <p>This one architectural choice cascades into everything else:</p>
+    <p><strong>Pretraining objective.</strong> BERT can't do next-token prediction (bidirectional attention leaks the answer), so it uses MLM. GPT can (causal mask prevents leakage), so it uses standard CLM which supervises every token instead of 15%.</p>
+    <p><strong>Generation.</strong> GPT can generate autoregressively; BERT cannot (bidirectional attention has no notion of "future").</p>
+    <p><strong>Representations.</strong> BERT's representations use both left and right context — richer per parameter, better for classification/retrieval. GPT's use only left context — worse per parameter, but this handicap is overcome at very large scale.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 6 · Fine-tuning</div>
+  <div class="qtext">Fine-tuning vs feature extraction — when do you use each?</div>
+  <div class="qans">
+    <p><strong>Fine-tuning:</strong> add a task-specific head, train the whole network end-to-end on the downstream task. Best per-task accuracy. Downside: one 110M-param model per task to store and serve. Use when you're deploying a single high-value classifier or want maximum per-task quality.</p>
+    <p><strong>Feature extraction:</strong> freeze BERT, extract embeddings from the last layer (or concatenation of last four), train a small model on those. Loses 1-3 points of accuracy vs fine-tuning but one model serves all tasks; features can be cached; deployment is cheap. Use when you need to serve many tasks or want to precompute item embeddings for retrieval.</p>
+    <p><strong>Middle ground:</strong> parameter-efficient fine-tuning (LoRA, adapters, prefix tuning). Train a small number of extra parameters per task while keeping the base model frozen. Best of both worlds for large models where full FT is prohibitive.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 7 · Encoder-decoder</div>
+  <div class="qtext">What's the difference between BERT, GPT, and T5?</div>
+  <div class="qans">
+    <p>All three are Transformers; the difference is which stacks they use and what their attention masks allow.</p>
+    <p><strong>BERT</strong> — encoder-only stack, bidirectional attention. Trained with MLM. Good for classification and feature extraction. Cannot generate text autoregressively.</p>
+    <p><strong>GPT</strong> — decoder-only stack, causal attention. Trained with next-token prediction. Good for generation. Can be used for classification via prompting but historically underperforms BERT on discriminative tasks per-parameter.</p>
+    <p><strong>T5</strong> — full encoder-decoder. Encoder uses bidirectional attention on the input; decoder uses causal self-attention plus cross-attention to encoder outputs. Trained with span-corruption MLM (mask contiguous spans, reconstruct them). Best fit for sequence-to-sequence tasks where input and output have different structure — translation, summarization, structured output.</p>
+    <p>Modern frontier LLMs are almost all decoder-only. Encoder-only survives in production retrieval; encoder-decoder mostly survives in translation and some structured-output tasks.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 8 · Trends</div>
+  <div class="qtext">Why did the field move from encoder-only to decoder-only models even for embedding tasks?</div>
+  <div class="qans">
+    <p>Four converging reasons:</p>
+    <p>(1) <strong>Training efficiency.</strong> Decoder CLM supervises every token; encoder MLM supervises 15%. On trillion-token corpora, that's a 6-7× difference in gradient signal per compute — decoders learn from far more supervision.</p>
+    <p>(2) <strong>Scale.</strong> The largest and most heavily pretrained models are all decoders. At 7B parameters, a decoder trained on trillions of tokens produces embeddings that beat carefully-tuned smaller encoders — the compute wins over the causal-mask handicap. E5-Mistral-7B, NV-Embed, GritLM show this on MTEB.</p>
+    <p>(3) <strong>Unified interface.</strong> Every task can be posed as "given this prompt, generate the answer." One model handles retrieval, classification, generation, and translation — simpler infrastructure, no per-task heads.</p>
+    <p>(4) <strong>Long context.</strong> Modern positional schemes (RoPE, ALiBi) let decoders extrapolate to context lengths far beyond training. Encoders with learned positional embeddings are stuck at their training-time max (512 for BERT).</p>
+    <p>Important nuance: this doesn't mean BERT is obsolete. BERT-base at 110M is still the right choice for many production retrieval systems because it's 60× cheaper to serve than a 7B decoder. The quality-per-dollar tradeoff still favors small encoders at high QPS.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 9 · Formal</div>
+  <div class="qtext">Write down the MLM loss.</div>
+  <div class="qans">
+    <p>Let $x = (x_1, \ldots, x_T)$ be the input token sequence, $\mathcal{M} \subset \{1, \ldots, T\}$ the set of masked positions (typically 15% of positions, sampled uniformly), and $\tilde{x}$ the corrupted input after applying the 80/10/10 rule at each position in $\mathcal{M}$.</p>
+    <p>$\mathcal{L}_{\text{MLM}}(\theta) = -\sum_{i \in \mathcal{M}} \log P_\theta(x_i \mid \tilde{x})$</p>
+    <p>where $P_\theta(x_i \mid \tilde{x})$ is the softmax output at position $i$, evaluated at the original (pre-corruption) token. Positions outside $\mathcal{M}$ don't contribute to the loss even though the model produces predictions there. Averaged across the batch and over training steps, this is the standard MLM training objective.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 10 · Depth</div>
+  <div class="qtext">Why do we need the [CLS] token? Isn't averaging the token embeddings enough?</div>
+  <div class="qans">
+    <p><code>[CLS]</code> was designed as a dedicated position that BERT would learn to use as a sentence-level aggregator during pretraining (specifically because NSP trained a classifier on the <code>[CLS]</code> output). The idea: give the model a "workspace" that has no linguistic content of its own but can be shaped to hold whatever aggregate representation the pretraining objectives need.</p>
+    <p>Empirically, for tasks the model was pretrained to solve on <code>[CLS]</code> (classification via fine-tuning), the <code>[CLS]</code> vector works well. But for tasks the model was <em>not</em> pretrained on — including sentence similarity — mean pooling over all token embeddings outperforms <code>[CLS]</code> by a wide margin off-the-shelf. This is Sentence-BERT's key finding: for retrieval, mean pool the tokens; don't use <code>[CLS]</code>.</p>
+    <p>The general principle: <code>[CLS]</code> is only useful if the pretraining or fine-tuning objective explicitly trained it. Without that, it's just an arbitrary position.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 11 · Retrieval-specific</div>
+  <div class="qtext">Why is BERT still competitive for retrieval when decoder LLMs beat it on MTEB?</div>
+  <div class="qans">
+    <p>MTEB is a benchmark; production serving is a cost surface. BERT-base is 110M parameters and runs a query encoding in single-digit milliseconds on a modest GPU. E5-Mistral-7B produces better embeddings but is 60× larger — you pay 60× the compute per query encoding, and your ANN index takes 4-8× more storage due to higher embedding dimensionality.</p>
+    <p>For applications with strict latency budgets and high QPS (LinkedIn feed candidate generation, PYMK), the quality gap doesn't justify the cost gap. BERT-based retrieval with well-designed hard-negative mining and contrastive fine-tuning is often within a few points of much larger models on the specific task, at a fraction of the serving cost.</p>
+    <p>The picture is different when compute is cheap (offline labeling, low-QPS analytics) — there the decoder-based embedders are winning. And distillation lets you have both: use the 7B model offline to generate training labels, then distill into a small BERT for online serving. Pinterest, LinkedIn, and others all do variants of this.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 12 · Modern context</div>
+  <div class="qtext">What is MixLM and why is it interesting?</div>
+  <div class="qans">
+    <p>MixLM (Behdin et al., LinkedIn 2025) is a hybrid architecture for large-scale ranking that lands between bi-encoder and cross-encoder. Instead of encoding each candidate document with a full LLM at query time (too expensive), or encoding it into a single vector and just doing dot product (loses too much information), MixLM does this:</p>
+    <p>(1) Offline: an encoder LLM compresses each candidate (e.g., a job posting, ~900 tokens) into 1-2 <em>embedding tokens</em>. These are stored in a nearline cache.</p>
+    <p>(2) Online: the ranker LLM processes the query text concatenated with the cached embedding tokens for a candidate. Full cross-attention runs over this short sequence.</p>
+    <p>The clever part: cross-attention gives you the quality of a cross-encoder, but the sequence length the online LLM processes is much shorter (query + a couple of embedding tokens, instead of query + full document text). LinkedIn reported 75× throughput vs full-text LLM ranking with only ~1.8 NDCG points lost, enabling their first full-traffic LLM-powered semantic search deployment for jobs.</p>
+    <p>The architectural principle worth naming in an interview: rather than choosing between two-tower (cheap, lossy) and cross-encoder (expensive, accurate), you can <em>precompute item representations offline</em> and then do cross-attention online over a compressed sequence. This pattern generalizes beyond retrieval — it's the same idea BLIP-2 and LLaVA use for multimodal grounding.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 13 · Cross-cutting</div>
+  <div class="qtext">If you were building a retrieval system from scratch today, would you start with BERT or an LLM-based embedder?</div>
+  <div class="qans">
+    <p>Depends on the serving constraint and the labeling budget. My starting decision tree:</p>
+    <p><strong>Latency budget &lt; 30ms end-to-end at &gt; 1K QPS:</strong> BERT-base or a small (100-300M) encoder. LLM embedders are too expensive at this budget.</p>
+    <p><strong>Latency budget looser, quality is dominant concern:</strong> use a decoder embedder like E5-Mistral-7B or NV-Embed. You'll get MTEB-competitive quality out of the box with a few thousand labeled pairs.</p>
+    <p><strong>Best of both:</strong> use the LLM embedder offline as a teacher / label source. Distill into a smaller BERT-family encoder for online serving. This is the pattern LinkedIn, Pinterest, Walmart, and eBay have all published on.</p>
+    <p>I'd also always plan for the two-stage pattern from day one: the retriever's job is <em>recall</em> (get relevant items into a candidate set of size 100-1000). A downstream reranker (small cross-encoder or MixLM-style hybrid) handles precision at the top. Trying to make one bi-encoder do both jobs is a common mistake — the loss function pulls in incompatible directions.</p>
+  </div>
+</div>
+
+<h2>Further reading</h2>
+<ul>
+  <li>Devlin et al. (2018). "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding."</li>
+  <li>Liu et al. (2019). "RoBERTa: A Robustly Optimized BERT Pretraining Approach." — the NSP-hurts paper.</li>
+  <li>Lan et al. (2019). "ALBERT" — SOP as an NSP replacement.</li>
+  <li>Wettig et al. (2022). "Should You Mask 15% in Masked Language Modeling?"</li>
+  <li>Raffel et al. (2020). "Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer" (T5).</li>
+  <li>Lewis et al. (2019). "BART."</li>
+  <li>Radford et al. (2018, 2019, 2020). GPT-1/2/3 papers.</li>
+  <li>Wang et al. (2024). "E5-Mistral" — decoder-based state-of-the-art embeddings.</li>
+  <li>Muennighoff et al. (2024). "GritLM" — unified embedding + generation.</li>
+  <li>Reimers &amp; Gurevych (2019). "Sentence-BERT" — mean pooling beats [CLS] for similarity.</li>
+</ul>
+
+</main>
+</body>
+</html>

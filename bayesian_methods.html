@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bayesian Methods for Machine Learning</title>
+<script>
+  MathJax = {
+    tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$'], ['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg: #0F1419;
+    --card: #1A2029;
+    --ink: #E8EDF2;
+    --ink-2: #9AA6B2;
+    --ink-3: #5A6672;
+    --rule: #2A323C;
+    --accent: #5CE0BF;
+    --amber: #FFC46B;
+    --danger: #F87171;
+    --link: #7DD3FC;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+    --serif: Georgia, "Iowan Old Style", serif;
+    --mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --radius: 4px;
+    --maxw: 780px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.65; margin: 0; padding: 40px 20px 120px; }
+  main { max-width: var(--maxw); margin: 0 auto; }
+  h1 { font-family: var(--serif); font-size: 38px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 12px; color: #fff; }
+  h2 { font-family: var(--serif); font-size: 26px; letter-spacing: -0.01em; margin: 56px 0 14px; color: #fff; border-top: 1px solid var(--rule); padding-top: 40px; }
+  h3 { font-family: var(--sans); font-size: 18px; font-weight: 600; margin: 32px 0 10px; color: var(--accent); letter-spacing: 0.01em; }
+  h4 { font-family: var(--sans); font-size: 15px; font-weight: 600; margin: 22px 0 8px; color: var(--amber); text-transform: uppercase; letter-spacing: 0.06em; }
+  p { margin: 0 0 16px; }
+  a { color: var(--link); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.15s; }
+  a:hover { border-bottom-color: var(--link); }
+  strong { color: #fff; font-weight: 600; }
+  code { font-family: var(--mono); font-size: 13.5px; background: #232B36; padding: 1px 6px; border-radius: 3px; color: var(--amber); }
+  .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .subtitle { font-family: var(--sans); font-size: 17px; color: var(--ink-2); line-height: 1.5; margin: 8px 0 40px; max-width: 620px; }
+  ul, ol { margin: 0 0 18px; padding-left: 24px; }
+  li { margin-bottom: 6px; }
+  .callout { background: var(--card); border-left: 3px solid var(--accent); padding: 16px 20px; margin: 24px 0; border-radius: 0 var(--radius) var(--radius) 0; }
+  .callout.warn { border-left-color: var(--amber); }
+  .callout.danger { border-left-color: var(--danger); }
+  .callout .clabel { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 8px; }
+  .callout.warn .clabel { color: var(--amber); }
+  .callout.danger .clabel { color: var(--danger); }
+  .callout p:last-child { margin-bottom: 0; }
+  .iq { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; }
+  .iq .qlabel { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--amber); margin-bottom: 8px; }
+  .iq .qtext { font-family: var(--serif); font-size: 17px; line-height: 1.45; color: #fff; margin-bottom: 14px; }
+  .iq .qans { font-size: 15px; color: var(--ink); line-height: 1.6; }
+  .iq .qans p:last-child { margin-bottom: 0; }
+  .diagram { background: var(--card); border-radius: var(--radius); padding: 20px 16px 12px; margin: 24px 0; text-align: center; }
+  .diagram svg { max-width: 100%; height: auto; }
+  .diagram .caption { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); margin-top: 10px; letter-spacing: 0.04em; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); border-bottom: 1px solid var(--ink-3); }
+  .toc { background: var(--card); border-radius: var(--radius); padding: 18px 22px; margin: 32px 0 48px; }
+  .toc .tlabel { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); margin-bottom: 10px; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin-bottom: 3px; font-size: 15px; }
+  .qbank-header { font-family: var(--serif); font-size: 30px; letter-spacing: -0.01em; margin: 80px 0 8px; color: #fff; padding-top: 40px; border-top: 1px solid var(--rule); }
+  .math-display { margin: 14px 0; overflow-x: auto; }
+  .worked { background: #14181f; border: 1px dashed var(--rule); padding: 14px 18px; border-radius: var(--radius); margin: 18px 0; font-size: 14.5px; }
+  .worked .wlabel { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); margin-bottom: 8px; }
+  @media (max-width: 620px) { body { padding: 24px 16px 80px; font-size: 15.5px; } h1 { font-size: 30px; } h2 { font-size: 22px; margin-top: 44px; padding-top: 30px; } .subtitle { font-size: 16px; } }
+</style>
+</head>
+<body>
+<main>
+
+<div class="meta">Probabilistic ML · Deep dive · 35 min read</div>
+<h1>Bayesian Methods for Machine Learning</h1>
+<p class="subtitle">From Bayes' theorem to Gaussian processes to Bayesian optimization — the probabilistic view of learning, why regularization is Bayesian in disguise, and when to reach for these tools in production.</p>
+
+<div class="toc">
+  <div class="tlabel">Contents</div>
+  <ol>
+    <li><a href="#why">Why Bayesian thinking matters</a></li>
+    <li><a href="#bayes">Bayes' theorem and vocabulary</a></li>
+    <li><a href="#mle-map-full">MLE, MAP, and full Bayesian — three levels of commitment</a></li>
+    <li><a href="#regularization">Regularization is MAP in disguise</a></li>
+    <li><a href="#naive-bayes">Naive Bayes classifier</a></li>
+    <li><a href="#blr">Bayesian linear regression — full derivation</a></li>
+    <li><a href="#priors">Priors: choosing them, conjugate priors, informativeness</a></li>
+    <li><a href="#inference">Approximate inference: MCMC and variational inference</a></li>
+    <li><a href="#gp">Gaussian processes</a></li>
+    <li><a href="#bnn">Bayesian neural networks and dropout as approximate Bayesian inference</a></li>
+    <li><a href="#bo">Bayesian optimization for hyperparameter tuning</a></li>
+    <li><a href="#when">When to actually use Bayesian methods</a></li>
+    <li><a href="#qbank">Interview question bank</a></li>
+  </ol>
+</div>
+
+<h2 id="why">1. Why Bayesian thinking matters</h2>
+
+<p>Every standard ML model is doing one of two things: computing a point estimate of parameters (frequentist), or maintaining a probability distribution over parameters (Bayesian). The frequentist view says "find the single best weights." The Bayesian view says "maintain a belief distribution over all possible weights, weighted by how well they explain the data."</p>
+
+<p>This philosophical difference has three practical consequences that make Bayesian methods worth understanding even when you're not using them explicitly:</p>
+
+<p><strong>Regularization is Bayesian.</strong> L2 regularization is exactly maximum-a-posteriori estimation with a Gaussian prior on the weights. L1 is MAP with a Laplace prior. Elastic net is a mixture. You cannot fully explain why regularization works without understanding this connection — it's not an engineering hack, it's principled Bayesian inference presented in disguise. This alone makes Bayesian thinking essential vocabulary for any ML interview.</p>
+
+<p><strong>Uncertainty quantification.</strong> A frequentist logistic regression gives you a point estimate of $P(y=1|x)$ — a single number. A Bayesian one gives you a distribution over what $P(y=1|x)$ could be. In many applications (medical decisions, financial risk, autonomous driving), knowing your model's uncertainty matters as much as knowing its prediction. Bayesian methods make uncertainty a first-class output.</p>
+
+<p><strong>Small-data regimes.</strong> When data is limited, prior knowledge matters. Bayesian methods let you encode "I know this parameter is probably positive," or "I know this coefficient shouldn't be far from zero," directly into the model. In hyperparameter optimization, active learning, A/B testing with limited samples, and any scientific application where labels are expensive, Bayesian approaches often outperform frequentist ones significantly.</p>
+
+<p>The article that follows will build up the machinery, then apply it to the classical algorithms interviewers actually ask about.</p>
+
+<h2 id="bayes">2. Bayes' theorem and vocabulary</h2>
+
+<p>Bayes' theorem is the entire foundation:</p>
+
+<div class="math-display">
+$$P(\theta \mid \mathcal{D}) = \frac{P(\mathcal{D} \mid \theta) \, P(\theta)}{P(\mathcal{D})}$$
+</div>
+
+<p>where $\theta$ is model parameters and $\mathcal{D}$ is observed data. Each term has a name and a role, and you should know all four cold:</p>
+
+<ul>
+  <li><strong>$P(\theta)$ — prior.</strong> What you believed about $\theta$ before seeing any data. Encodes assumptions: "weights are probably small," "this proportion is probably between 0.1 and 0.4," "this variance is probably positive."</li>
+  <li><strong>$P(\mathcal{D} \mid \theta)$ — likelihood.</strong> How probable the observed data is under a particular setting of $\theta$. This is what the model class defines: a Gaussian regression gives a Gaussian likelihood, a Bernoulli classifier gives a Bernoulli likelihood.</li>
+  <li><strong>$P(\theta \mid \mathcal{D})$ — posterior.</strong> Your updated belief about $\theta$ after seeing the data. This is what Bayesian inference computes.</li>
+  <li><strong>$P(\mathcal{D})$ — evidence (marginal likelihood).</strong> The probability of the data averaged over all possible $\theta$: $P(\mathcal{D}) = \int P(\mathcal{D}|\theta) P(\theta) d\theta$. Serves as a normalizing constant so the posterior integrates to 1. Also used for model comparison — models with higher evidence are preferred.</li>
+</ul>
+
+<p>The intuition is simple. Bayes' theorem tells you: <em>posterior is proportional to prior times likelihood</em>. Belief updating happens by multiplying what you already thought by how well the data supports each hypothesis. The evidence term just re-normalizes.</p>
+
+<div class="callout">
+  <div class="clabel">A common working form</div>
+  <p>Because $P(\mathcal{D})$ is constant in $\theta$, we often work with the unnormalized posterior:</p>
+  <p>$P(\theta \mid \mathcal{D}) \propto P(\mathcal{D} \mid \theta) \cdot P(\theta)$</p>
+  <p>Taking negative log turns this into a loss-like expression: $-\log P(\theta \mid \mathcal{D}) = -\log P(\mathcal{D} \mid \theta) - \log P(\theta) + \text{const}$. The first term is the negative log-likelihood (a standard ML loss), the second is a penalty term (the prior). This is exactly the connection that will explain regularization in §4.</p>
+</div>
+
+<h2 id="mle-map-full">3. MLE, MAP, and full Bayesian — three levels of commitment</h2>
+
+<p>Given data $\mathcal{D}$, there are three ways to answer "what should $\theta$ be?" — increasing in Bayesian commitment and computational cost.</p>
+
+<h3>Maximum Likelihood Estimation (MLE)</h3>
+
+<p>Ignore the prior. Find the $\theta$ that makes the data most likely:</p>
+
+<div class="math-display">
+$$\hat{\theta}_{\text{MLE}} = \arg\max_\theta P(\mathcal{D} \mid \theta) = \arg\max_\theta \sum_i \log P(x_i \mid \theta)$$
+</div>
+
+<p>Frequentist. This is what standard maximum likelihood does — logistic regression trained on cross-entropy, linear regression trained on MSE (under Gaussian noise assumption), and so on. No prior belief encoded; the data alone determines the estimate.</p>
+
+<h3>Maximum A Posteriori (MAP)</h3>
+
+<p>Find the mode of the posterior — the single most probable $\theta$ given both prior and data:</p>
+
+<div class="math-display">
+$$\hat{\theta}_{\text{MAP}} = \arg\max_\theta P(\theta \mid \mathcal{D}) = \arg\max_\theta \big[\log P(\mathcal{D} \mid \theta) + \log P(\theta)\big]$$
+</div>
+
+<p>Still a point estimate, but now shaped by the prior. As data grows, the likelihood term dominates and MAP converges to MLE. With little data, the prior has more influence.</p>
+
+<h3>Full Bayesian inference</h3>
+
+<p>Don't collapse to a single estimate at all. Maintain the full posterior distribution $P(\theta | \mathcal{D})$. For predictions on new inputs $x^*$, average over all possible parameters weighted by their posterior probability:</p>
+
+<div class="math-display">
+$$P(y^* \mid x^*, \mathcal{D}) = \int P(y^* \mid x^*, \theta) \, P(\theta \mid \mathcal{D}) \, d\theta$$
+</div>
+
+<p>This is the <em>predictive distribution</em>. Instead of "the model predicts $y^* = 0.7$," you get "the model believes $y^*$ is around 0.7 with such-and-such uncertainty." The prediction itself is a distribution, not a point.</p>
+
+<h3>The tradeoff</h3>
+
+<table>
+<thead><tr><th>Approach</th><th>Uses prior</th><th>Uncertainty output</th><th>Cost</th></tr></thead>
+<tbody>
+<tr><td>MLE</td><td>No</td><td>None (single point)</td><td>Optimization</td></tr>
+<tr><td>MAP</td><td>Yes</td><td>None (single point)</td><td>Optimization</td></tr>
+<tr><td>Full Bayesian</td><td>Yes</td><td>Full distribution</td><td>Integration (usually hard)</td></tr>
+</tbody>
+</table>
+
+<p>Full Bayesian is the "correct" answer but requires computing that integral, which is intractable for most interesting models. The workhorses of §8 (MCMC, variational inference) are approximation strategies for exactly this integral.</p>
+
+<h2 id="regularization">4. Regularization is MAP in disguise</h2>
+
+<p>This is the single most important connection to get comfortable with — it comes up in almost every ML interview at least implicitly.</p>
+
+<p>Consider linear regression with the standard assumption that observations are corrupted by Gaussian noise: $y_i = w^\top x_i + \epsilon_i$ with $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$. The likelihood is:</p>
+
+<div class="math-display">
+$$P(\mathcal{D} \mid w) = \prod_i \mathcal{N}(y_i \mid w^\top x_i, \sigma^2)$$
+</div>
+
+<p>Taking negative log and simplifying gives us the MSE loss up to a constant:</p>
+
+<div class="math-display">
+$$-\log P(\mathcal{D} \mid w) = \frac{1}{2\sigma^2}\sum_i (y_i - w^\top x_i)^2 + \text{const}$$
+</div>
+
+<p>So minimizing MSE is exactly maximum likelihood estimation. This is the frequentist answer.</p>
+
+<h3>Add a Gaussian prior → Ridge regression</h3>
+
+<p>Now put a prior on the weights: $w \sim \mathcal{N}(0, \tau^2 I)$ — "weights are probably small, distributed as a zero-mean Gaussian." The log-prior is:</p>
+
+<div class="math-display">
+$$\log P(w) = -\frac{1}{2\tau^2}\|w\|_2^2 + \text{const}$$
+</div>
+
+<p>MAP estimation maximizes log-likelihood + log-prior:</p>
+
+<div class="math-display">
+$$\hat{w}_{\text{MAP}} = \arg\min_w \Big[\frac{1}{2\sigma^2}\sum_i (y_i - w^\top x_i)^2 + \frac{1}{2\tau^2}\|w\|_2^2\Big]$$
+</div>
+
+<p>Factoring out $1/(2\sigma^2)$, this is:</p>
+
+<div class="math-display">
+$$\hat{w}_{\text{MAP}} = \arg\min_w \Big[\sum_i (y_i - w^\top x_i)^2 + \lambda \|w\|_2^2\Big], \quad \lambda = \frac{\sigma^2}{\tau^2}$$
+</div>
+
+<p>This is <strong>ridge regression</strong>. The L2 penalty $\lambda \|w\|^2$ isn't a hack — it's the Bayesian posterior-mode estimate under a Gaussian prior. The regularization strength $\lambda$ is the ratio of noise variance to prior variance: if you think the prior is very tight ($\tau^2$ small), $\lambda$ is large and the model is heavily regularized.</p>
+
+<h3>Add a Laplace prior → Lasso</h3>
+
+<p>Now use a Laplace prior instead: $P(w_j) \propto \exp(-|w_j|/b)$. The log-prior is:</p>
+
+<div class="math-display">
+$$\log P(w) = -\frac{1}{b}\|w\|_1 + \text{const}$$
+</div>
+
+<p>MAP estimation now gives:</p>
+
+<div class="math-display">
+$$\hat{w}_{\text{MAP}} = \arg\min_w \Big[\sum_i (y_i - w^\top x_i)^2 + \lambda \|w\|_1\Big]$$
+</div>
+
+<p>This is <strong>Lasso regression</strong>. The L1 penalty comes from a Laplace prior. The Laplace distribution has a sharp peak at zero (unlike the Gaussian's smooth peak), which is why L1 produces sparse weights — the prior concentrates probability mass on zero, and the MAP estimate reflects that.</p>
+
+<h3>Why this matters for interviews</h3>
+
+<p>When you're asked "why L2 regularization?", the sophisticated answer isn't "it prevents overfitting" — it's "it's the MAP estimate under a Gaussian prior on the weights, which encodes the belief that weights should be small." Same for L1 as a Laplace prior producing sparse solutions. Elastic net combines both (Gaussian × Laplace prior).</p>
+
+<p>This framing also generalizes: any log-prior becomes a regularizer, and any regularizer implies a prior. Group Lasso corresponds to a specific structured prior. Dropout can be interpreted as approximate Bayesian inference over Bernoulli masks (§10). Understanding the prior tells you what the regularizer is actually encoding.</p>
+
+<h2 id="naive-bayes">5. Naive Bayes classifier</h2>
+
+<p>Naive Bayes is the classical Bayesian classifier — the simplest possible generative model that still works. It comes up in interviews as a baseline for text classification and as a check that you understand generative vs discriminative modeling.</p>
+
+<h3>The setup</h3>
+
+<p>For a classification problem, we want $P(y | x)$. Bayes' theorem lets us write this as:</p>
+
+<div class="math-display">
+$$P(y \mid x) = \frac{P(x \mid y) P(y)}{P(x)} \propto P(x \mid y) P(y)$$
+</div>
+
+<p>Classification: pick the class that maximizes this — the MAP class:</p>
+
+<div class="math-display">
+$$\hat{y} = \arg\max_y P(x \mid y) P(y)$$
+</div>
+
+<p>The class prior $P(y)$ is easy: count the fraction of training examples in each class. The challenge is $P(x | y)$, the likelihood of features $x = (x_1, \ldots, x_d)$ given the class. Modeling the joint distribution over $d$ features per class is generally intractable.</p>
+
+<h3>The naive assumption</h3>
+
+<p>Naive Bayes makes the sweeping assumption that features are <em>conditionally independent given the class</em>:</p>
+
+<div class="math-display">
+$$P(x \mid y) = \prod_{j=1}^d P(x_j \mid y)$$
+</div>
+
+<p>Now we only need per-feature per-class distributions $P(x_j | y)$, which are easy to estimate: for continuous features, fit a Gaussian per (feature, class); for categorical features, count.</p>
+
+<p>The classification rule becomes:</p>
+
+<div class="math-display">
+$$\hat{y} = \arg\max_y P(y) \prod_j P(x_j \mid y)$$
+</div>
+
+<p>Or in log space (numerically safer):</p>
+
+<div class="math-display">
+$$\hat{y} = \arg\max_y \Big[\log P(y) + \sum_j \log P(x_j \mid y)\Big]$$
+</div>
+
+<h3>When it works and when it doesn't</h3>
+
+<p>The conditional independence assumption is almost never true — in real data, features are correlated. But naive Bayes often works surprisingly well anyway, especially when:</p>
+<ul>
+  <li><strong>Text classification.</strong> With bag-of-words features, "conditional independence given the class" is roughly "given the topic, the words are independent." False in detail (word co-occurrences matter) but a useful approximation. Naive Bayes was the default spam filter for a decade.</li>
+  <li><strong>Small data.</strong> Naive Bayes has very few parameters (per-feature per-class distributions), so it needs very little data to fit. Great baseline when you have 100 examples per class.</li>
+  <li><strong>High-dimensional sparse data.</strong> When features are mostly zero (bag-of-words, one-hot encodings), the multiplicative structure of Naive Bayes handles sparsity naturally.</li>
+</ul>
+
+<p>Where it fails: when feature correlations carry the classification signal, Naive Bayes throws away that signal. Logistic regression on the same features usually outperforms Naive Bayes as data grows, because LR can capture inter-feature interactions through its coefficient structure.</p>
+
+<h3>Naive Bayes vs logistic regression</h3>
+
+<p>These are a canonical <em>generative-discriminative pair</em>:</p>
+<ul>
+  <li><strong>Naive Bayes (generative).</strong> Models $P(x, y) = P(y) P(x|y)$. Learns the joint distribution.</li>
+  <li><strong>Logistic regression (discriminative).</strong> Models $P(y | x)$ directly. Doesn't try to model $x$.</li>
+</ul>
+
+<p>Ng &amp; Jordan (2001) showed that if the Naive Bayes assumptions hold, both converge to the same decision boundary — but Naive Bayes converges faster (needs less data) while logistic regression has lower asymptotic error (does better with lots of data). This "faster convergence but higher asymptotic error" pattern generalizes to other generative-discriminative pairs.</p>
+
+<h2 id="blr">6. Bayesian linear regression — full derivation</h2>
+
+<p>Bayesian linear regression is the cleanest example of full Bayesian inference. Everything works out in closed form because of conjugate priors (§7), making it a rare Bayesian method you can actually compute exactly.</p>
+
+<h3>The model</h3>
+
+<p>Data: $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^N$. Model: $y_i = w^\top x_i + \epsilon_i$ with $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$. Assume $\sigma^2$ is known (extensions to unknown $\sigma^2$ exist but are more involved).</p>
+
+<p>Prior on weights: $w \sim \mathcal{N}(0, \tau^2 I)$. This is a Gaussian prior centered at zero with variance $\tau^2$ per dimension.</p>
+
+<h3>The posterior (closed form)</h3>
+
+<p>Because both the prior and likelihood are Gaussian, and Gaussians are conjugate to themselves (multiplying two Gaussians gives another Gaussian), the posterior is also Gaussian:</p>
+
+<div class="math-display">
+$$P(w \mid \mathcal{D}) = \mathcal{N}(w \mid \mu_N, \Sigma_N)$$
+</div>
+
+<p>with</p>
+
+<div class="math-display">
+$$\Sigma_N = \left(\frac{1}{\tau^2} I + \frac{1}{\sigma^2} X^\top X\right)^{-1}$$
+</div>
+
+<div class="math-display">
+$$\mu_N = \frac{1}{\sigma^2} \Sigma_N X^\top y$$
+</div>
+
+<p>where $X$ is the $N \times d$ design matrix and $y$ is the vector of targets.</p>
+
+<p>Notice: $\mu_N$ is exactly the ridge regression solution with $\lambda = \sigma^2/\tau^2$. Bayesian linear regression's posterior mean is the ridge point estimate — the two are the same computation, but Bayesian gives us $\Sigma_N$ (uncertainty) for free.</p>
+
+<h3>The predictive distribution</h3>
+
+<p>For a new input $x^*$, we want $P(y^* | x^*, \mathcal{D})$. Integrating over the posterior on $w$:</p>
+
+<div class="math-display">
+$$P(y^* \mid x^*, \mathcal{D}) = \int \mathcal{N}(y^* \mid w^\top x^*, \sigma^2) \, \mathcal{N}(w \mid \mu_N, \Sigma_N) \, dw$$
+</div>
+
+<p>Because it's a Gaussian integrated against a Gaussian, this comes out to another Gaussian:</p>
+
+<div class="math-display">
+$$P(y^* \mid x^*, \mathcal{D}) = \mathcal{N}(y^* \mid \mu_N^\top x^*, \, \sigma^2 + x^{*\top} \Sigma_N x^*)$$
+</div>
+
+<p>The predictive mean is $\mu_N^\top x^*$ — same as the point estimate. But the predictive variance has two components:</p>
+<ul>
+  <li>$\sigma^2$ — the irreducible noise in observations.</li>
+  <li>$x^{*\top} \Sigma_N x^*$ — the uncertainty in $w$ propagated through the model. Large where we haven't seen much training data; small where we have.</li>
+</ul>
+
+<p>This second term is what makes Bayesian linear regression powerful. Predictions in data-rich regions have small uncertainty; predictions extrapolated far from training data have large uncertainty. The model <em>knows what it doesn't know</em> — a property frequentist regression doesn't give you.</p>
+
+<div class="diagram">
+<svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg">
+  <text x="320" y="20" text-anchor="middle" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="12">Bayesian linear regression: mean and uncertainty band</text>
+
+  <!-- axes -->
+  <line x1="60" y1="180" x2="580" y2="180" stroke="#5A6672" stroke-width="1"/>
+  <line x1="60" y1="180" x2="60" y2="50" stroke="#5A6672" stroke-width="1"/>
+  <text x="60" y="200" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">x</text>
+  <text x="50" y="115" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">y</text>
+
+  <!-- uncertainty band - wider at edges -->
+  <path d="M 80 140 Q 200 130 320 130 Q 440 130 560 100 L 560 150 Q 440 165 320 160 Q 200 160 80 175 Z" fill="#5CE0BF" opacity="0.15"/>
+
+  <!-- mean line -->
+  <path d="M 80 155 Q 200 145 320 145 Q 440 145 560 125" stroke="#5CE0BF" stroke-width="2" fill="none"/>
+
+  <!-- training points -->
+  <circle cx="180" cy="150" r="4" fill="#FFC46B"/>
+  <circle cx="220" cy="140" r="4" fill="#FFC46B"/>
+  <circle cx="260" cy="148" r="4" fill="#FFC46B"/>
+  <circle cx="300" cy="145" r="4" fill="#FFC46B"/>
+  <circle cx="340" cy="143" r="4" fill="#FFC46B"/>
+  <circle cx="380" cy="140" r="4" fill="#FFC46B"/>
+  <circle cx="420" cy="138" r="4" fill="#FFC46B"/>
+
+  <text x="120" y="115" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">wide (extrapolation)</text>
+  <text x="300" y="115" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">narrow (data)</text>
+  <text x="500" y="80" fill="#9AA6B2" font-family="SF Mono, monospace" font-size="10">wide again</text>
+
+  <text x="320" y="225" text-anchor="middle" fill="#5A6672" font-family="SF Mono, monospace" font-size="10">Uncertainty is small near data, large in extrapolation regions.</text>
+</svg>
+<div class="caption">The predictive distribution of Bayesian linear regression: mean ± uncertainty as a function of x.</div>
+</div>
+
+<h2 id="priors">7. Priors: choosing them, conjugate priors, informativeness</h2>
+
+<p>The choice of prior is where Bayesian modeling gets philosophical and where interview questions often go.</p>
+
+<h3>Informative vs uninformative priors</h3>
+
+<p><strong>Informative priors</strong> encode real knowledge: "based on prior studies, this effect size is likely 0.2-0.5"; "this rate constant is bounded between 0.001 and 0.1"; "weights should be small." Used when you have domain knowledge worth encoding. Concentrates the posterior when data is sparse.</p>
+
+<p><strong>Uninformative (or "vague") priors</strong> try to encode as little as possible: a very wide Gaussian, a uniform distribution, or Jeffreys prior (invariant under parameter transformations). Used when you want the data to speak for itself and don't want to bias the posterior.</p>
+
+<p>The line between them isn't as clean as it sounds. A "uniform" prior on a variance parameter is <em>informative</em> — it says all variance values are equally likely, which is a strong claim about the parameter space. A truly non-informative prior often doesn't exist for a given problem.</p>
+
+<h3>Conjugate priors</h3>
+
+<p>A prior is <em>conjugate</em> to a likelihood if the posterior is in the same family as the prior. This gives closed-form Bayesian inference — no integration needed. The classical conjugate pairs are:</p>
+
+<table>
+<thead><tr><th>Likelihood</th><th>Conjugate prior</th><th>Posterior</th></tr></thead>
+<tbody>
+<tr><td>Bernoulli / Binomial</td><td>Beta</td><td>Beta (with updated params)</td></tr>
+<tr><td>Multinomial</td><td>Dirichlet</td><td>Dirichlet</td></tr>
+<tr><td>Poisson</td><td>Gamma</td><td>Gamma</td></tr>
+<tr><td>Gaussian (known variance)</td><td>Gaussian</td><td>Gaussian</td></tr>
+<tr><td>Gaussian (unknown variance)</td><td>Normal-inverse-Gamma</td><td>Normal-inverse-Gamma</td></tr>
+</tbody>
+</table>
+
+<h3>The Beta-Bernoulli example</h3>
+
+<p>The cleanest example. Suppose you're estimating the click-through rate $\theta$ of an ad from $N$ trials with $k$ clicks. Likelihood is Bernoulli, so use a Beta prior: $\theta \sim \text{Beta}(\alpha, \beta)$.</p>
+
+<p>Beta's density is $P(\theta) \propto \theta^{\alpha - 1} (1-\theta)^{\beta - 1}$. Multiplying by the Bernoulli likelihood $\theta^k (1-\theta)^{N-k}$ gives:</p>
+
+<div class="math-display">
+$$P(\theta \mid \mathcal{D}) \propto \theta^{\alpha + k - 1} (1-\theta)^{\beta + N - k - 1}$$
+</div>
+
+<p>which is $\text{Beta}(\alpha + k, \beta + N - k)$. The posterior is Beta again, with parameters updated by the observed successes and failures. You can interpret $\alpha - 1$ as "prior successes" and $\beta - 1$ as "prior failures" — the prior acts as pseudo-observations added to the real data.</p>
+
+<p>This is the workhorse of Bayesian A/B testing: maintain a Beta posterior for each variant's conversion rate, and compare posteriors to decide which variant is better. Powerful for small-sample and sequential-testing settings where frequentist $p$-values are unreliable.</p>
+
+<h3>The practical reality</h3>
+
+<p>Outside a few tractable cases (Gaussian-Gaussian, Beta-Bernoulli, and a handful of others), conjugate priors don't exist for the models you actually want to use. Modern Bayesian ML has largely moved to approximate inference (§8) that works with non-conjugate priors at the cost of exactness.</p>
+
+<h2 id="inference">8. Approximate inference: MCMC and variational inference</h2>
+
+<p>For most models, the posterior $P(\theta | \mathcal{D})$ has no closed form. The integral $P(\mathcal{D}) = \int P(\mathcal{D}|\theta) P(\theta) d\theta$ is intractable, so the posterior is only known up to a normalizing constant. Two families of methods approximate the posterior in this setting.</p>
+
+<h3>Markov Chain Monte Carlo (MCMC)</h3>
+
+<p>MCMC methods generate <em>samples</em> from the posterior without needing to compute the normalizing constant. The idea: construct a Markov chain whose stationary distribution is the posterior, run it long enough that the chain converges to that stationary distribution, and use the samples as an empirical approximation.</p>
+
+<p><strong>Metropolis-Hastings</strong> is the canonical algorithm. Given the current sample $\theta_t$: propose a new $\theta'$ from some proposal distribution; compute the acceptance ratio $r = P(\theta' | \mathcal{D}) / P(\theta_t | \mathcal{D}) = P(\mathcal{D}|\theta') P(\theta') / [P(\mathcal{D}|\theta_t) P(\theta_t)]$ (normalizing constant cancels!); accept $\theta'$ with probability $\min(1, r)$, else keep $\theta_t$. Under mild conditions, the chain converges to $P(\theta|\mathcal{D})$.</p>
+
+<p><strong>Gibbs sampling</strong> is a variant: for models with multiple parameters, sample each conditional on the others in turn. Useful when conditional distributions are easy to sample from even when the joint isn't.</p>
+
+<p><strong>Hamiltonian Monte Carlo (HMC)</strong> uses gradient information to make more informed proposals, scaling much better to high dimensions. The No-U-Turn Sampler (NUTS) is an auto-tuning HMC variant used by default in modern probabilistic programming languages (Stan, PyMC, NumPyro).</p>
+
+<p>MCMC is <strong>asymptotically exact</strong> — given enough samples, it recovers the true posterior arbitrarily well. But convergence is slow, hard to diagnose, and prohibitive for large models or datasets.</p>
+
+<h3>Variational Inference (VI)</h3>
+
+<p>VI turns Bayesian inference into an optimization problem. Choose a simple family of distributions $q_\phi(\theta)$ (e.g., a factorized Gaussian) and find the member closest to the true posterior:</p>
+
+<div class="math-display">
+$$\phi^* = \arg\min_\phi \text{KL}(q_\phi(\theta) \| P(\theta \mid \mathcal{D}))$$
+</div>
+
+<p>Because we can't compute the true posterior directly, we can't compute this KL directly either. But some algebra shows minimizing KL is equivalent to maximizing the <strong>Evidence Lower Bound (ELBO)</strong>:</p>
+
+<div class="math-display">
+$$\text{ELBO}(\phi) = \mathbb{E}_{q_\phi(\theta)}[\log P(\mathcal{D}, \theta)] - \mathbb{E}_{q_\phi(\theta)}[\log q_\phi(\theta)]$$
+</div>
+
+<p>which involves only tractable terms. Maximize the ELBO with gradient descent (using the reparameterization trick to backprop through sampling), and you get an approximate posterior.</p>
+
+<p>VI trades exactness for speed. It's <strong>not</strong> asymptotically exact — the true posterior may not be in your chosen $q$ family, so there's an irreducible approximation error. But VI is much faster than MCMC, scales to large datasets and models, and integrates naturally with modern deep learning tooling.</p>
+
+<h3>Choosing between MCMC and VI</h3>
+
+<table>
+<thead><tr><th></th><th>MCMC</th><th>VI</th></tr></thead>
+<tbody>
+<tr><td>Exactness</td><td>Asymptotically exact</td><td>Approximate</td></tr>
+<tr><td>Speed</td><td>Slow (sequential)</td><td>Fast (gradient-based)</td></tr>
+<tr><td>Scale</td><td>Small-to-medium data</td><td>Large data</td></tr>
+<tr><td>Convergence</td><td>Hard to diagnose</td><td>Standard optimization</td></tr>
+<tr><td>Use case</td><td>Scientific inference, unbiased posteriors</td><td>ML models, VAEs, BNNs</td></tr>
+</tbody>
+</table>
+
+<p>Rule of thumb: MCMC when you need trustworthy posteriors and can afford the compute (scientific applications, small data); VI when you're training large models where an approximate posterior is good enough (deep learning contexts).</p>
+
+<h2 id="gp">9. Gaussian processes</h2>
+
+<p>Gaussian processes (GPs) are a Bayesian approach to regression and classification that specifies a prior <em>over functions</em> rather than parameters.</p>
+
+<h3>The idea</h3>
+
+<p>A GP is a distribution over functions such that any finite set of function values has a joint Gaussian distribution. Specified by:</p>
+<ul>
+  <li>A <strong>mean function</strong> $m(x)$ — often taken as zero.</li>
+  <li>A <strong>kernel function</strong> $k(x, x')$ — encodes how similar $f(x)$ and $f(x')$ should be. The most common is the squared-exponential (RBF) kernel: $k(x, x') = \exp(-\|x - x'\|^2 / 2\ell^2)$.</li>
+</ul>
+
+<p>For any inputs $X = \{x_1, \ldots, x_n\}$, the vector $(f(x_1), \ldots, f(x_n))$ is jointly Gaussian with mean $m(X)$ and covariance matrix $K$ where $K_{ij} = k(x_i, x_j)$.</p>
+
+<h3>Prediction</h3>
+
+<p>Given training data $(X, y)$ (with Gaussian noise $\sigma_n^2$) and a test input $x^*$, the predictive distribution for $f(x^*)$ is Gaussian with:</p>
+
+<div class="math-display">
+$$\mu^* = k(x^*, X) [K + \sigma_n^2 I]^{-1} y$$
+$$\sigma^{*2} = k(x^*, x^*) - k(x^*, X) [K + \sigma_n^2 I]^{-1} k(X, x^*)$$
+</div>
+
+<p>All closed-form. The mean prediction is a weighted combination of training targets (weights determined by similarity to $x^*$ under the kernel). The variance decreases where training data is dense and increases where it's sparse — same "knows what it doesn't know" property as Bayesian linear regression, but with a much more flexible model class.</p>
+
+<h3>Strengths and limitations</h3>
+
+<p><strong>Strengths:</strong> non-parametric (no fixed number of parameters — flexibility grows with data), calibrated uncertainty, works well with small datasets, kernel choice encodes prior structure (smoothness, periodicity, etc.).</p>
+
+<p><strong>Limitations:</strong> $O(N^3)$ training and $O(N^2)$ inference in the number of training points, because of the matrix inversion. Impractical beyond ~10,000 training points without approximations. Sparse variational GPs and other approximation methods extend this to larger data at the cost of exactness.</p>
+
+<p>GPs are the workhorse of Bayesian optimization (§11), which is where most ML practitioners actually encounter them.</p>
+
+<h2 id="bnn">10. Bayesian neural networks and dropout as approximate Bayesian inference</h2>
+
+<h3>Bayesian neural networks</h3>
+
+<p>A Bayesian neural network treats the network's weights as random variables with a prior (usually Gaussian) and infers a posterior over them given data. Predictions marginalize over the weight posterior:</p>
+
+<div class="math-display">
+$$P(y^* \mid x^*, \mathcal{D}) = \int P(y^* \mid x^*, w) \, P(w \mid \mathcal{D}) \, dw$$
+</div>
+
+<p>The posterior $P(w | \mathcal{D})$ is intractable, so it's approximated with VI or (rarely) HMC. Well-executed BNNs give calibrated uncertainty on neural network predictions — a valuable property when NN predictions matter.</p>
+
+<p>The practical issue: full VI over millions of parameters is expensive and often produces posteriors that don't outperform simpler approaches in practice. BNNs remain more of a research topic than a production tool.</p>
+
+<h3>Dropout as approximate Bayesian inference</h3>
+
+<p>A striking result from Gal &amp; Ghahramani (2016): <strong>dropout at inference time is equivalent to approximate Bayesian inference in a specific BNN</strong>. The idea:</p>
+<ul>
+  <li>Standard dropout: zero out random neurons during training with probability $p$, use all neurons at inference.</li>
+  <li><strong>MC dropout:</strong> also use dropout at inference. Run the model $T$ times with different random dropout masks; each run gives a different prediction. The set of predictions is an empirical approximation to the predictive posterior.</li>
+</ul>
+
+<p>The variance across the $T$ predictions estimates the model's uncertainty. This gives you Bayesian uncertainty <em>for free</em> — no BNN training, no VI, just multiple forward passes at inference with dropout enabled.</p>
+
+<p>MC dropout is used in production for uncertainty estimation in medical imaging, autonomous vehicles, active learning setups. Not fully rigorous (the theoretical equivalence has caveats), but empirically effective.</p>
+
+<h3>Ensembles as a competing approach</h3>
+
+<p>Train $T$ independent neural networks with different initializations; at inference, average their predictions and use variance across them as an uncertainty estimate. This is "deep ensembles" (Lakshminarayanan et al., 2017), and it typically produces better-calibrated uncertainty than MC dropout at the cost of training $T$ models.</p>
+
+<p>For interview purposes, know that <strong>ensembles are the empirical winner for uncertainty in deep learning</strong>, despite MC dropout being cheaper. The Bayesian interpretation of ensembles: each network is approximately a sample from a broad posterior over networks that fit the data.</p>
+
+<h2 id="bo">11. Bayesian optimization for hyperparameter tuning</h2>
+
+<p>This is where Bayesian methods most often show up in production ML. Bayesian optimization (BO) is a strategy for optimizing expensive black-box functions — functions that take a long time to evaluate and whose derivatives are unavailable. The prototypical example: hyperparameter tuning for a large model.</p>
+
+<h3>The problem</h3>
+
+<p>You want to find hyperparameters $\lambda$ (LR, weight decay, dropout, architecture width, etc.) that maximize validation accuracy $f(\lambda)$. Each evaluation of $f$ requires training a model — hours to days. You can afford maybe 50-200 evaluations. Grid search wastes evaluations; random search does better but still doesn't use information from prior trials.</p>
+
+<h3>The BO approach</h3>
+
+<p>Maintain a probabilistic model of $f$ — usually a GP. Each trial:</p>
+<ol>
+  <li>Fit the GP to the trials so far $\{(\lambda_i, f(\lambda_i))\}$.</li>
+  <li>The GP gives you a mean $\mu(\lambda)$ and uncertainty $\sigma(\lambda)$ at every possible $\lambda$.</li>
+  <li>Compute an <strong>acquisition function</strong> $a(\lambda)$ that quantifies how promising each $\lambda$ is to try next. Common choices:
+    <ul>
+      <li><strong>Expected Improvement (EI):</strong> $\mathbb{E}[\max(f(\lambda) - f^*, 0)]$ where $f^*$ is the current best. Rewards points that are likely to beat the current best.</li>
+      <li><strong>Upper Confidence Bound (UCB):</strong> $\mu(\lambda) + \kappa \sigma(\lambda)$. Rewards points that either have high predicted value or high uncertainty (worth exploring).</li>
+      <li><strong>Probability of Improvement:</strong> $P(f(\lambda) > f^*)$. Simpler than EI but less commonly used.</li>
+    </ul>
+  </li>
+  <li>Choose the $\lambda$ that maximizes $a$, evaluate $f$ at it, add the result to your data, and repeat.</li>
+</ol>
+
+<p>The acquisition function balances <strong>exploitation</strong> (pick where the GP says the mean is high) and <strong>exploration</strong> (pick where the GP is uncertain). This is what makes BO sample-efficient.</p>
+
+<h3>Where you'll see BO in production</h3>
+
+<ul>
+  <li><strong>Hyperparameter tuning:</strong> Google Vizier, AWS SageMaker's HPO, Optuna, Ax/BoTorch, Hyperopt.</li>
+  <li><strong>Experimental design:</strong> which experiment to run next when experiments are expensive (drug discovery, materials science).</li>
+  <li><strong>Manufacturing:</strong> tuning process parameters where each trial produces or discards physical material — my own work at GE Digital used BO with DBSCAN-derived bounds to tune manufacturing parameters, reducing scrap from 4.4% to 2.9%.</li>
+  <li><strong>A/B testing:</strong> Multi-armed bandits are BO's cousin — same exploration-exploitation tradeoff, applied online.</li>
+</ul>
+
+<div class="callout warn">
+  <div class="clabel">The scale limitation</div>
+  <p>BO's GP backbone scales as $O(N^3)$ in the number of trials. For $N > 1000$ trials, GP-based BO becomes impractical. For large-scale tuning (hundreds of thousands of trials), practitioners use random search or evolutionary methods instead, or use approximation methods like tree-structured Parzen estimators (TPE, used by Hyperopt).</p>
+</div>
+
+<h2 id="when">12. When to actually use Bayesian methods</h2>
+
+<p>Full Bayesian methods are expensive and often overkill. In production ML, the calibration is roughly:</p>
+
+<p><strong>Use Bayesian methods when:</strong></p>
+<ul>
+  <li><strong>Small data</strong> and priors carry real signal (scientific applications, medical, small-scale industrial optimization).</li>
+  <li><strong>Uncertainty matters more than a point estimate</strong> (medical decisions, financial risk, autonomous systems).</li>
+  <li><strong>Expensive evaluations</strong> and you need to be sample-efficient (Bayesian optimization for hyperparameter tuning, A/B testing).</li>
+  <li><strong>You need a principled way to combine prior knowledge with data</strong> (Bayesian A/B testing, transfer learning setups).</li>
+</ul>
+
+<p><strong>Don't use Bayesian methods when:</strong></p>
+<ul>
+  <li>You have millions of data points — the likelihood dominates the prior, and frequentist methods are essentially equivalent for less compute.</li>
+  <li>You need a fast production model — Bayesian inference at inference time is often prohibitive.</li>
+  <li>Deep learning is the natural fit — modern NNs with regularization and calibration post-processing usually outperform BNNs on standard metrics.</li>
+</ul>
+
+<p><strong>Always know:</strong></p>
+<ul>
+  <li>The MLE→MAP→regularization chain (the single most-asked Bayesian topic in ML interviews).</li>
+  <li>Naive Bayes as a baseline for text classification.</li>
+  <li>Bayesian optimization for hyperparameter tuning.</li>
+  <li>The generative vs discriminative distinction (Naive Bayes vs logistic regression).</li>
+</ul>
+
+<h1 class="qbank-header" id="qbank">Interview question bank</h1>
+<p style="color: var(--ink-2); margin-bottom: 40px;">Bayesian methods appear in interviews most often through their connection to regularization, through Naive Bayes as a classical baseline, and through Bayesian optimization for hyperparameter tuning. These questions cover all three angles plus a few deeper ones.</p>
+
+<div class="iq">
+  <div class="qlabel">Question 1 · Foundational</div>
+  <div class="qtext">Explain Bayes' theorem in your own words. What are the roles of prior, likelihood, and posterior?</div>
+  <div class="qans">
+    <p>Bayes' theorem says: $P(\theta | \mathcal{D}) = P(\mathcal{D} | \theta) P(\theta) / P(\mathcal{D})$. It's a rule for updating beliefs in light of evidence.</p>
+    <p><strong>Prior $P(\theta)$:</strong> what you believed about parameters before seeing data. Encodes assumptions or prior knowledge — "weights should be small," "this probability is likely near 0.5."</p>
+    <p><strong>Likelihood $P(\mathcal{D} | \theta)$:</strong> how probable the observed data is under a specific $\theta$. Defined by the model class (Gaussian regression → Gaussian likelihood, Bernoulli classifier → Bernoulli likelihood).</p>
+    <p><strong>Posterior $P(\theta | \mathcal{D})$:</strong> updated belief about $\theta$ after seeing data. This is what Bayesian inference computes.</p>
+    <p><strong>Evidence $P(\mathcal{D})$:</strong> normalizing constant so the posterior integrates to 1. Also used for model comparison — a higher evidence indicates a model that fits the data better averaged over its prior.</p>
+    <p>Working form: $P(\theta | \mathcal{D}) \propto P(\mathcal{D} | \theta) P(\theta)$. Posterior is prior × likelihood, up to normalization.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 2 · The core connection</div>
+  <div class="qtext">Show that L2 regularization is equivalent to MAP estimation with a Gaussian prior.</div>
+  <div class="qans">
+    <p>Standard linear regression assumes $y = w^\top x + \epsilon$ with $\epsilon \sim \mathcal{N}(0, \sigma^2)$. The likelihood is $P(\mathcal{D} | w) = \prod_i \mathcal{N}(y_i | w^\top x_i, \sigma^2)$. Negative log-likelihood:</p>
+    <p>$-\log P(\mathcal{D}|w) = \frac{1}{2\sigma^2}\sum_i (y_i - w^\top x_i)^2 + \text{const}$</p>
+    <p>That's MSE. Now add a Gaussian prior $w \sim \mathcal{N}(0, \tau^2 I)$. Negative log-prior:</p>
+    <p>$-\log P(w) = \frac{1}{2\tau^2}\|w\|^2 + \text{const}$</p>
+    <p>MAP maximizes posterior = minimizes negative log-posterior = minimizes NLL + neg-log-prior:</p>
+    <p>$\hat{w}_{\text{MAP}} = \arg\min_w \sum_i (y_i - w^\top x_i)^2 + \lambda \|w\|^2, \quad \lambda = \sigma^2/\tau^2$</p>
+    <p>This is exactly ridge regression. So L2 regularization is MAP under a Gaussian prior on the weights — the penalty $\lambda \|w\|^2$ is the log-prior. Correspondingly, L1 regularization is MAP under a Laplace prior, which explains why L1 produces sparse weights (the Laplace distribution's sharp peak at zero).</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 3 · MLE vs MAP</div>
+  <div class="qtext">When does MAP converge to MLE?</div>
+  <div class="qans">
+    <p>As data grows. The MAP objective is $\log P(\mathcal{D}|\theta) + \log P(\theta)$. The likelihood term scales with $N$ (sum of $N$ log-terms), while the prior is fixed. As $N \to \infty$, the prior becomes negligible relative to the likelihood, and MAP $\to$ MLE.</p>
+    <p>Practical implication: for large-data regimes, the choice of prior barely matters — the data overwhelms it. This is why L2 regularization strength $\lambda$ typically needs to be tuned smaller as datasets grow. In the limit, you don't need regularization at all because the data provides all the constraint you need.</p>
+    <p>Conversely, priors matter <em>most</em> when data is scarce. This is why Bayesian methods shine on small data — the prior fills in what the data doesn't tell you.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 4 · Naive Bayes</div>
+  <div class="qtext">Explain Naive Bayes. What's the "naive" assumption?</div>
+  <div class="qans">
+    <p>Naive Bayes is a generative classifier that uses Bayes' theorem: $P(y|x) \propto P(y) P(x|y)$. Predict the class $y$ that maximizes $P(y) P(x|y)$.</p>
+    <p>The "naive" assumption: features are <strong>conditionally independent given the class</strong>:</p>
+    <p>$P(x_1, \ldots, x_d | y) = \prod_j P(x_j | y)$</p>
+    <p>This is essentially never true in real data (features are correlated) but makes the model tractable: instead of learning a joint distribution over all features per class, you learn one per-feature per-class distribution independently.</p>
+    <p>Training is very fast — for continuous features, fit a Gaussian per (feature, class); for categorical, count. Prediction is: $\hat{y} = \arg\max_y [\log P(y) + \sum_j \log P(x_j|y)]$.</p>
+    <p>Works well for text classification (bag-of-words), small-data settings, and high-dimensional sparse data. Fails when feature interactions carry the classification signal — logistic regression is usually better with enough data.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 5 · Generative vs discriminative</div>
+  <div class="qtext">What's the difference between Naive Bayes and logistic regression?</div>
+  <div class="qans">
+    <p>They're a canonical generative-discriminative pair. Both learn linear decision boundaries in the same feature space, but:</p>
+    <p><strong>Naive Bayes (generative):</strong> models the joint distribution $P(x, y) = P(y) P(x|y)$. Learns how the data was generated. Naive Bayes assumption: features independent given class.</p>
+    <p><strong>Logistic regression (discriminative):</strong> models $P(y|x)$ directly. Doesn't try to model how features are distributed, just how they map to labels.</p>
+    <p>Ng &amp; Jordan (2001) showed that under Naive Bayes' assumptions, both converge to the same decision boundary, but Naive Bayes converges faster (needs less data — its inductive bias helps in small-sample regimes) while logistic regression has lower asymptotic error (no inductive bias holding it back with enough data).</p>
+    <p>Practical: use Naive Bayes when data is scarce or as a baseline. Use logistic regression when you have enough data to let it fit and when feature interactions likely matter.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 6 · Bayesian linear regression</div>
+  <div class="qtext">What's the difference between ridge regression and Bayesian linear regression?</div>
+  <div class="qans">
+    <p>Same point estimate, different information.</p>
+    <p>Ridge regression gives you $\hat{w} = (X^\top X + \lambda I)^{-1} X^\top y$ — a single vector of weights.</p>
+    <p>Bayesian linear regression (with Gaussian prior and Gaussian likelihood) gives you the full posterior $P(w | \mathcal{D}) = \mathcal{N}(\mu_N, \Sigma_N)$ where the mean $\mu_N$ is exactly the ridge estimate (when $\lambda = \sigma^2/\tau^2$) but you also get the covariance $\Sigma_N$.</p>
+    <p>Why $\Sigma_N$ matters: for a new input $x^*$, the predictive variance is $\sigma^2 + x^{*\top} \Sigma_N x^*$. The first term is irreducible noise; the second is the model's uncertainty. This is small in regions with lots of training data and large in extrapolation regions — the model tells you when to trust its predictions.</p>
+    <p>Ridge gives you a point prediction. Bayesian linear regression gives you a prediction distribution. In many applications (medical, financial, safety-critical), the uncertainty is as valuable as the prediction.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 7 · Conjugate priors</div>
+  <div class="qtext">What is a conjugate prior? Give an example.</div>
+  <div class="qans">
+    <p>A conjugate prior is a prior distribution such that the posterior belongs to the same family. This makes Bayesian inference tractable — you can update in closed form without needing MCMC or VI.</p>
+    <p><strong>Beta-Bernoulli example.</strong> Estimating a click-through rate $\theta$ from $N$ trials with $k$ clicks. Likelihood is Bernoulli. The Beta distribution is conjugate: with prior $\theta \sim \text{Beta}(\alpha, \beta)$, the posterior after seeing $k$ clicks and $N - k$ misses is:</p>
+    <p>$P(\theta | \mathcal{D}) = \text{Beta}(\alpha + k, \beta + N - k)$</p>
+    <p>You just update the Beta parameters by adding observed counts. The Beta prior's parameters $(\alpha, \beta)$ can be interpreted as "pseudo-observations" — like having seen $\alpha - 1$ prior clicks and $\beta - 1$ prior misses.</p>
+    <p>Other conjugate pairs: Gaussian likelihood with Gaussian prior (posterior Gaussian), Poisson with Gamma (posterior Gamma), Multinomial with Dirichlet (posterior Dirichlet). Outside these tractable cases, you generally need MCMC or VI.</p>
+    <p>Practical application: Bayesian A/B testing uses Beta-Bernoulli posteriors for each variant, comparing posteriors to make decisions. More statistically sound than frequentist $p$-values for small samples or sequential testing.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 8 · Approximate inference</div>
+  <div class="qtext">When would you use MCMC vs variational inference?</div>
+  <div class="qans">
+    <p>Both approximate intractable posteriors. Choose based on the exactness-speed tradeoff:</p>
+    <p><strong>MCMC (Metropolis-Hastings, HMC, NUTS):</strong> generates samples from the true posterior. Asymptotically exact — given enough samples and time, converges to the true posterior. But slow (sequential sampling, can't parallelize easily), hard to diagnose convergence, doesn't scale to large data or high-dimensional models. Use for scientific inference where posterior accuracy matters and compute is available.</p>
+    <p><strong>Variational Inference (VI):</strong> optimizes a variational lower bound (ELBO) to find the best approximation in a chosen family (e.g., factorized Gaussian). Fast (gradient-based, parallelizable, scales to large data), integrates with deep learning tooling. But not asymptotically exact — bounded by the flexibility of the chosen variational family. Use for large models and datasets where an approximation is acceptable (VAEs, Bayesian neural networks).</p>
+    <p>Rule of thumb: MCMC for statisticians who need trustworthy posteriors; VI for ML practitioners who need scale.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 9 · Gaussian processes</div>
+  <div class="qtext">What is a Gaussian process? When would you use one?</div>
+  <div class="qans">
+    <p>A GP is a distribution over functions, specified by a mean function and a kernel. The defining property: any finite collection of function values is jointly Gaussian. It's a non-parametric Bayesian model — no fixed number of parameters; flexibility grows with data.</p>
+    <p>Prediction is closed-form Gaussian: predictive mean is a kernel-weighted combination of training targets, predictive variance shrinks near training data and grows in extrapolation regions.</p>
+    <p><strong>Use GPs when:</strong> small data (they excel at $N < 10{,}000$), you need well-calibrated uncertainty, you have prior knowledge to encode via the kernel (smoothness, periodicity, additive structure).</p>
+    <p><strong>Don't use GPs when:</strong> you have $N > 10{,}000$ (the $O(N^3)$ training and $O(N^2)$ inference become prohibitive), you need to encode complex feature interactions (kernels are limited in what they express), you need learned representations (GPs work on fixed feature spaces).</p>
+    <p>The most common production use: as the surrogate model in Bayesian optimization for hyperparameter tuning, where evaluations are so expensive that you'll never have more than a few hundred and calibrated uncertainty matters for the acquisition function.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 10 · Bayesian optimization</div>
+  <div class="qtext">Explain Bayesian optimization. What is the acquisition function?</div>
+  <div class="qans">
+    <p>BO is a sample-efficient approach to optimizing an expensive black-box function $f$ — one where evaluations take a long time (e.g., training a large model with a hyperparameter setting) and derivatives are unavailable.</p>
+    <p>The idea: maintain a probabilistic surrogate model (usually a GP) that approximates $f$ based on evaluations so far. Use the surrogate's mean and uncertainty to decide which point to evaluate next.</p>
+    <p>The <strong>acquisition function</strong> $a(\lambda)$ quantifies how promising each candidate $\lambda$ is. It balances:</p>
+    <ul>
+      <li><strong>Exploitation:</strong> prefer points where the surrogate predicts a high value.</li>
+      <li><strong>Exploration:</strong> prefer points where the surrogate is uncertain (might reveal an unexpected optimum).</li>
+    </ul>
+    <p>Common acquisition functions:</p>
+    <ul>
+      <li><strong>Expected Improvement (EI):</strong> $\mathbb{E}[\max(f(\lambda) - f^*, 0)]$. Rewards points likely to beat the current best.</li>
+      <li><strong>Upper Confidence Bound (UCB):</strong> $\mu(\lambda) + \kappa \sigma(\lambda)$. Rewards points that are high in mean or high in uncertainty.</li>
+      <li><strong>Probability of Improvement:</strong> $P(f(\lambda) > f^*)$. Simpler but less commonly used.</li>
+    </ul>
+    <p>The BO loop: fit GP to trials so far → choose $\lambda$ maximizing $a$ → evaluate $f$ at $\lambda$ → repeat. Typically converges to a good solution in 50-200 evaluations, much better than random search.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 11 · Deep learning uncertainty</div>
+  <div class="qtext">How can you get uncertainty estimates from a neural network?</div>
+  <div class="qans">
+    <p>Several approaches, none perfect:</p>
+    <p>(1) <strong>Softmax probability</strong> — the output layer's confidence. Easy but poorly calibrated (modern deep networks are notoriously overconfident on misclassified examples). Temperature scaling (fit a scalar temperature on validation set) helps.</p>
+    <p>(2) <strong>MC Dropout</strong> (Gal &amp; Ghahramani 2016) — keep dropout on at inference; run the model $T$ times with different masks. Mean of $T$ predictions is the point estimate; variance is the uncertainty. Equivalent to approximate Bayesian inference in a specific BNN. Cheap; produces reasonable uncertainty; used in production for medical imaging and autonomous vehicles.</p>
+    <p>(3) <strong>Deep ensembles</strong> (Lakshminarayanan et al. 2017) — train $T$ independent networks with different random initializations. Average predictions; use variance as uncertainty. Empirically the best-calibrated approach for deep learning uncertainty. Cost: $T \times$ the training compute.</p>
+    <p>(4) <strong>Bayesian neural networks (BNN)</strong> — treat weights as random variables, infer posterior via VI. Principled but expensive; often doesn't beat ensembles in practice.</p>
+    <p>(5) <strong>Conformal prediction</strong> — a distribution-free framework that gives calibrated prediction intervals via a held-out calibration set. Increasingly popular for production uncertainty quantification because it's model-agnostic and comes with formal guarantees.</p>
+    <p>For most production use, temperature-scaled softmax or deep ensembles is the sweet spot. BNNs are more of a research topic.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 12 · Practical</div>
+  <div class="qtext">You have a small dataset (200 examples) for a binary classification task. Would you use Bayesian methods?</div>
+  <div class="qans">
+    <p>Yes — small data is exactly where Bayesian methods shine, because priors carry meaningful signal and quantifying uncertainty matters.</p>
+    <p>Concrete recommendations:</p>
+    <p>(1) <strong>Start with Naive Bayes as a baseline.</strong> Fast, few parameters, works well with limited data. Sets a floor for what a more complex model needs to beat.</p>
+    <p>(2) <strong>Logistic regression with strong L2 regularization</strong> — equivalent to Bayesian LR with a tight Gaussian prior on weights. Cross-validate the regularization strength.</p>
+    <p>(3) <strong>If uncertainty matters</strong> (e.g., you'll act on high-confidence predictions and defer on low-confidence ones), do full Bayesian LR to get predictive uncertainty. Or use a small GP if the feature space is compact.</p>
+    <p>(4) <strong>If more data is expensive to obtain</strong>, use active learning — Bayesian methods naturally provide the uncertainty needed for uncertainty-based sample selection (label the examples where the model is most uncertain).</p>
+    <p>Don't reach for a deep neural network — with 200 examples, it will overfit no matter how you regularize. Simpler models with informative priors are the right choice.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 13 · Depth</div>
+  <div class="qtext">What is the ELBO in variational inference and why do we optimize it instead of the KL directly?</div>
+  <div class="qans">
+    <p>VI finds an approximate posterior $q_\phi(\theta)$ close to the true posterior $P(\theta|\mathcal{D})$ by minimizing KL divergence:</p>
+    <p>$\phi^* = \arg\min_\phi \text{KL}(q_\phi(\theta) \| P(\theta|\mathcal{D}))$</p>
+    <p>The problem: the KL involves the true posterior, which we can't compute (that's why we're doing VI in the first place). Some algebra:</p>
+    <p>$\text{KL}(q_\phi \| P(\theta|\mathcal{D})) = \mathbb{E}_{q_\phi}[\log q_\phi(\theta)] - \mathbb{E}_{q_\phi}[\log P(\theta|\mathcal{D})]$</p>
+    <p>Expanding the true posterior: $\log P(\theta|\mathcal{D}) = \log P(\mathcal{D}, \theta) - \log P(\mathcal{D})$. Substituting:</p>
+    <p>$\text{KL} = -\underbrace{[\mathbb{E}_{q_\phi}[\log P(\mathcal{D}, \theta)] - \mathbb{E}_{q_\phi}[\log q_\phi(\theta)]]}_{\text{ELBO}} + \log P(\mathcal{D})$</p>
+    <p>Since $\log P(\mathcal{D})$ is constant in $\phi$, <strong>minimizing KL is equivalent to maximizing the ELBO</strong>. And the ELBO involves only tractable quantities: the joint $P(\mathcal{D}, \theta) = P(\mathcal{D}|\theta) P(\theta)$ (defined by the model) and the entropy of $q_\phi$ (known in closed form for standard families).</p>
+    <p>The name ELBO — Evidence Lower BOund — comes from the fact that maximizing ELBO also bounds $\log P(\mathcal{D})$ from below: $\log P(\mathcal{D}) \geq \text{ELBO}$. The gap between them is the KL, which we're minimizing.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 14 · Cross-cutting</div>
+  <div class="qtext">You've been asked to tune 8 hyperparameters for a large model where each training run takes 6 hours on 8 GPUs. Design a tuning strategy.</div>
+  <div class="qans">
+    <p>This is exactly the setting Bayesian optimization was designed for: expensive evaluations, no gradients, moderate-dimensional continuous space.</p>
+    <p><strong>Approach:</strong></p>
+    <p>(1) <strong>Define search space:</strong> for each hyperparameter, specify a range (uniform, log-uniform) and prior distribution if you have one. Log-uniform for LR, weight decay; uniform for dropout; integer-uniform for architectural choices.</p>
+    <p>(2) <strong>Warm start with random search:</strong> run ~10-20 random configurations first. This gives the surrogate GP enough data to fit meaningfully; starting BO with too few points leads to poor early decisions.</p>
+    <p>(3) <strong>Bayesian optimization loop:</strong> fit a GP to trials so far, use Expected Improvement as acquisition function, evaluate the next candidate, add to trials, repeat. Use a mature framework — Ax/BoTorch, Optuna with TPE, or Google Vizier.</p>
+    <p>(4) <strong>Parallelize:</strong> if you have compute for 4-8 concurrent trials, use q-EI (batch EI) instead of vanilla EI to select multiple diverse candidates per iteration.</p>
+    <p>(5) <strong>Consider early stopping:</strong> if your training loss/val metric is monitored, use Hyperband or successive halving to kill poor trials early. Combines beautifully with BO — the framework BOHB does exactly this.</p>
+    <p>(6) <strong>Budget: 50-100 trials.</strong> That's a few hundred GPU-hours total; much better than grid search (would need $2^8 = 256$ trials for a coarse 2-level grid).</p>
+    <p>My own manufacturing work at GE Digital used exactly this approach — BO with DBSCAN-derived search bounds — to tune process parameters where each trial produces or scraps real material. Reduced scrap from 4.4% to 2.9%.</p>
+  </div>
+</div>
+
+<div class="iq">
+  <div class="qlabel">Question 15 · Trend</div>
+  <div class="qtext">Are Bayesian methods still relevant given the dominance of deep learning?</div>
+  <div class="qans">
+    <p>Yes, in specific regimes. Deep learning has largely won the large-data supervised learning benchmarks. But Bayesian methods remain the right tool for:</p>
+    <p><strong>Small data:</strong> priors carry real signal when data is limited. Deep networks can't compete on 200 examples.</p>
+    <p><strong>Uncertainty quantification:</strong> deep networks are notoriously overconfident. When uncertainty matters (medical, financial, safety-critical), Bayesian approaches — including conformal prediction, MC dropout, deep ensembles — remain essential.</p>
+    <p><strong>Sample-efficient optimization:</strong> Bayesian optimization is the standard for hyperparameter tuning and A/B testing. Not going away.</p>
+    <p><strong>Interpretability and calibration:</strong> A Bayesian A/B test gives a posterior distribution over conversion rates — often more useful for decision-making than a frequentist $p$-value.</p>
+    <p><strong>Scientific inference:</strong> when you need trustworthy posteriors with quantified uncertainty (drug discovery, physics, causal inference), MCMC and probabilistic programming remain essential.</p>
+    <p>The regularization-as-MAP connection also means every deep learning practitioner is implicitly using Bayesian tools all the time — L2 weight decay is a Gaussian prior. Understanding this is prerequisite to being fluent about why models generalize.</p>
+    <p>Bayesian deep learning specifically (BNNs) has been more of a research topic than a production winner. Ensembles usually outperform BNNs at similar cost. But the philosophical framework of Bayesian reasoning — treat parameters as uncertain, quantify uncertainty in predictions, encode prior knowledge — remains foundational.</p>
+  </div>
+</div>
+
+<h2>Further reading</h2>
+<ul>
+  <li>Bishop (2006). "Pattern Recognition and Machine Learning" — the canonical textbook. Chapters 1-3 cover the material in this article rigorously.</li>
+  <li>Murphy (2012, 2022). "Machine Learning: A Probabilistic Perspective" and its updated "Probabilistic Machine Learning" — comprehensive probabilistic ML reference.</li>
+  <li>Ng &amp; Jordan (2001). "On Discriminative vs. Generative Classifiers" — the canonical NB-vs-LR paper.</li>
+  <li>Gal &amp; Ghahramani (2016). "Dropout as a Bayesian Approximation" — MC dropout.</li>
+  <li>Lakshminarayanan et al. (2017). "Simple and Scalable Predictive Uncertainty Estimation Using Deep Ensembles."</li>
+  <li>Rasmussen &amp; Williams (2006). "Gaussian Processes for Machine Learning" — the GP textbook, freely available.</li>
+  <li>Shahriari et al. (2016). "Taking the Human Out of the Loop: A Review of Bayesian Optimization" — accessible BO survey.</li>
+  <li>Blei, Kucukelbir, McAuliffe (2017). "Variational Inference: A Review for Statisticians."</li>
+  <li>PyMC and Stan tutorials — hands-on probabilistic programming.</li>
+  <li>Ax, BoTorch, Optuna documentation — production Bayesian optimization tools.</li>
+</ul>
+
+</main>
+</body>
+</html>
